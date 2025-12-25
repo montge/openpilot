@@ -65,7 +65,13 @@ jobs:
             libqt5x11extras5-dev \
             libqt5opengl5-dev \
             libgles2-mesa-dev \
-            libglfw3-dev
+            libglfw3-dev \
+            ffmpeg \
+            libavformat-dev \
+            libavcodec-dev \
+            libavdevice-dev \
+            libavutil-dev \
+            libavfilter-dev
 
       - name: Install Python dependencies
         run: uv sync --frozen --extra testing

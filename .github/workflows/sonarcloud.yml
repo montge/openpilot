@@ -78,7 +78,10 @@ jobs:
             libqt5opengl5-dev
 
       - name: Install Python dependencies
-        run: uv sync --frozen --extra testing
+        run: |
+          uv sync --frozen --extra testing
+          # Install coverage tools (may not be in frozen lockfile)
+          uv pip install pytest-cov coverage
 
       - name: Build project
         run: |
