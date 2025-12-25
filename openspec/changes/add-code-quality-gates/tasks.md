@@ -53,8 +53,9 @@
   - Upload to Codecov
   - **Result: .github/workflows/cpp-coverage.yml**
 
-- [ ] **3.4** Set C++ coverage thresholds
+- [x] **3.4** Set C++ coverage thresholds
   - Start with baseline, ratchet up over time
+  - **Result: 65% threshold in cpp-coverage.yml workflow**
 
 ## Phase 4: MISRA CI Integration
 
@@ -80,10 +81,10 @@
   - C++: fail if coverage drops (via llvm-cov)
   - **Result: Configured in pyproject.toml and codecov.yml**
 
-- [ ] **5.2** Enable MISRA gates (optional)
+- [x] **5.2** Enable MISRA gates (optional)
   - cppcheck-misra: fail on new high-severity violations
   - clang-tidy-automotive: advisory only
-  - **Status: MISRA runs in CI but non-blocking**
+  - **Result: Differential checking with 1050 baseline threshold (warning only)**
 
 - [x] **5.3** Configure SonarCloud quality gates
   - Set coverage thresholds in SonarCloud

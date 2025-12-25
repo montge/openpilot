@@ -33,17 +33,43 @@ jobs:
           ./scripts/lint/cppcheck-misra.sh 2>&1 | tee cppcheck-misra-output.txt || true
 
       - name: Parse MISRA findings
+        id: parse
         run: |
           echo "## cppcheck MISRA C:2012 Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          FINDINGS=$(grep -c "misra-c2012" cppcheck-misra-output.txt 2>/dev/null || echo "0")
-          echo "**Total findings:** $FINDINGS" >> $GITHUB_STEP_SUMMARY
+
+          # Count findings (excluding generated code)
+          TOTAL=$(grep -c "misra-c2012" cppcheck-misra-output.txt 2>/dev/null || echo "0")
+          GENERATED=$(grep "c_generated_code" cppcheck-misra-output.txt | grep -c "misra-c2012" 2>/dev/null || echo "0")
+          ACTIONABLE=$((TOTAL - GENERATED))
+
+          echo "**Total findings:** $TOTAL" >> $GITHUB_STEP_SUMMARY
+          echo "**In generated code:** $GENERATED" >> $GITHUB_STEP_SUMMARY
+          echo "**Actionable findings:** $ACTIONABLE" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+
           echo "### Top 10 Rules" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           grep -oE "misra-c2012-[0-9]+\.[0-9]+" cppcheck-misra-output.txt 2>/dev/null | \
             sort | uniq -c | sort -rn | head -10 >> $GITHUB_STEP_SUMMARY || echo "No findings" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
+
+          echo "actionable=$ACTIONABLE" >> $GITHUB_OUTPUT
+
+      - name: Check MISRA threshold
+        run: |
+          ACTIONABLE=${{ steps.parse.outputs.actionable }}
+          # Baseline from reports/misra-baseline.md: 1003 actionable violations
+          BASELINE=1050  # Allow small buffer above baseline
+          echo "MISRA actionable findings: $ACTIONABLE (threshold: $BASELINE)"
+          if [ "$ACTIONABLE" -gt "$BASELINE" ]; then
+            echo "::warning::MISRA findings ($ACTIONABLE) exceed baseline ($BASELINE)"
+            echo "New MISRA violations detected. Please fix before merging."
+            # Currently non-blocking - uncomment to enforce:
+            # exit 1
+          else
+            echo "::notice::MISRA findings ($ACTIONABLE) within baseline ($BASELINE)"
+          fi
 
       - name: Upload MISRA report
         uses: actions/upload-artifact@v4
