@@ -86,6 +86,7 @@ docs = [
 
 testing = [
   "coverage",
+  "pytest-cov",
   "hypothesis ==6.47.*",
   "mypy",
   "pytest",
@@ -274,3 +275,35 @@ lint.flake8-implicit-str-concat.allow-multiline = false
 
 [tool.ruff.format]
 quote-style = "preserve"
+
+[tool.coverage.run]
+source = ["selfdrive", "system", "tools", "common"]
+omit = [
+  "*/tests/*",
+  "*/test_*",
+  "*_test.py",
+  "*/c_generated_code/*",
+  "selfdrive/debug/*",
+  "tools/sim/*",
+  "tools/replay/*",
+]
+branch = true
+parallel = true
+
+[tool.coverage.report]
+exclude_lines = [
+  "pragma: no cover",
+  "def __repr__",
+  "raise NotImplementedError",
+  "if TYPE_CHECKING:",
+  "if __name__ == .__main__.:",
+]
+show_missing = true
+# Uncomment to enforce minimum coverage (start low, increase over time)
+# fail_under = 20
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+[tool.coverage.xml]
+output = "coverage.xml"
