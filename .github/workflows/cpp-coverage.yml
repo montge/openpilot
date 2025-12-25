@@ -48,7 +48,15 @@ jobs:
             libeigen3-dev \
             libffi-dev \
             libsqlite3-dev \
-            libzstd-dev
+            libzstd-dev \
+            portaudio19-dev \
+            libcurl4-openssl-dev \
+            libjpeg-dev \
+            libusb-1.0-0-dev \
+            libncurses5-dev \
+            opencl-headers \
+            ocl-icd-libopencl1 \
+            ocl-icd-opencl-dev
 
       - name: Install Python dependencies
         run: uv sync --frozen

@@ -97,7 +97,7 @@ jobs:
         run: |
           source .venv/bin/activate
           # Enforce minimum coverage (configured in pyproject.toml)
-          coverage report --fail-under=33
+          python -m coverage report --fail-under=33
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
