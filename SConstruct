@@ -206,8 +206,9 @@ SConscript([
   'system/loggerd/SConscript',
 ])
 
-if arch == "larch64":
-  SConscript(['system/camerad/SConscript'])
+# Include camerad for all architectures to enable static analysis (MISRA)
+# Binary only runs on larch64 (comma device) but code can be analyzed anywhere
+SConscript(['system/camerad/SConscript'])
 
 # Build openpilot
 SConscript(['third_party/SConscript'])

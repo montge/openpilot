@@ -62,6 +62,14 @@ pandaextra
 flycheck_*
 
 cppcheck_report.txt
+
+# clang-tidy CTU analysis temp files
+*.ctu-info
+*.dump
+external_symbols.json
+
+# MISRA analysis raw reports (regenerate with scripts/lint/*.sh)
+reports/*-report.txt
 comma*.sh
 
 selfdrive/modeld/models/*.pkl
