@@ -37,26 +37,34 @@
 
 ## Phase 3: C++ Coverage
 
-- [ ] **3.1** Add llvm-cov instrumentation to SConstruct
+- [x] **3.1** Add llvm-cov instrumentation to SConstruct
   - Enable -fprofile-instr-generate -fcoverage-mapping
   - Create coverage build target
+  - **Result: Added --coverage option to scons**
 
-- [ ] **3.2** Create C++ coverage workflow
+- [x] **3.2** Create C++ coverage script
   - Build with coverage, run tests, generate report
+  - Export to lcov format for Codecov
+  - **Result: scripts/cpp-coverage.sh**
+
+- [ ] **3.3** Create C++ coverage workflow
+  - Add to CI pipeline
   - Upload to Codecov
 
-- [ ] **3.3** Set C++ coverage thresholds
+- [ ] **3.4** Set C++ coverage thresholds
   - Start with baseline, ratchet up over time
 
 ## Phase 4: MISRA CI Integration
 
-- [ ] **4.1** Add cppcheck-misra to CI workflow
+- [x] **4.1** Add cppcheck-misra to CI workflow
   - Run on PRs, report new violations only (differential)
   - Initially non-blocking (warnings)
+  - **Result: .github/workflows/misra.yml**
 
 - [ ] **4.2** Add clang-tidy-automotive to CI workflow
   - Configure as optional/advisory check
   - Report findings without blocking
+  - **Note: Requires custom clang-tidy-automotive build (commented out)**
 
 - [ ] **4.3** Create MISRA baseline file
   - Record current violation counts
