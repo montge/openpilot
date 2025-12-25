@@ -72,17 +72,20 @@
 
 ## Phase 5: Quality Gates
 
-- [ ] **5.1** Enable coverage gates (blocking)
-  - Python: fail if coverage drops
-  - C++: fail if coverage drops
+- [x] **5.1** Enable coverage gates (blocking)
+  - Python: fail if coverage drops (fail_under=33 in pyproject.toml)
+  - C++: fail if coverage drops (via llvm-cov)
+  - **Result: Configured in pyproject.toml and codecov.yml**
 
 - [ ] **5.2** Enable MISRA gates (optional)
   - cppcheck-misra: fail on new high-severity violations
   - clang-tidy-automotive: advisory only
+  - **Status: MISRA runs in CI but non-blocking**
 
-- [ ] **5.3** Configure SonarCloud quality gates
+- [x] **5.3** Configure SonarCloud quality gates
   - Set coverage thresholds in SonarCloud
   - Configure PR decoration
+  - **Result: sonar-project.properties updated with coverage paths**
 
 ## Validation
 
