@@ -20,17 +20,20 @@
 
 ## Phase 2: Python Coverage Gates
 
-- [ ] **2.1** Enable pytest-cov fail_under in pyproject.toml
+- [x] **2.1** Enable pytest-cov fail_under in pyproject.toml
   - Start at current baseline (prevents regression)
   - Configure per-module thresholds for critical paths
+  - **Result: fail_under = 33 in pyproject.toml**
 
-- [ ] **2.2** Update Codecov workflow
+- [x] **2.2** Update Codecov workflow
   - Add coverage threshold checks
   - Configure PR comments with coverage delta
+  - **Result: Added coverage check step, codecov.yml config**
 
-- [ ] **2.3** Create coverage ratchet script
+- [x] **2.3** Create coverage ratchet script
   - Script to update thresholds as coverage improves
   - Prevents accidental regression
+  - **Result: scripts/ratchet-coverage.sh**
 
 ## Phase 3: C++ Coverage
 

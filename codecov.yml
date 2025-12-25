@@ -1,0 +1,51 @@
+# Codecov configuration
+# https://docs.codecov.com/docs/codecov-yaml
+
+coverage:
+  precision: 1
+  round: down
+  range: "33...90"  # Color range: red at 33%, green at 90%
+
+  status:
+    project:
+      default:
+        target: auto  # Use coverage from base commit
+        threshold: 1%  # Allow 1% decrease
+        if_ci_failed: error
+
+    patch:
+      default:
+        target: 80%  # New code should have 80% coverage
+        threshold: 5%
+
+# Ignore certain paths
+ignore:
+  - "third_party/**"
+  - "tinygrad_repo/**"
+  - "msgq_repo/**"
+  - "opendbc_repo/**"
+  - "rednose_repo/**"
+  - "teleoprtc_repo/**"
+  - "panda/**"
+  - "cereal/**"
+  - "**/tests/**"
+  - "**/test_*.py"
+  - "**/*_test.py"
+  - "**/c_generated_code/**"
+
+# Comment settings for PRs
+comment:
+  layout: "reach,diff,flags,files"
+  behavior: default
+  require_changes: true
+  require_base: false
+  require_head: true
+
+# Flags for different test types
+flags:
+  unittests:
+    paths:
+      - selfdrive/
+      - system/
+      - common/
+    carryforward: true

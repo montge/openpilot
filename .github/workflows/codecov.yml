@@ -85,9 +85,16 @@ jobs:
           source .venv/bin/activate
           pytest --cov=selfdrive --cov=system --cov=tools --cov=common \
             --cov-report=xml:coverage.xml \
+            --cov-report=term \
             -m "not slow and not tici" \
             --ignore=tinygrad_repo --ignore=third_party \
             -n auto --timeout=300 || true
+
+      - name: Check coverage threshold
+        run: |
+          source .venv/bin/activate
+          # Enforce minimum coverage (configured in pyproject.toml)
+          coverage report --fail-under=33
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
