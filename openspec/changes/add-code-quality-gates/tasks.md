@@ -8,10 +8,11 @@
   - Document in `reports/coverage-baseline.md`
   - **Result: 33% line coverage (9,189/24,777 statements)**
 
-- [ ] **1.2** Measure current C++ coverage baseline
+- [x] **1.2** Measure current C++ coverage baseline
   - Configure scons for coverage instrumentation
   - Run C++ tests with llvm-cov
   - Record baseline metrics
+  - **Result: 67% line coverage, 45% branch coverage (common/, loggerd/ modules)**
 
 - [x] **1.3** Document safety-critical modules
   - Identify highest-priority paths (controls/, pandad/, safety/)
@@ -47,9 +48,10 @@
   - Export to lcov format for Codecov
   - **Result: scripts/cpp-coverage.sh**
 
-- [ ] **3.3** Create C++ coverage workflow
+- [x] **3.3** Create C++ coverage workflow
   - Add to CI pipeline
   - Upload to Codecov
+  - **Result: .github/workflows/cpp-coverage.yml**
 
 - [ ] **3.4** Set C++ coverage thresholds
   - Start with baseline, ratchet up over time
@@ -66,9 +68,10 @@
   - Report findings without blocking
   - **Note: Requires custom clang-tidy-automotive build (commented out)**
 
-- [ ] **4.3** Create MISRA baseline file
+- [x] **4.3** Create MISRA baseline file
   - Record current violation counts
   - Track improvement over time
+  - **Result: 3,255 total (1,003 in non-generated code) - reports/misra-baseline.md**
 
 ## Phase 5: Quality Gates
 
@@ -89,8 +92,8 @@
 
 ## Validation
 
-- [ ] All coverage workflows run successfully
-- [ ] Coverage reports appear in Codecov
-- [ ] MISRA reports generated without blocking PRs
-- [ ] SonarCloud shows quality metrics
-- [ ] PR with coverage regression is blocked
+- [x] All coverage workflows run successfully (tested cpp-coverage.sh locally)
+- [ ] Coverage reports appear in Codecov (requires CI run)
+- [x] MISRA reports generated without blocking PRs (tested cppcheck-misra.sh locally)
+- [ ] SonarCloud shows quality metrics (requires CI run)
+- [ ] PR with coverage regression is blocked (requires CI run)

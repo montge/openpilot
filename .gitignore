@@ -104,3 +104,11 @@ Pipfile
 # Ignore all local history of files
 .history
 .ionide
+
+# Coverage data files
+*.profraw
+*.profdata
+cpp-coverage-details.txt
+cpp-coverage.lcov
+cpp-coverage-report/
+coverage.xml

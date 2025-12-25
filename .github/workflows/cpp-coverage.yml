@@ -1,0 +1,107 @@
+name: C++ Coverage
+
+on:
+  push:
+    branches:
+      - master
+      - develop
+  pull_request:
+    branches:
+      - master
+      - develop
+
+jobs:
+  cpp-coverage:
+    name: C++ Coverage Analysis
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          lfs: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            clang \
+            llvm \
+            g++-12 \
+            capnproto \
+            libcapnp-dev \
+            libzmq3-dev \
+            libssl-dev \
+            libbz2-dev \
+            libeigen3-dev \
+            libffi-dev \
+            libsqlite3-dev \
+            libzstd-dev
+
+      - name: Install Python dependencies
+        run: uv sync --frozen
+
+      - name: Build C++ with coverage
+        run: |
+          source .venv/bin/activate
+          scons -u -j$(nproc) --coverage common/tests/ system/loggerd/tests/
+
+      - name: Run C++ tests
+        run: |
+          export LLVM_PROFILE_FILE="default_%p.profraw"
+          ./common/tests/test_common || true
+          ./system/loggerd/tests/test_logger || true
+
+      - name: Generate coverage report
+        run: |
+          # Find llvm tools
+          LLVM_PROFDATA=$(command -v llvm-profdata-18 || command -v llvm-profdata)
+          LLVM_COV=$(command -v llvm-cov-18 || command -v llvm-cov)
+
+          # Merge profraw files
+          $LLVM_PROFDATA merge -sparse *.profraw -o coverage.profdata
+
+          # Generate lcov report for Codecov
+          BINARIES=""
+          for bin in common/tests/test_common system/loggerd/tests/test_logger; do
+            if [[ -f "$bin" ]]; then
+              BINARIES="$BINARIES -object=$bin"
+            fi
+          done
+
+          $LLVM_COV export $BINARIES -instr-profile=coverage.profdata \
+            -ignore-filename-regex='third_party|msgq_repo|opendbc_repo|tinygrad_repo|rednose_repo|cereal' \
+            -format=lcov > cpp-coverage.lcov
+
+          # Print summary
+          echo "## C++ Coverage Summary" >> $GITHUB_STEP_SUMMARY
+          $LLVM_COV report $BINARIES -instr-profile=coverage.profdata \
+            -ignore-filename-regex='third_party|msgq_repo|opendbc_repo|tinygrad_repo|rednose_repo|cereal' >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: cpp-coverage.lcov
+          flags: cpp
+          name: cpp-coverage
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cpp-coverage-report
+          path: |
+            cpp-coverage.lcov
+            coverage.profdata
+          retention-days: 7

@@ -7,12 +7,12 @@
 
 | Metric | Python | C++ | Target | Gap |
 |--------|--------|-----|--------|-----|
-| Line Coverage | **33%** | TBD | 90% | -57% |
-| Branch Coverage | TBD | TBD | 80% | TBD |
-| Files Analyzed | ~404 | ~86 | - | - |
-| Lines Covered | 9,189 / 24,777 | TBD | - | - |
+| Line Coverage | **33%** | **67%** | 90% | -57% / -23% |
+| Branch Coverage | TBD | **45%** | 80% | TBD / -35% |
+| Files Analyzed | ~404 | 20 | - | - |
+| Lines Covered | 9,189 / 24,777 | 775 / 1,159 | - | - |
 
-**Key Finding**: Current Python coverage is 33%, significantly below the 90% target. Safety-critical modules average 50% coverage.
+**Key Finding**: Python coverage is 33%, C++ (tested modules) is 67%. Safety-critical modules average 50% coverage. C++ coverage only includes common/ and loggerd/ modules with tests.
 
 ## Safety-Critical Modules
 
@@ -69,10 +69,36 @@ Based on `docs/SAFETY.md`, the following modules are safety-critical:
 
 ## C++ Coverage Details
 
-C++ coverage requires build instrumentation. Current status:
-- [ ] llvm-cov instrumentation added to SConstruct
-- [ ] C++ test execution with coverage
-- [ ] Report generation
+C++ coverage measured using llvm-cov-18 with `--coverage` scons flag.
+
+### Summary
+
+| Metric | Value |
+|--------|-------|
+| Line Coverage | **66.87%** (775/1,159) |
+| Branch Coverage | **45.21%** (170/376) |
+| Function Coverage | 54.73% (81/148) |
+| Region Coverage | 64.81% (442/682) |
+
+### Per-File Breakdown
+
+| File | Lines | Coverage | Branch | Notes |
+|------|-------|----------|--------|-------|
+| `common/params.cc` | 158 | 51% | 32% | Parameter system |
+| `common/swaglog.cc` | 105 | 57% | 29% | Logging |
+| `common/util.cc` | 234 | 46% | 35% | Utilities |
+| `common/util.h` | 58 | 10% | 0% | Header utilities |
+| `system/loggerd/logger.cc` | 140 | 94% | 77% | Logger (good!) |
+| `system/loggerd/zstd_writer.cc` | 38 | 95% | 50% | Compression (good!) |
+| Tests | 292 | ~98% | ~90% | Test files |
+
+### Status
+
+- [x] llvm-cov instrumentation added to SConstruct (`--coverage` flag)
+- [x] C++ test execution with coverage (common/, loggerd/)
+- [x] Report generation (llvm-cov-18)
+- [ ] CI workflow for C++ coverage
+- [ ] Additional C++ test coverage (modeld, camerad, etc.)
 
 ## Test Statistics
 
@@ -107,8 +133,9 @@ Priority testing for safety modules:
 
 ## Next Steps
 
-1. [x] Measure Python coverage baseline
-2. [ ] Add llvm-cov instrumentation for C++
-3. [ ] Set initial fail_under at 33% (prevent regression)
-4. [ ] Prioritize tests for safety-critical modules
-5. [ ] Configure per-module coverage in CI
+1. [x] Measure Python coverage baseline (33%)
+2. [x] Add llvm-cov instrumentation for C++ (67% line, 45% branch)
+3. [x] Set initial fail_under at 33% (prevent regression)
+4. [ ] Create C++ coverage CI workflow
+5. [ ] Prioritize tests for safety-critical modules
+6. [ ] Configure per-module coverage in CI
