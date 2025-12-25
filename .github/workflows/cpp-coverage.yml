@@ -56,7 +56,16 @@ jobs:
             libncurses5-dev \
             opencl-headers \
             ocl-icd-libopencl1 \
-            ocl-icd-opencl-dev
+            ocl-icd-opencl-dev \
+            qt5-qmake \
+            qtbase5-dev \
+            libqt5charts5-dev \
+            libqt5serialbus5-dev \
+            libqt5svg5-dev \
+            libqt5x11extras5-dev \
+            libqt5opengl5-dev \
+            libgles2-mesa-dev \
+            libglfw3-dev
 
       - name: Install Python dependencies
         run: uv sync --frozen --extra testing
