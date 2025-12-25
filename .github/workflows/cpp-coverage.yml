@@ -59,7 +59,7 @@ jobs:
             ocl-icd-opencl-dev
 
       - name: Install Python dependencies
-        run: uv sync --frozen
+        run: uv sync --frozen --extra testing
 
       - name: Build C++ with coverage
         run: |
