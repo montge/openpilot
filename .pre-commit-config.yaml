@@ -55,3 +55,11 @@ repos:
         language: script
         types: [text]
         exclude: '^(third_party|msgq_repo|opendbc_repo|panda|rednose_repo|tinygrad_repo|teleoprtc_repo|cereal)/'
+
+      - id: openspec-validate
+        name: openspec-validate
+        entry: openspec validate --strict --changes
+        language: system
+        files: '^openspec/'
+        pass_filenames: false
+        # Validates OpenSpec changes when openspec/ files are modified
