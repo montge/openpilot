@@ -10,6 +10,9 @@ on:
       - master
       - develop
 
+permissions:
+  contents: read
+
 jobs:
   cppcheck-misra:
     name: cppcheck MISRA C:2012
