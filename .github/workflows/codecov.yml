@@ -110,7 +110,7 @@ jobs:
             --cov-report=term \
             -m "not slow and not tici" \
             --ignore=tinygrad_repo --ignore=third_party \
-            -n auto --timeout=120 || true
+            --dist load -n auto --timeout=120 || true
 
       - name: Upload core coverage
         uses: actions/upload-artifact@v4
@@ -202,7 +202,7 @@ jobs:
             --cov-report=term \
             -m "not slow and not tici" \
             --ignore=tinygrad_repo --ignore=third_party \
-            -n auto --timeout=120 || true
+            --dist load -n auto --timeout=120 || true
 
       - name: Upload system coverage
         uses: actions/upload-artifact@v4
@@ -303,7 +303,7 @@ jobs:
             --cov-report=term \
             -m "not slow and not tici" \
             --ignore=tinygrad_repo --ignore=third_party \
-            -n auto --timeout=120 || true
+            --dist load -n auto --timeout=120 || true
 
       - name: Upload tools coverage
         uses: actions/upload-artifact@v4
