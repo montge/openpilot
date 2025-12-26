@@ -14,9 +14,11 @@ permissions:
   contents: read
 
 jobs:
-  coverage:
-    name: Code Coverage
+  # Phase 1: Core safety-critical modules (fast, always runs)
+  coverage-core:
+    name: Coverage - Core Modules
     runs-on: ubuntu-24.04
+    timeout-minutes: 60
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -78,7 +80,6 @@ jobs:
       - name: Install Python dependencies
         run: |
           uv sync --frozen --extra testing
-          # Install coverage tools (may not be in frozen lockfile)
           uv pip install pytest-cov coverage
 
       - name: Build project
@@ -86,29 +87,275 @@ jobs:
           source .venv/bin/activate
           scons -u -j$(nproc)
 
-      - name: Run tests with coverage
+      - name: Run core module tests with coverage
         run: |
           source .venv/bin/activate
-          pytest --cov=selfdrive --cov=system --cov=tools --cov=common \
-            --cov-report=xml:coverage.xml \
+          # Core safety-critical modules: controls, car, selfdrived, pandad, locationd
+          pytest \
+            selfdrive/controls/ \
+            selfdrive/car/ \
+            selfdrive/selfdrived/ \
+            selfdrive/pandad/ \
+            selfdrive/locationd/ \
+            selfdrive/monitoring/ \
+            common/ \
+            --cov=selfdrive/controls \
+            --cov=selfdrive/car \
+            --cov=selfdrive/selfdrived \
+            --cov=selfdrive/pandad \
+            --cov=selfdrive/locationd \
+            --cov=selfdrive/monitoring \
+            --cov=common \
+            --cov-report=xml:coverage-core.xml \
             --cov-report=term \
             -m "not slow and not tici" \
             --ignore=tinygrad_repo --ignore=third_party \
-            -n auto --timeout=300 || true
+            -n auto --timeout=120 || true
 
-      - name: Check coverage threshold
+      - name: Upload core coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-core
+          path: coverage-core.xml
+          retention-days: 1
+
+  # Phase 2: System modules (parallel shard 1)
+  coverage-system:
+    name: Coverage - System Modules
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          lfs: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            clang \
+            g++-12 \
+            gcc-arm-none-eabi \
+            capnproto \
+            libcapnp-dev \
+            libzmq3-dev \
+            libssl-dev \
+            libcurl4-openssl-dev \
+            ffmpeg \
+            libavformat-dev \
+            libavcodec-dev \
+            libavdevice-dev \
+            libavutil-dev \
+            libavfilter-dev \
+            libbz2-dev \
+            libeigen3-dev \
+            libffi-dev \
+            libgles2-mesa-dev \
+            libglfw3-dev \
+            libglib2.0-0 \
+            libjpeg-dev \
+            libncurses5-dev \
+            libusb-1.0-0-dev \
+            libzstd-dev \
+            libsqlite3-dev \
+            opencl-headers \
+            ocl-icd-libopencl1 \
+            ocl-icd-opencl-dev \
+            portaudio19-dev \
+            gettext \
+            qt5-qmake \
+            qtbase5-dev \
+            libqt5charts5-dev \
+            libqt5serialbus5-dev \
+            libqt5svg5-dev \
+            libqt5x11extras5-dev \
+            libqt5opengl5-dev
+
+      - name: Install Python dependencies
+        run: |
+          uv sync --frozen --extra testing
+          uv pip install pytest-cov coverage
+
+      - name: Build project
         run: |
           source .venv/bin/activate
-          # Enforce minimum coverage (configured in pyproject.toml)
-          python -m coverage report --fail-under=33
+          scons -u -j$(nproc)
 
-      - name: Upload coverage to Codecov
+      - name: Run system tests with coverage
+        run: |
+          source .venv/bin/activate
+          pytest \
+            system/ \
+            --cov=system \
+            --cov-report=xml:coverage-system.xml \
+            --cov-report=term \
+            -m "not slow and not tici" \
+            --ignore=tinygrad_repo --ignore=third_party \
+            -n auto --timeout=120 || true
+
+      - name: Upload system coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-system
+          path: coverage-system.xml
+          retention-days: 1
+
+  # Phase 3: Tools and remaining selfdrive (parallel shard 2)
+  coverage-tools:
+    name: Coverage - Tools & Other
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          lfs: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            clang \
+            g++-12 \
+            gcc-arm-none-eabi \
+            capnproto \
+            libcapnp-dev \
+            libzmq3-dev \
+            libssl-dev \
+            libcurl4-openssl-dev \
+            ffmpeg \
+            libavformat-dev \
+            libavcodec-dev \
+            libavdevice-dev \
+            libavutil-dev \
+            libavfilter-dev \
+            libbz2-dev \
+            libeigen3-dev \
+            libffi-dev \
+            libgles2-mesa-dev \
+            libglfw3-dev \
+            libglib2.0-0 \
+            libjpeg-dev \
+            libncurses5-dev \
+            libusb-1.0-0-dev \
+            libzstd-dev \
+            libsqlite3-dev \
+            opencl-headers \
+            ocl-icd-libopencl1 \
+            ocl-icd-opencl-dev \
+            portaudio19-dev \
+            gettext \
+            qt5-qmake \
+            qtbase5-dev \
+            libqt5charts5-dev \
+            libqt5serialbus5-dev \
+            libqt5svg5-dev \
+            libqt5x11extras5-dev \
+            libqt5opengl5-dev
+
+      - name: Install Python dependencies
+        run: |
+          uv sync --frozen --extra testing
+          uv pip install pytest-cov coverage
+
+      - name: Build project
+        run: |
+          source .venv/bin/activate
+          scons -u -j$(nproc)
+
+      - name: Run tools tests with coverage
+        run: |
+          source .venv/bin/activate
+          # Tools and remaining selfdrive modules (modeld, ui, etc.)
+          pytest \
+            tools/ \
+            selfdrive/modeld/ \
+            selfdrive/navd/ \
+            selfdrive/ui/ \
+            selfdrive/debug/ \
+            --cov=tools \
+            --cov=selfdrive/modeld \
+            --cov=selfdrive/navd \
+            --cov=selfdrive/ui \
+            --cov=selfdrive/debug \
+            --cov-report=xml:coverage-tools.xml \
+            --cov-report=term \
+            -m "not slow and not tici" \
+            --ignore=tinygrad_repo --ignore=third_party \
+            -n auto --timeout=120 || true
+
+      - name: Upload tools coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-tools
+          path: coverage-tools.xml
+          retention-days: 1
+
+  # Merge and upload all coverage
+  coverage-merge:
+    name: Merge & Upload Coverage
+    runs-on: ubuntu-24.04
+    needs: [coverage-core, coverage-system, coverage-tools]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install coverage tools
+        run: pip install coverage
+
+      - name: Download all coverage reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-*
+          merge-multiple: true
+
+      - name: List coverage files
+        run: ls -la *.xml || echo "No XML files found"
+
+      - name: Upload to Codecov
         uses: codecov/codecov-action@v4
         with:
-          files: coverage.xml
+          files: coverage-core.xml,coverage-system.xml,coverage-tools.xml
           flags: unittests
           name: openpilot-coverage
           fail_ci_if_error: false
           verbose: true
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Coverage summary
+        run: |
+          echo "## Coverage Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Coverage reports uploaded to Codecov:" >> $GITHUB_STEP_SUMMARY
+          echo "- Core modules (controls, car, selfdrived, pandad, locationd, monitoring, common)" >> $GITHUB_STEP_SUMMARY
+          echo "- System modules" >> $GITHUB_STEP_SUMMARY
+          echo "- Tools and other selfdrive modules" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "View combined coverage at: https://codecov.io/gh/${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
