@@ -99,3 +99,4 @@
 - [x] SonarCloud shows quality metrics (workflow passes and scans code)
 - [ ] PR with coverage regression is blocked (requires PR test)
 - [x] CI workflows validated (2025-12-25): MISRA, SonarCloud, C++ Coverage all pass
+- [x] Codecov workflow validated (2025-12-26): Parallel shards + coverage upload to Codecov working
