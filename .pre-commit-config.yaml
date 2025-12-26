@@ -63,3 +63,13 @@ repos:
         files: '^openspec/'
         pass_filenames: false
         # Validates OpenSpec changes when openspec/ files are modified
+
+      - id: coverage-check
+        name: coverage-check
+        entry: scripts/coverage-check.sh
+        language: script
+        types: [python]
+        stages: [pre-push]
+        pass_filenames: false
+        # Runs coverage check on core modules before push
+        # Skip with: SKIP=coverage-check git push
