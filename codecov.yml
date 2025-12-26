@@ -1,39 +1,96 @@
-# Codecov configuration
-# https://docs.codecov.com/docs/codecov-yaml
+# Codecov Configuration for openpilot
+# Docs: https://docs.codecov.com/docs/codecovyml-reference
+#
+# Coverage Targets:
+#   - Project overall: 90%+
+#   - Per-component minimum: 80%
+#   - Safety-critical modules (controls): 95%
 
 coverage:
-  precision: 1
+  precision: 2
   round: down
-  range: "33...90"  # Color range: red at 33%, green at 90%
+  range: "70...100"
 
   status:
+    # Project-level coverage requirements
     project:
       default:
-        target: auto  # Use coverage from base commit
-        threshold: 1%  # Allow 1% decrease
+        target: 90%
+        threshold: 1%
         if_ci_failed: error
+        informational: false
 
+      # Critical safety modules - higher standards
+      controls:
+        target: 95%
+        threshold: 0.5%
+        paths:
+          - "selfdrive/controls/"
+        informational: false
+
+      car:
+        target: 90%
+        threshold: 1%
+        paths:
+          - "selfdrive/car/"
+        informational: false
+
+      selfdrived:
+        target: 90%
+        threshold: 1%
+        paths:
+          - "selfdrive/selfdrived/"
+        informational: false
+
+      monitoring:
+        target: 85%
+        threshold: 1%
+        paths:
+          - "selfdrive/monitoring/"
+        informational: false
+
+      locationd:
+        target: 85%
+        threshold: 1%
+        paths:
+          - "selfdrive/locationd/"
+        informational: false
+
+      # System modules
+      system:
+        target: 80%
+        threshold: 2%
+        paths:
+          - "system/"
+        informational: false
+
+      # Tools
+      tools:
+        target: 80%
+        threshold: 2%
+        paths:
+          - "tools/"
+        informational: false
+
+      common:
+        target: 85%
+        threshold: 1%
+        paths:
+          - "common/"
+        informational: false
+
+    # PR-specific coverage (changes only)
     patch:
       default:
-        target: 80%  # New code should have 80% coverage
-        threshold: 5%
+        target: 80%
+        threshold: 0%
+        if_ci_failed: error
 
-# Ignore certain paths
-ignore:
-  - "third_party/**"
-  - "tinygrad_repo/**"
-  - "msgq_repo/**"
-  - "opendbc_repo/**"
-  - "rednose_repo/**"
-  - "teleoprtc_repo/**"
-  - "panda/**"
-  - "cereal/**"
-  - "**/tests/**"
-  - "**/test_*.py"
-  - "**/*_test.py"
-  - "**/c_generated_code/**"
+codecov:
+  require_ci_to_pass: false
+  notify:
+    wait_for_ci: true
 
-# Comment settings for PRs
 comment:
   layout: "reach,diff,flags,files"
   behavior: default
@@ -41,11 +98,64 @@ comment:
   require_base: false
   require_head: true
 
-# Flags for different test types
+# Ignore generated code, third-party, and submodules
+ignore:
+  - "third_party/**"
+  - "msgq_repo/**"
+  - "opendbc_repo/**"
+  - "panda/**"
+  - "rednose_repo/**"
+  - "tinygrad_repo/**"
+  - "teleoprtc_repo/**"
+  - "cereal/**"
+  - "**/c_generated_code/**"
+  - "**/generated/**"
+  - "**/*.capnp"
+
 flags:
   unittests:
     paths:
-      - selfdrive/
-      - system/
-      - common/
+      - "selfdrive/"
+      - "system/"
+      - "common/"
+      - "tools/"
     carryforward: true
+
+component_management:
+  default_rules:
+    statuses:
+      - type: project
+        target: 80%
+  individual_components:
+    - component_id: controls
+      name: Controls (Safety Critical)
+      paths:
+        - selfdrive/controls/**
+    - component_id: car
+      name: Car Interface
+      paths:
+        - selfdrive/car/**
+    - component_id: selfdrived
+      name: Self-Driving State Machine
+      paths:
+        - selfdrive/selfdrived/**
+    - component_id: monitoring
+      name: Driver Monitoring
+      paths:
+        - selfdrive/monitoring/**
+    - component_id: locationd
+      name: Localization
+      paths:
+        - selfdrive/locationd/**
+    - component_id: system
+      name: System Services
+      paths:
+        - system/**
+    - component_id: tools
+      name: Development Tools
+      paths:
+        - tools/**
+    - component_id: common
+      name: Common Utilities
+      paths:
+        - common/**

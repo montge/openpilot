@@ -344,10 +344,20 @@ jobs:
           files: coverage-core.xml,coverage-system.xml,coverage-tools.xml
           flags: unittests
           name: openpilot-coverage
-          fail_ci_if_error: false
+          fail_ci_if_error: true
           verbose: true
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Check coverage thresholds
+        run: |
+          echo "## Coverage Thresholds" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Codecov will enforce the following thresholds (see codecov.yml):" >> $GITHUB_STEP_SUMMARY
+          echo "- **Overall project**: 90%" >> $GITHUB_STEP_SUMMARY
+          echo "- **Controls (safety-critical)**: 95%" >> $GITHUB_STEP_SUMMARY
+          echo "- **Per-component minimum**: 80%" >> $GITHUB_STEP_SUMMARY
+          echo "- **New code in PR**: 80%" >> $GITHUB_STEP_SUMMARY
 
       - name: Coverage summary
         run: |
