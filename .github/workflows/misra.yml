@@ -1,0 +1,95 @@
+name: MISRA Analysis
+
+on:
+  push:
+    branches:
+      - master
+      - develop
+  pull_request:
+    branches:
+      - master
+      - develop
+
+permissions:
+  contents: read
+
+jobs:
+  cppcheck-misra:
+    name: cppcheck MISRA C:2012
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install cppcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cppcheck
+
+      - name: Run cppcheck MISRA analysis
+        run: |
+          ./scripts/lint/cppcheck-misra.sh 2>&1 | tee cppcheck-misra-output.txt || true
+
+      - name: Parse MISRA findings
+        id: parse
+        run: |
+          echo "## cppcheck MISRA C:2012 Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Count findings (excluding generated code)
+          TOTAL=$(grep -c "misra-c2012" cppcheck-misra-output.txt 2>/dev/null || echo "0")
+          GENERATED=$(grep "c_generated_code" cppcheck-misra-output.txt | grep -c "misra-c2012" 2>/dev/null || echo "0")
+          ACTIONABLE=$((TOTAL - GENERATED))
+
+          echo "**Total findings:** $TOTAL" >> $GITHUB_STEP_SUMMARY
+          echo "**In generated code:** $GENERATED" >> $GITHUB_STEP_SUMMARY
+          echo "**Actionable findings:** $ACTIONABLE" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "### Top 10 Rules" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          grep -oE "misra-c2012-[0-9]+\.[0-9]+" cppcheck-misra-output.txt 2>/dev/null | \
+            sort | uniq -c | sort -rn | head -10 >> $GITHUB_STEP_SUMMARY || echo "No findings" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+          echo "actionable=$ACTIONABLE" >> $GITHUB_OUTPUT
+
+      - name: Check MISRA threshold
+        run: |
+          ACTIONABLE=${{ steps.parse.outputs.actionable }}
+          # Baseline from reports/misra-baseline.md: 1003 actionable violations
+          BASELINE=1050  # Allow small buffer above baseline
+          echo "MISRA actionable findings: $ACTIONABLE (threshold: $BASELINE)"
+          if [ "$ACTIONABLE" -gt "$BASELINE" ]; then
+            echo "::warning::MISRA findings ($ACTIONABLE) exceed baseline ($BASELINE)"
+            echo "New MISRA violations detected. Please fix before merging."
+            # Currently non-blocking - uncomment to enforce:
+            # exit 1
+          else
+            echo "::notice::MISRA findings ($ACTIONABLE) within baseline ($BASELINE)"
+          fi
+
+      - name: Upload MISRA report
+        uses: actions/upload-artifact@v4
+        with:
+          name: cppcheck-misra-report
+          path: cppcheck-misra-output.txt
+          retention-days: 30
+
+  # clang-tidy-automotive job (optional - requires custom build)
+  # Uncomment when clang-tidy-automotive is available in CI
+  #
+  # clang-tidy-automotive:
+  #   name: clang-tidy MISRA 2023/2025
+  #   runs-on: ubuntu-24.04
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
+  #       with:
+  #         submodules: true
+  #
+  #     - name: Run clang-tidy-automotive
+  #       run: |
+  #         ./scripts/lint/clang-tidy-misra.sh 2>&1 | tee clang-tidy-misra-output.txt || true

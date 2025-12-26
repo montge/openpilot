@@ -1,0 +1,75 @@
+# Pre-commit hooks for openpilot
+# Install: pre-commit install
+# Run manually: pre-commit run --all-files
+# Skip hooks: SKIP=mypy git commit -m "message"
+
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.6
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-added-large-files
+        args: ['--maxkb=120', '--enforce-all']
+      - id: check-shebang-scripts-are-executable
+      - id: trailing-whitespace
+        exclude: '^(third_party|msgq_repo|opendbc_repo|panda|rednose_repo|tinygrad_repo|teleoprtc_repo|cereal)/'
+      - id: end-of-file-fixer
+        exclude: '^(third_party|msgq_repo|opendbc_repo|panda|rednose_repo|tinygrad_repo|teleoprtc_repo|cereal)/'
+      - id: check-yaml
+        exclude: '^(third_party|msgq_repo|opendbc_repo|panda|rednose_repo|tinygrad_repo|teleoprtc_repo|cereal)/'
+      - id: check-merge-conflict
+
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.3.0
+    hooks:
+      - id: codespell
+        exclude: '^(third_party|msgq_repo|opendbc_repo|panda|rednose_repo|tinygrad_repo|teleoprtc_repo|cereal|uv\.lock|docs/CARS\.md)/'
+
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy
+        entry: mypy
+        language: system
+        types: [python]
+        exclude: '^(third_party|msgq_repo|opendbc_repo|panda|rednose_repo|tinygrad_repo|teleoprtc_repo|cereal)/'
+        # Slow check - can be skipped with SKIP=mypy
+        stages: [pre-commit]
+
+      - id: check-nomerge-comments
+        name: check-nomerge-comments
+        entry: scripts/lint/check_nomerge_comments.sh
+        language: script
+        types: [text]
+        exclude: '^(third_party|msgq_repo|opendbc_repo|panda|rednose_repo|tinygrad_repo|teleoprtc_repo|cereal)/'
+
+      - id: check-shebang-format
+        name: check-shebang-format
+        entry: scripts/lint/check_shebang_format.sh
+        language: script
+        types: [text]
+        exclude: '^(third_party|msgq_repo|opendbc_repo|panda|rednose_repo|tinygrad_repo|teleoprtc_repo|cereal)/'
+
+      - id: openspec-validate
+        name: openspec-validate
+        entry: openspec validate --strict --changes
+        language: system
+        files: '^openspec/'
+        pass_filenames: false
+        # Validates OpenSpec changes when openspec/ files are modified
+
+      - id: coverage-check
+        name: coverage-check
+        entry: scripts/coverage-check.sh
+        language: script
+        types: [python]
+        stages: [pre-push]
+        pass_filenames: false
+        # Runs coverage check on core modules before push
+        # Skip with: SKIP=coverage-check git push

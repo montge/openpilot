@@ -1,5 +1,6 @@
 venv/
 .venv/
+.local/
 .ci_cache
 .env
 .clang-format
@@ -62,6 +63,14 @@ pandaextra
 flycheck_*
 
 cppcheck_report.txt
+
+# clang-tidy CTU analysis temp files
+*.ctu-info
+*.dump
+external_symbols.json
+
+# MISRA analysis raw reports (regenerate with scripts/lint/*.sh)
+reports/*-report.txt
 comma*.sh
 
 selfdrive/modeld/models/*.pkl
@@ -95,3 +104,11 @@ Pipfile
 # Ignore all local history of files
 .history
 .ionide
+
+# Coverage data files
+*.profraw
+*.profdata
+cpp-coverage-details.txt
+cpp-coverage.lcov
+cpp-coverage-report/
+coverage.xml

@@ -4,9 +4,15 @@ on:
   push:
     branches:
       - master
+      - develop
   pull_request:
     branches:
       - master
+      - develop
+
+permissions:
+  contents: read
+  pull-requests: read
 
 jobs:
   sonarcloud:
@@ -72,7 +78,10 @@ jobs:
             libqt5opengl5-dev
 
       - name: Install Python dependencies
-        run: uv sync --frozen
+        run: |
+          uv sync --frozen --extra testing
+          # Install coverage tools (may not be in frozen lockfile)
+          uv pip install pytest-cov coverage
 
       - name: Build project
         run: |
