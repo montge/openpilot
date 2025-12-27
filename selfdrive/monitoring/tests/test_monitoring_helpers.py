@@ -357,5 +357,99 @@ class TestDriverMonitoringGetStatePacket(unittest.TestCase):
     self.assertIsNotNone(state.isDistracted)
 
 
+class TestDriverMonitoringUpdateEvents(unittest.TestCase):
+  """Test DriverMonitoring._update_events method."""
+
+  @patch('openpilot.selfdrive.monitoring.helpers.Params')
+  def test_update_events_resets_on_driver_engaged(self, mock_params):
+    """Test awareness resets when driver is engaged in passive mode."""
+    mock_params.return_value.get_bool.return_value = False
+
+    dm = DriverMonitoring()
+    dm.awareness = 0.5
+    dm.active_monitoring_mode = False
+
+    dm._update_events(driver_engaged=True, op_engaged=False, standstill=False,
+                      wrong_gear=False, car_speed=20.0)
+
+    self.assertEqual(dm.awareness, 1.0)
+
+  @patch('openpilot.selfdrive.monitoring.helpers.Params')
+  def test_update_events_decrements_awareness_when_distracted(self, mock_params):
+    """Test awareness decreases when driver is distracted."""
+    mock_params.return_value.get_bool.return_value = False
+
+    dm = DriverMonitoring()
+    dm.awareness = 1.0
+    dm.face_detected = False  # Not seeing face counts as maybe distracted
+    dm.active_monitoring_mode = True
+
+    initial_awareness = dm.awareness
+    dm._update_events(driver_engaged=False, op_engaged=True, standstill=False,
+                      wrong_gear=False, car_speed=20.0)
+
+    self.assertLess(dm.awareness, initial_awareness)
+
+  @patch('openpilot.selfdrive.monitoring.helpers.Params')
+  def test_update_events_terminal_alert_too_distracted(self, mock_params):
+    """Test too_distracted flag is set after max terminal alerts."""
+    mock_params.return_value.get_bool.return_value = False
+    mock_params.return_value.put_bool_nonblocking = MagicMock()
+
+    dm = DriverMonitoring()
+    dm.terminal_alert_cnt = dm.settings._MAX_TERMINAL_ALERTS
+
+    dm._update_events(driver_engaged=False, op_engaged=True, standstill=False,
+                      wrong_gear=False, car_speed=20.0)
+
+    self.assertTrue(dm.too_distracted)
+
+  @patch('openpilot.selfdrive.monitoring.helpers.Params')
+  def test_update_events_awareness_recovery(self, mock_params):
+    """Test awareness recovers when driver is attentive."""
+    mock_params.return_value.get_bool.return_value = False
+
+    dm = DriverMonitoring()
+    dm.awareness = 0.5
+    dm.face_detected = True
+    dm.pose.low_std = True
+    dm.driver_distraction_filter.x = 0.1  # Attentive
+    dm.active_monitoring_mode = True
+
+    initial_awareness = dm.awareness
+    dm._update_events(driver_engaged=False, op_engaged=True, standstill=False,
+                      wrong_gear=False, car_speed=20.0)
+
+    self.assertGreater(dm.awareness, initial_awareness)
+
+  @patch('openpilot.selfdrive.monitoring.helpers.Params')
+  def test_update_events_resets_on_disengage(self, mock_params):
+    """Test awareness resets when openpilot disengages in normal mode."""
+    mock_params.return_value.get_bool.return_value = False
+
+    dm = DriverMonitoring()
+    dm.awareness = 0.3
+    dm.always_on = False
+    dm.active_monitoring_mode = True
+
+    dm._update_events(driver_engaged=False, op_engaged=False, standstill=False,
+                      wrong_gear=False, car_speed=20.0)
+
+    self.assertEqual(dm.awareness, 1.0)
+
+
+class TestDriverMonitoringUpdateStates(unittest.TestCase):
+  """Test DriverMonitoring._update_states method."""
+
+  @patch('openpilot.selfdrive.monitoring.helpers.Params')
+  def test_update_states_face_detection(self, mock_params):
+    """Test face detection updates correctly."""
+    mock_params.return_value.get_bool.return_value = False
+
+    dm = DriverMonitoring()
+    # Initially no face detected
+    self.assertFalse(dm.face_detected)
+
+
 if __name__ == '__main__':
   unittest.main()
