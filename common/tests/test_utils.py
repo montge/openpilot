@@ -7,7 +7,8 @@ from unittest.mock import MagicMock, patch
 
 from openpilot.common.utils import (
   CallbackReader, atomic_write, strip_deprecated_keys,
-  run_cmd, run_cmd_default, retry, LOG_COMPRESSION_LEVEL
+  run_cmd, run_cmd_default, retry, LOG_COMPRESSION_LEVEL,
+  managed_proc, get_upload_stream,
 )
 
 
@@ -235,6 +236,124 @@ class TestRetry(unittest.TestCase):
 
     result = always_fails()  # Should not raise
     self.assertIsNone(result)
+
+
+class TestManagedProc(unittest.TestCase):
+  """Test managed_proc context manager."""
+
+  def test_managed_proc_starts_process(self):
+    """Test managed_proc starts a process."""
+    with managed_proc(['echo', 'hello'], env=os.environ.copy()) as proc:
+      self.assertIsNotNone(proc)
+      stdout, _ = proc.communicate()
+      self.assertEqual(stdout.decode().strip(), 'hello')
+
+  def test_managed_proc_terminates_on_exit(self):
+    """Test managed_proc terminates process on exit."""
+    import signal
+
+    with managed_proc(['sleep', '100'], env=os.environ.copy()) as proc:
+      pid = proc.pid  # Store pid before exiting context
+      # Don't wait - just exit context to test termination
+
+    # Process should be terminated after exiting context
+    # Returncode is set after termination (negative for signals)
+    self.assertIsNotNone(proc.returncode)
+    # Consume any remaining output to avoid resource warnings
+    proc.stdout.close()
+    proc.stderr.close()
+
+  def test_managed_proc_with_completed_process(self):
+    """Test managed_proc handles already completed process."""
+    with managed_proc(['true'], env=os.environ.copy()) as proc:
+      # Wait for process to complete naturally
+      proc.communicate()
+
+    # Should not raise even though process already exited
+    self.assertEqual(proc.returncode, 0)
+
+  def test_managed_proc_returns_popen(self):
+    """Test managed_proc yields a Popen object."""
+    from subprocess import Popen
+
+    with managed_proc(['echo', 'test'], env=os.environ.copy()) as proc:
+      self.assertIsInstance(proc, Popen)
+      proc.communicate()  # Consume output to avoid resource warnings
+
+
+class TestGetUploadStream(unittest.TestCase):
+  """Test get_upload_stream function."""
+
+  def test_uncompressed_stream(self):
+    """Test get_upload_stream without compression."""
+    with tempfile.NamedTemporaryFile(delete=False) as f:
+      f.write(b"test content")
+      path = f.name
+
+    try:
+      stream, size = get_upload_stream(path, should_compress=False)
+
+      self.assertEqual(size, 12)  # len("test content")
+      self.assertEqual(stream.read(), b"test content")
+      stream.close()
+    finally:
+      os.unlink(path)
+
+  def test_compressed_stream(self):
+    """Test get_upload_stream with compression."""
+    with tempfile.NamedTemporaryFile(delete=False) as f:
+      # Write some compressible content
+      f.write(b"a" * 1000)
+      path = f.name
+
+    try:
+      stream, size = get_upload_stream(path, should_compress=True)
+
+      # Compressed size should be much smaller
+      self.assertLess(size, 1000)
+      # Stream should be readable
+      compressed_data = stream.read()
+      self.assertGreater(len(compressed_data), 0)
+      stream.close()
+    finally:
+      os.unlink(path)
+
+  def test_compressed_stream_can_decompress(self):
+    """Test compressed stream can be decompressed."""
+    import zstandard as zstd
+
+    original_content = b"This is test content that should be compressible" * 10
+    with tempfile.NamedTemporaryFile(delete=False) as f:
+      f.write(original_content)
+      path = f.name
+
+    try:
+      stream, size = get_upload_stream(path, should_compress=True)
+      compressed_data = stream.read()
+      stream.close()
+
+      # Decompress using streaming decompressor (handles missing content size)
+      decompressor = zstd.ZstdDecompressor()
+      decompressed = decompressor.stream_reader(io.BytesIO(compressed_data)).read()
+      self.assertEqual(decompressed, original_content)
+    finally:
+      os.unlink(path)
+
+  def test_uncompressed_size_matches_file(self):
+    """Test uncompressed size matches actual file size."""
+    with tempfile.NamedTemporaryFile(delete=False) as f:
+      content = b"x" * 500
+      f.write(content)
+      path = f.name
+
+    try:
+      stream, size = get_upload_stream(path, should_compress=False)
+      stream.close()
+
+      self.assertEqual(size, os.path.getsize(path))
+      self.assertEqual(size, 500)
+    finally:
+      os.unlink(path)
 
 
 class TestConstants(unittest.TestCase):
