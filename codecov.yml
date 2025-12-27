@@ -79,6 +79,21 @@ coverage:
           - "common/"
         informational: false
 
+      # C++ coverage targets
+      cpp-core:
+        target: 80%
+        threshold: 2%
+        flags:
+          - cpp-core
+        informational: false
+
+      cpp-tools:
+        target: 80%
+        threshold: 2%
+        flags:
+          - cpp-tools
+        informational: false
+
     # PR-specific coverage (changes only)
     patch:
       default:
@@ -121,6 +136,29 @@ flags:
       - "tools/"
     carryforward: true
 
+  # C++ coverage flags
+  cpp:
+    paths:
+      - "common/"
+      - "system/"
+      - "selfdrive/pandad/"
+      - "tools/cabana/"
+      - "tools/replay/"
+    carryforward: true
+
+  cpp-core:
+    paths:
+      - "common/"
+      - "system/"
+      - "selfdrive/pandad/"
+    carryforward: true
+
+  cpp-tools:
+    paths:
+      - "tools/cabana/"
+      - "tools/replay/"
+    carryforward: true
+
 component_management:
   default_rules:
     statuses:
@@ -159,3 +197,20 @@ component_management:
       name: Common Utilities
       paths:
         - common/**
+    # C++ specific components
+    - component_id: cpp-core
+      name: C++ Core (common, system, pandad)
+      paths:
+        - common/**/*.cc
+        - common/**/*.h
+        - system/**/*.cc
+        - system/**/*.h
+        - selfdrive/pandad/**/*.cc
+        - selfdrive/pandad/**/*.h
+    - component_id: cpp-tools
+      name: C++ Tools (cabana, replay)
+      paths:
+        - tools/cabana/**/*.cc
+        - tools/cabana/**/*.h
+        - tools/replay/**/*.cc
+        - tools/replay/**/*.h

@@ -79,15 +79,28 @@ jobs:
       - name: Build C++ with coverage
         run: |
           source .venv/bin/activate
-          scons -u -j$(nproc) --coverage common/tests/ system/loggerd/tests/
+          # Build all C++ test directories with coverage instrumentation
+          scons -u -j$(nproc) --coverage \
+            common/tests/ \
+            system/loggerd/tests/ \
+            system/camerad/test/ \
+            selfdrive/pandad/tests/ \
+            tools/cabana/tests/ \
+            tools/replay/tests/
 
       - name: Run C++ tests
         run: |
           export LLVM_PROFILE_FILE="default_%p.profraw"
+          # Core tests
           ./common/tests/test_common || true
           ./system/loggerd/tests/test_logger || true
+          ./system/camerad/test/test_ae_gray || true
+          ./selfdrive/pandad/tests/test_pandad_usbprotocol || true
+          # Tools tests
+          ./tools/cabana/tests/test_cabana || true
+          ./tools/replay/tests/test_replay || true
 
-      - name: Generate coverage report
+      - name: Generate coverage reports
         run: |
           # Find llvm tools
           LLVM_PROFDATA=$(command -v llvm-profdata-18 || command -v llvm-profdata)
@@ -96,24 +109,53 @@ jobs:
           # Merge profraw files
           $LLVM_PROFDATA merge -sparse *.profraw -o coverage.profdata
 
-          # Generate lcov report for Codecov
-          BINARIES=""
-          for bin in common/tests/test_common system/loggerd/tests/test_logger; do
+          # Define all test binaries
+          CORE_BINARIES=""
+          TOOLS_BINARIES=""
+          ALL_BINARIES=""
+
+          # Core binaries (common, system, selfdrive/pandad)
+          for bin in common/tests/test_common system/loggerd/tests/test_logger system/camerad/test/test_ae_gray selfdrive/pandad/tests/test_pandad_usbprotocol; do
             if [[ -f "$bin" ]]; then
-              BINARIES="$BINARIES -object=$bin"
+              CORE_BINARIES="$CORE_BINARIES -object=$bin"
+              ALL_BINARIES="$ALL_BINARIES -object=$bin"
             fi
           done
 
-          $LLVM_COV export $BINARIES -instr-profile=coverage.profdata \
-            -ignore-filename-regex='third_party|msgq_repo|opendbc_repo|tinygrad_repo|rednose_repo|cereal' \
+          # Tools binaries (tools/cabana, tools/replay)
+          for bin in tools/cabana/tests/test_cabana tools/replay/tests/test_replay; do
+            if [[ -f "$bin" ]]; then
+              TOOLS_BINARIES="$TOOLS_BINARIES -object=$bin"
+              ALL_BINARIES="$ALL_BINARIES -object=$bin"
+            fi
+          done
+
+          IGNORE_REGEX='third_party|msgq_repo|opendbc_repo|tinygrad_repo|rednose_repo|cereal'
+
+          # Generate combined lcov report
+          $LLVM_COV export $ALL_BINARIES -instr-profile=coverage.profdata \
+            -ignore-filename-regex="$IGNORE_REGEX" \
             -format=lcov > cpp-coverage.lcov
 
-          # Print summary and check threshold
-          echo "## C++ Coverage Summary" >> $GITHUB_STEP_SUMMARY
-          $LLVM_COV report $BINARIES -instr-profile=coverage.profdata \
-            -ignore-filename-regex='third_party|msgq_repo|opendbc_repo|tinygrad_repo|rednose_repo|cereal' | tee coverage-report.txt >> $GITHUB_STEP_SUMMARY
+          # Generate component-level reports for Codecov
+          if [[ -n "$CORE_BINARIES" ]]; then
+            $LLVM_COV export $CORE_BINARIES -instr-profile=coverage.profdata \
+              -ignore-filename-regex="$IGNORE_REGEX" \
+              -format=lcov > cpp-core-coverage.lcov
+          fi
 
-          # Extract line coverage percentage and check threshold
+          if [[ -n "$TOOLS_BINARIES" ]]; then
+            $LLVM_COV export $TOOLS_BINARIES -instr-profile=coverage.profdata \
+              -ignore-filename-regex="$IGNORE_REGEX" \
+              -format=lcov > cpp-tools-coverage.lcov
+          fi
+
+          # Print summary
+          echo "## C++ Coverage Summary" >> $GITHUB_STEP_SUMMARY
+          $LLVM_COV report $ALL_BINARIES -instr-profile=coverage.profdata \
+            -ignore-filename-regex="$IGNORE_REGEX" | tee coverage-report.txt >> $GITHUB_STEP_SUMMARY
+
+          # Extract line coverage percentage
           LINE_COV=$(grep "TOTAL" coverage-report.txt | awk '{print $10}' | tr -d '%')
           echo "Line coverage: ${LINE_COV}%"
           echo "cpp_line_coverage=${LINE_COV}" >> $GITHUB_OUTPUT
@@ -121,7 +163,7 @@ jobs:
       - name: Check coverage threshold
         run: |
           LINE_COV=$(grep "TOTAL" coverage-report.txt | awk '{print $10}' | tr -d '%')
-          THRESHOLD=65
+          THRESHOLD=80
           echo "C++ line coverage: ${LINE_COV}% (threshold: ${THRESHOLD}%)"
           if (( $(echo "$LINE_COV < $THRESHOLD" | bc -l) )); then
             echo "::error::C++ coverage ${LINE_COV}% is below threshold ${THRESHOLD}%"
@@ -129,7 +171,27 @@ jobs:
           fi
           echo "::notice::C++ coverage ${LINE_COV}% meets threshold ${THRESHOLD}%"
 
-      - name: Upload to Codecov
+      - name: Upload core coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: cpp-core-coverage.lcov
+          flags: cpp-core
+          name: cpp-core-coverage
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Upload tools coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: cpp-tools-coverage.lcov
+          flags: cpp-tools
+          name: cpp-tools-coverage
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Upload combined coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
           files: cpp-coverage.lcov
@@ -145,5 +207,8 @@ jobs:
           name: cpp-coverage-report
           path: |
             cpp-coverage.lcov
+            cpp-core-coverage.lcov
+            cpp-tools-coverage.lcov
             coverage.profdata
+            coverage-report.txt
           retention-days: 7
