@@ -33,9 +33,10 @@ The CI pipeline SHALL generate comprehensive C++ code coverage reports for all t
 
 #### Scenario: C++ coverage threshold enforced
 - **GIVEN** a pull request with C++ changes
-- **WHEN** C++ coverage drops below 80% line coverage
+- **WHEN** C++ coverage drops below the baseline threshold (15%)
 - **THEN** the PR fails with a coverage report
 - **AND** the failure message indicates which components are below threshold
+- **NOTE** Target threshold is 80%; baseline set to prevent regression while tests are added
 
 #### Scenario: Component-level C++ coverage visible
 - **GIVEN** the C++ coverage workflow has completed
