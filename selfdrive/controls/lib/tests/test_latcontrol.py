@@ -169,7 +169,7 @@ class TestLatControlCheckSaturation:
 
     result = controller._check_saturation(saturated=True, CS=CS, steer_limited_by_safety=False, curvature_limited=False)
 
-    assert result is True
+    assert result  # numpy bool compatible
 
   def test_returns_false_below_limit(self, mocker, controller):
     """Test returns False when sat_time below limit."""
@@ -178,7 +178,7 @@ class TestLatControlCheckSaturation:
 
     result = controller._check_saturation(saturated=True, CS=CS, steer_limited_by_safety=False, curvature_limited=False)
 
-    assert result is False
+    assert not result  # numpy bool compatible
 
 
 class TestLatControlAbstract:
