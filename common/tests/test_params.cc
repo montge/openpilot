@@ -25,3 +25,21 @@ TEST_CASE("params_nonblocking_put") {
     REQUIRE(p.get(name) == "1");
   }
 }
+
+TEST_CASE("params_basic_operations") {
+  char tmp_path[] = "/tmp/params_basic_XXXXXX";
+  const std::string param_path = mkdtemp(tmp_path);
+  Params params(param_path);
+
+  // Test put and get
+  params.put("TestParam", "test_value");
+  REQUIRE(params.get("TestParam") == "test_value");
+
+  // Test key presence via get
+  REQUIRE_FALSE(params.get("TestParam").empty());
+  REQUIRE(params.get("NonExistent").empty());
+
+  // Test remove
+  params.remove("TestParam");
+  REQUIRE(params.get("TestParam").empty());
+}
