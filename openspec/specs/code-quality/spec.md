@@ -71,3 +71,4 @@ The project SHALL provide a quality dashboard showing coverage and analysis tren
 - **THEN** they see current coverage percentages
 - **AND** they see coverage trend over time
 - **AND** they see MISRA violation counts
+
