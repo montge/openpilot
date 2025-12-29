@@ -2,7 +2,6 @@ import time
 import os
 import pytest
 import random
-import unittest # noqa: TID251
 from collections import defaultdict, Counter
 import hypothesis.strategies as st
 from hypothesis import Phase, given, settings
@@ -53,14 +52,13 @@ def get_test_cases() -> list[tuple[str, CarTestRoute | None]]:
     for platform, segment in segment_list:
       platform = MIGRATION.get(platform, platform)
       segment_name = SegmentName(segment)
-      test_cases.append((platform, CarTestRoute(segment_name.route_name.canonical_name, platform,
-                                                segment=segment_name.segment_num)))
+      test_cases.append((platform, CarTestRoute(segment_name.route_name.canonical_name, platform, segment=segment_name.segment_num)))
   return test_cases
 
 
 @pytest.mark.slow
 @pytest.mark.shared_download_cache
-class TestCarModelBase(unittest.TestCase):
+class TestCarModelBase:
   platform: Platform | None = None
   test_route: CarTestRoute | None = None
 
@@ -99,15 +97,13 @@ class TestCarModelBase(unittest.TestCase):
         for ps in msg.pandaStates:
           if cls.elm_frame is None and ps.safetyModel != SafetyModel.elm327:
             cls.elm_frame = len(can_msgs)
-          if cls.car_safety_mode_frame is None and ps.safetyModel not in \
-            (SafetyModel.elm327, SafetyModel.noOutput):
+          if cls.car_safety_mode_frame is None and ps.safetyModel not in (SafetyModel.elm327, SafetyModel.noOutput):
             cls.car_safety_mode_frame = len(can_msgs)
 
       elif msg.which() == 'pandaStateDEPRECATED':
         if cls.elm_frame is None and msg.pandaStateDEPRECATED.safetyModel != SafetyModel.elm327:
           cls.elm_frame = len(can_msgs)
-        if cls.car_safety_mode_frame is None and msg.pandaStateDEPRECATED.safetyModel not in \
-          (SafetyModel.elm327, SafetyModel.noOutput):
+        if cls.car_safety_mode_frame is None and msg.pandaStateDEPRECATED.safetyModel not in (SafetyModel.elm327, SafetyModel.noOutput):
           cls.car_safety_mode_frame = len(can_msgs)
 
     assert len(can_msgs) > int(50 / DT_CTRL), "no can data found"
@@ -131,16 +127,15 @@ class TestCarModelBase(unittest.TestCase):
 
     raise Exception(f"Route: {repr(cls.test_route.route)} with segments: {test_segs} not found or no CAN msgs found. Is it uploaded and public?")
 
-
   @classmethod
-  def setUpClass(cls):
+  def setup_class(cls):
     if cls.__name__ == 'TestCarModel' or cls.__name__.endswith('Base'):
-      raise unittest.SkipTest
+      pytest.skip("Base class")
 
     if cls.test_route is None:
       if cls.platform in non_tested_cars:
         print(f"Skipping tests for {cls.platform}: missing route")
-        raise unittest.SkipTest
+        pytest.skip(f"Skipping tests for {cls.platform}: missing route")
       raise Exception(f"missing test route for {cls.platform}")
 
     car_fw, cls.can_msgs, alpha_long = cls.get_testing_data()
@@ -156,10 +151,11 @@ class TestCarModelBase(unittest.TestCase):
     os.environ["COMMA_CACHE"] = DEFAULT_DOWNLOAD_CACHE_ROOT
 
   @classmethod
-  def tearDownClass(cls):
-    del cls.can_msgs
+  def teardown_class(cls):
+    if hasattr(cls, 'can_msgs'):
+      del cls.can_msgs
 
-  def setUp(self):
+  def setup_method(self):
     self.CI = self.CarInterface(self.CP.copy())
     assert self.CI
 
@@ -168,22 +164,22 @@ class TestCarModelBase(unittest.TestCase):
 
     cfg = self.CP.safetyConfigs[-1]
     set_status = self.safety.set_safety_hooks(cfg.safetyModel.raw, cfg.safetyParam)
-    self.assertEqual(0, set_status, f"failed to set safetyModel {cfg}")
+    assert set_status == 0, f"failed to set safetyModel {cfg}"
     self.safety.init_tests()
 
   def test_car_params(self):
     if self.CP.dashcamOnly:
-      self.skipTest("no need to check carParams for dashcamOnly")
+      pytest.skip("no need to check carParams for dashcamOnly")
 
     # make sure car params are within a valid range
-    self.assertGreater(self.CP.mass, 1)
+    assert self.CP.mass > 1
 
     if self.CP.steerControlType != SteerControlType.angle:
       tuning = self.CP.lateralTuning.which()
       if tuning == 'pid':
-        self.assertTrue(len(self.CP.lateralTuning.pid.kpV))
+        assert len(self.CP.lateralTuning.pid.kpV)
       elif tuning == 'torque':
-        self.assertTrue(self.CP.lateralTuning.torque.latAccelFactor > 0)
+        assert self.CP.lateralTuning.torque.latAccelFactor > 0
       else:
         raise Exception("unknown tuning")
 
@@ -200,7 +196,7 @@ class TestCarModelBase(unittest.TestCase):
       if i > 250:
         can_invalid_cnt += not CS.canValid
 
-    self.assertEqual(can_invalid_cnt, 0)
+    assert can_invalid_cnt == 0
 
   def test_radar_interface(self):
     RI = self.CarInterface.RadarInterface(self.CP)
@@ -209,15 +205,15 @@ class TestCarModelBase(unittest.TestCase):
     # Since OBD port is multiplexed to bus 1 (commonly radar bus) while fingerprinting,
     # start parsing CAN messages after we've left ELM mode and can expect CAN traffic
     error_cnt = 0
-    for i, msg in enumerate(self.can_msgs[self.elm_frame:]):
+    for i, msg in enumerate(self.can_msgs[self.elm_frame :]):
       rr: structs.RadarData | None = RI.update(msg)
       if rr is not None and i > 50:
         error_cnt += rr.errors.canError
-    self.assertEqual(error_cnt, 0)
+    assert error_cnt == 0
 
   def test_panda_safety_rx_checks(self):
     if self.CP.dashcamOnly:
-      self.skipTest("no need to check panda safety for dashcamOnly")
+      pytest.skip("no need to check panda safety for dashcamOnly")
 
     start_ts = self.can_msgs[0][0]
 
@@ -239,29 +235,29 @@ class TestCarModelBase(unittest.TestCase):
       # ensure all msgs defined in the addr checks are valid
       self.safety.safety_tick_current_safety_config()
       if t > 1e6:
-        self.assertTrue(self.safety.safety_config_valid())
+        assert self.safety.safety_config_valid()
 
       # Don't check relay malfunction on disabled routes (relay closed),
       # or before fingerprinting is done (elm327 and noOutput)
       if self.openpilot_enabled and t / 1e4 > self.car_safety_mode_frame:
-        self.assertFalse(self.safety.get_relay_malfunction())
+        assert not self.safety.get_relay_malfunction()
       else:
         self.safety.set_relay_malfunction(False)
 
-    self.assertFalse(len(failed_addrs), f"panda safety RX check failed: {failed_addrs}")
+    assert not len(failed_addrs), f"panda safety RX check failed: {failed_addrs}"
 
     # ensure RX checks go invalid after small time with no traffic
-    self.safety.set_timer(int(t + (2*1e6)))
+    self.safety.set_timer(int(t + (2 * 1e6)))
     self.safety.safety_tick_current_safety_config()
-    self.assertFalse(self.safety.safety_config_valid())
+    assert not self.safety.safety_config_valid()
 
   def test_panda_safety_tx_cases(self, data=None):
     """Asserts we can tx common messages"""
     if self.CP.dashcamOnly:
-      self.skipTest("no need to check panda safety for dashcamOnly")
+      pytest.skip("no need to check panda safety for dashcamOnly")
 
     if self.CP.notCar:
-      self.skipTest("Skipping test for notCar")
+      pytest.skip("Skipping test for notCar")
 
     def test_car_controller(car_control):
       now_nanos = 0
@@ -275,10 +271,10 @@ class TestCarModelBase(unittest.TestCase):
         msgs_sent += len(sendcan)
         for addr, dat, bus in sendcan:
           to_send = libsafety_py.make_CANPacket(addr, bus % 4, dat)
-          self.assertTrue(self.safety.safety_tx_hook(to_send), (addr, dat, bus))
+          assert self.safety.safety_tx_hook(to_send), (addr, dat, bus)
 
       # Make sure we attempted to send messages
-      self.assertGreater(msgs_sent, 50)
+      assert msgs_sent > 50
 
     # Make sure we can send all messages while inactive
     CC = structs.CarControl()
@@ -296,17 +292,16 @@ class TestCarModelBase(unittest.TestCase):
 
   # Skip stdout/stderr capture with pytest, causes elevated memory usage
   @pytest.mark.nocapture
-  @settings(max_examples=MAX_EXAMPLES, deadline=None,
-            phases=(Phase.reuse, Phase.generate, Phase.shrink))
+  @settings(max_examples=MAX_EXAMPLES, deadline=None, phases=(Phase.reuse, Phase.generate, Phase.shrink))
   @given(data=st.data())
   def test_panda_safety_carstate_fuzzy(self, data):
     """
-      For each example, pick a random CAN message on the bus and fuzz its data,
-      checking for panda state mismatches.
+    For each example, pick a random CAN message on the bus and fuzz its data,
+    checking for panda state mismatches.
     """
 
     if self.CP.dashcamOnly:
-      self.skipTest("no need to check panda safety for dashcamOnly")
+      pytest.skip("no need to check panda safety for dashcamOnly")
 
     valid_addrs = [(addr, bus, size) for bus, addrs in self.fingerprint.items() for addr, size in addrs.items()]
     address, bus, size = data.draw(st.sampled_from(valid_addrs))
@@ -339,7 +334,7 @@ class TestCarModelBase(unittest.TestCase):
         continue
 
       if self.safety.get_gas_pressed_prev() != prev_panda_gas:
-        self.assertEqual(CS.gasPressed, self.safety.get_gas_pressed_prev())
+        assert CS.gasPressed == self.safety.get_gas_pressed_prev()
 
       if self.safety.get_brake_pressed_prev() != prev_panda_brake:
         # TODO: remove this exception once this mismatch is resolved
@@ -348,41 +343,41 @@ class TestCarModelBase(unittest.TestCase):
           if self.CP.carFingerprint in (HONDA.HONDA_PILOT, HONDA.HONDA_RIDGELINE) and CS.brake > 0.05:
             brake_pressed = False
 
-        self.assertEqual(brake_pressed, self.safety.get_brake_pressed_prev())
+        assert brake_pressed == self.safety.get_brake_pressed_prev()
 
       if self.safety.get_regen_braking_prev() != prev_panda_regen_braking:
-        self.assertEqual(CS.regenBraking, self.safety.get_regen_braking_prev())
+        assert CS.regenBraking == self.safety.get_regen_braking_prev()
 
       if self.safety.get_steering_disengage_prev() != prev_panda_steering_disengage:
-        self.assertEqual(CS.steeringDisengage, self.safety.get_steering_disengage_prev())
+        assert CS.steeringDisengage == self.safety.get_steering_disengage_prev()
 
       if self.safety.get_vehicle_moving() != prev_panda_vehicle_moving and not self.CP.notCar:
-        self.assertEqual(not CS.standstill, self.safety.get_vehicle_moving())
+        assert not CS.standstill == self.safety.get_vehicle_moving()
 
       # check vehicle speed if angle control car or available
       if self.safety.get_vehicle_speed_min() > 0 or self.safety.get_vehicle_speed_max() > 0:
         vehicle_speed_seen = True
 
-      if vehicle_speed_seen and (self.safety.get_vehicle_speed_min() != prev_panda_vehicle_speed_min or
-                                 self.safety.get_vehicle_speed_max() != prev_panda_vehicle_speed_max):
+      if vehicle_speed_seen and (
+        self.safety.get_vehicle_speed_min() != prev_panda_vehicle_speed_min or self.safety.get_vehicle_speed_max() != prev_panda_vehicle_speed_max
+      ):
         v_ego_raw = CS.vEgoRaw / self.CP.wheelSpeedFactor
-        self.assertFalse(v_ego_raw > (self.safety.get_vehicle_speed_max() + 1e-3) or
-                         v_ego_raw < (self.safety.get_vehicle_speed_min() - 1e-3))
+        assert not (v_ego_raw > (self.safety.get_vehicle_speed_max() + 1e-3) or v_ego_raw < (self.safety.get_vehicle_speed_min() - 1e-3))
 
       if not (self.CP.brand == "honda" and not (self.CP.flags & HondaFlags.BOSCH)):
         if self.safety.get_cruise_engaged_prev() != prev_panda_cruise_engaged:
-          self.assertEqual(CS.cruiseState.enabled, self.safety.get_cruise_engaged_prev())
+          assert CS.cruiseState.enabled == self.safety.get_cruise_engaged_prev()
 
       if self.CP.brand == "honda":
         if self.safety.get_acc_main_on() != prev_panda_acc_main_on:
-          self.assertEqual(CS.cruiseState.available, self.safety.get_acc_main_on())
+          assert CS.cruiseState.available == self.safety.get_acc_main_on()
 
   def test_panda_safety_carstate(self):
     """
-      Assert that panda safety matches openpilot's carState
+    Assert that panda safety matches openpilot's carState
     """
     if self.CP.dashcamOnly:
-      self.skipTest("no need to check panda safety for dashcamOnly")
+      pytest.skip("no need to check panda safety for dashcamOnly")
 
     # warm up pass, as initial states may be different
     for can in self.can_msgs[:300]:
@@ -400,7 +395,7 @@ class TestCarModelBase(unittest.TestCase):
       for msg in filter(lambda m: m.src < 64, can[1]):
         to_send = libsafety_py.make_CANPacket(msg.address, msg.src % 4, msg.dat)
         ret = self.safety.safety_rx_hook(to_send)
-        self.assertEqual(1, ret, f"safety rx failed ({ret=}): {(msg.address, msg.src % 4)}")
+        assert ret == 1, f"safety rx failed ({ret=}): {(msg.address, msg.src % 4)}"
 
       # Skip first frame so CS_prev is properly initialized
       if idx == 0:
@@ -421,8 +416,7 @@ class TestCarModelBase(unittest.TestCase):
 
       if vehicle_speed_seen:
         v_ego_raw = CS.vEgoRaw / self.CP.wheelSpeedFactor
-        checks['vEgoRaw'] += (v_ego_raw > (self.safety.get_vehicle_speed_max() + 1e-3) or
-                              v_ego_raw < (self.safety.get_vehicle_speed_min() - 1e-3))
+        checks['vEgoRaw'] += v_ego_raw > (self.safety.get_vehicle_speed_max() + 1e-3) or v_ego_raw < (self.safety.get_vehicle_speed_min() - 1e-3)
 
       # TODO: remove this exception once this mismatch is resolved
       brake_pressed = CS.brakePressed
@@ -462,14 +456,10 @@ class TestCarModelBase(unittest.TestCase):
       CS_prev = CS
 
     failed_checks = {k: v for k, v in checks.items() if v > 0}
-    self.assertFalse(len(failed_checks), f"panda safety doesn't agree with openpilot: {failed_checks}")
+    assert not len(failed_checks), f"panda safety doesn't agree with openpilot: {failed_checks}"
 
 
 @parameterized_class(('platform', 'test_route'), get_test_cases())
 @pytest.mark.xdist_group_class_property('test_route')
 class TestCarModel(TestCarModelBase):
   pass
-
-
-if __name__ == "__main__":
-  unittest.main()

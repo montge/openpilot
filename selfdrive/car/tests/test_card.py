@@ -1,11 +1,10 @@
 import pytest
-from unittest.mock import MagicMock, patch, PropertyMock
 
 from cereal import car, log
 from opendbc.car import structs
 from opendbc.car.interfaces import CarInterfaceBase, RadarInterfaceBase
 from openpilot.selfdrive.car.card import Car, obd_callback, can_comm_callbacks
-from openpilot.selfdrive.car.cruise import V_CRUISE_UNSET, V_CRUISE_INITIAL
+from openpilot.selfdrive.car.cruise import V_CRUISE_UNSET
 
 EventName = log.OnroadEvent.EventName
 
@@ -16,8 +15,8 @@ class MockCarInterface(CarInterfaceBase):
   def __init__(self, CP):
     self.CP = CP
     self.frame = 0
-    self.CC = MagicMock()
-    self.CS = MagicMock()
+    self.CC = None
+    self.CS = None
 
   @staticmethod
   def _get_params(ret, candidate, fingerprint, car_fw, alpha_long, is_release, docs):
@@ -57,8 +56,8 @@ class MockRadarInterface(RadarInterfaceBase):
 class TestOBDCallback:
   """Test OBD multiplexing callback function"""
 
-  def test_obd_callback_sets_multiplexing_true(self):
-    mock_params = MagicMock()
+  def test_obd_callback_sets_multiplexing_true(self, mocker):
+    mock_params = mocker.MagicMock()
     mock_params.get_bool.return_value = False  # Currently disabled
 
     callback = obd_callback(mock_params)
@@ -67,8 +66,8 @@ class TestOBDCallback:
     mock_params.put_bool.assert_called_with("ObdMultiplexingEnabled", True)
     mock_params.remove.assert_called_with("ObdMultiplexingChanged")
 
-  def test_obd_callback_sets_multiplexing_false(self):
-    mock_params = MagicMock()
+  def test_obd_callback_sets_multiplexing_false(self, mocker):
+    mock_params = mocker.MagicMock()
     mock_params.get_bool.return_value = True  # Currently enabled
 
     callback = obd_callback(mock_params)
@@ -76,8 +75,8 @@ class TestOBDCallback:
 
     mock_params.put_bool.assert_called_with("ObdMultiplexingEnabled", False)
 
-  def test_obd_callback_no_change_when_same(self):
-    mock_params = MagicMock()
+  def test_obd_callback_no_change_when_same(self, mocker):
+    mock_params = mocker.MagicMock()
     mock_params.get_bool.return_value = True  # Already enabled
 
     callback = obd_callback(mock_params)
@@ -90,66 +89,68 @@ class TestOBDCallback:
 class TestCanCommCallbacks:
   """Test CAN communication callbacks"""
 
-  def test_can_recv_returns_empty_list_when_no_messages(self):
-    mock_logcan = MagicMock()
-    mock_sendcan = MagicMock()
+  def test_can_recv_returns_empty_list_when_no_messages(self, mocker):
+    mock_logcan = mocker.MagicMock()
+    mock_sendcan = mocker.MagicMock()
 
-    with patch('openpilot.selfdrive.car.card.messaging') as mock_messaging:
-      mock_messaging.drain_sock.return_value = []
+    mock_messaging = mocker.patch('openpilot.selfdrive.car.card.messaging')
+    mock_messaging.drain_sock.return_value = []
 
-      can_recv, can_send = can_comm_callbacks(mock_logcan, mock_sendcan)
-      result = can_recv(wait_for_one=False)
+    can_recv, can_send = can_comm_callbacks(mock_logcan, mock_sendcan)
+    result = can_recv(wait_for_one=False)
 
-      assert result == []
+    assert result == []
 
-  def test_can_recv_parses_can_messages(self):
-    mock_logcan = MagicMock()
-    mock_sendcan = MagicMock()
+  def test_can_recv_parses_can_messages(self, mocker):
+    mock_logcan = mocker.MagicMock()
+    mock_sendcan = mocker.MagicMock()
 
     # Create a mock CAN message
-    mock_can_msg = MagicMock()
+    mock_can_msg = mocker.MagicMock()
     mock_can_msg.address = 0x100
     mock_can_msg.dat = b'\x01\x02\x03'
     mock_can_msg.src = 0
 
-    mock_can_frame = MagicMock()
+    mock_can_frame = mocker.MagicMock()
     mock_can_frame.can = [mock_can_msg]
 
-    with patch('openpilot.selfdrive.car.card.messaging') as mock_messaging:
-      mock_messaging.drain_sock.return_value = [mock_can_frame]
+    mock_messaging = mocker.patch('openpilot.selfdrive.car.card.messaging')
+    mock_messaging.drain_sock.return_value = [mock_can_frame]
 
-      can_recv, can_send = can_comm_callbacks(mock_logcan, mock_sendcan)
-      result = can_recv(wait_for_one=True)
+    can_recv, can_send = can_comm_callbacks(mock_logcan, mock_sendcan)
+    result = can_recv(wait_for_one=True)
 
-      assert len(result) == 1
-      assert len(result[0]) == 1
-      assert result[0][0].address == 0x100
-      assert result[0][0].dat == b'\x01\x02\x03'
-      assert result[0][0].src == 0
+    assert len(result) == 1
+    assert len(result[0]) == 1
+    assert result[0][0].address == 0x100
+    assert result[0][0].dat == b'\x01\x02\x03'
+    assert result[0][0].src == 0
 
-  def test_can_send_sends_messages(self):
-    mock_logcan = MagicMock()
-    mock_sendcan = MagicMock()
+  def test_can_send_sends_messages(self, mocker):
+    mock_logcan = mocker.MagicMock()
+    mock_sendcan = mocker.MagicMock()
 
-    with patch('openpilot.selfdrive.car.card.messaging'):
-      with patch('openpilot.selfdrive.car.card.can_list_to_can_capnp') as mock_to_capnp:
-        mock_to_capnp.return_value = b'capnp_data'
+    mocker.patch('openpilot.selfdrive.car.card.messaging')
+    mock_to_capnp = mocker.patch('openpilot.selfdrive.car.card.can_list_to_can_capnp')
+    mock_to_capnp.return_value = b'capnp_data'
 
-        can_recv, can_send = can_comm_callbacks(mock_logcan, mock_sendcan)
-        from opendbc.car.can_definitions import CanData
-        can_send([CanData(0x100, b'\x01\x02', 0)])
+    can_recv, can_send = can_comm_callbacks(mock_logcan, mock_sendcan)
+    from opendbc.car.can_definitions import CanData
 
-        mock_sendcan.send.assert_called_once()
+    can_send([CanData(0x100, b'\x01\x02', 0)])
+
+    mock_sendcan.send.assert_called_once()
 
 
 class TestCarInit:
   """Test Car class initialization with injected dependencies"""
 
-  @patch('openpilot.selfdrive.car.card.messaging')
-  @patch('openpilot.selfdrive.car.card.Params')
-  def test_car_init_with_injected_ci(self, mock_params_class, mock_messaging):
+  def test_car_init_with_injected_ci(self, mocker):
     """Test that Car initializes correctly with injected CarInterface"""
-    mock_params = MagicMock()
+    mocker.patch('openpilot.selfdrive.car.card.messaging')
+    mock_params_class = mocker.patch('openpilot.selfdrive.car.card.Params')
+
+    mock_params = mocker.MagicMock()
     mock_params.get_bool.return_value = False
     mock_params.get.return_value = None
     mock_params_class.return_value = mock_params
@@ -164,6 +165,7 @@ class TestCarInit:
     # Create mock CarInterface
     mock_ci = MockCarInterface(CP)
     mock_ci.CP = CP
+    mock_ci.CC = mocker.MagicMock()
 
     # Create mock RadarInterface
     mock_ri = MockRadarInterface(CP)
@@ -178,11 +180,12 @@ class TestCarInit:
     assert car_obj.can_rcv_cum_timeout_counter == 0
     assert car_obj.initialized_prev is False
 
-  @patch('openpilot.selfdrive.car.card.messaging')
-  @patch('openpilot.selfdrive.car.card.Params')
-  def test_car_passive_mode_sets_no_output_safety(self, mock_params_class, mock_messaging):
+  def test_car_passive_mode_sets_no_output_safety(self, mocker):
     """Test that passive mode sets noOutput safety model"""
-    mock_params = MagicMock()
+    mocker.patch('openpilot.selfdrive.car.card.messaging')
+    mock_params_class = mocker.patch('openpilot.selfdrive.car.card.Params')
+
+    mock_params = mocker.MagicMock()
     mock_params.get_bool.side_effect = lambda key: {
       "IsReleaseBranch": False,
       "OpenpilotEnabledToggle": False,  # Disables controller
@@ -200,7 +203,7 @@ class TestCarInit:
 
     mock_ci = MockCarInterface(CP)
     mock_ci.CP = CP
-    mock_ci.CC = MagicMock()  # Controller exists but toggle is off
+    mock_ci.CC = mocker.MagicMock()  # Controller exists but toggle is off
 
     mock_ri = MockRadarInterface(CP)
 
@@ -211,11 +214,12 @@ class TestCarInit:
     assert len(car_obj.CP.safetyConfigs) == 1
     assert car_obj.CP.safetyConfigs[0].safetyModel == structs.CarParams.SafetyModel.noOutput
 
-  @patch('openpilot.selfdrive.car.card.messaging')
-  @patch('openpilot.selfdrive.car.card.Params')
-  def test_car_dashcam_only_is_passive(self, mock_params_class, mock_messaging):
+  def test_car_dashcam_only_is_passive(self, mocker):
     """Test that dashcamOnly cars are set to passive"""
-    mock_params = MagicMock()
+    mocker.patch('openpilot.selfdrive.car.card.messaging')
+    mock_params_class = mocker.patch('openpilot.selfdrive.car.card.Params')
+
+    mock_params = mocker.MagicMock()
     mock_params.get_bool.side_effect = lambda key: {
       "IsReleaseBranch": False,
       "OpenpilotEnabledToggle": True,
@@ -232,7 +236,7 @@ class TestCarInit:
 
     mock_ci = MockCarInterface(CP)
     mock_ci.CP = CP
-    mock_ci.CC = MagicMock()
+    mock_ci.CC = mocker.MagicMock()
 
     mock_ri = MockRadarInterface(CP)
 
@@ -244,42 +248,12 @@ class TestCarInit:
 class TestCarStateUpdate:
   """Test Car state update functionality"""
 
-  @patch('openpilot.selfdrive.car.card.messaging')
-  @patch('openpilot.selfdrive.car.card.Params')
-  def setup_method(self, method, mock_params_class, mock_messaging):
-    """Set up a Car instance for each test"""
-    self.mock_params = MagicMock()
-    self.mock_params.get_bool.side_effect = lambda key: {
-      "IsReleaseBranch": False,
-      "OpenpilotEnabledToggle": True,
-      "IsMetric": True,
-      "ExperimentalMode": False,
-    }.get(key, False)
-    self.mock_params.get.return_value = None
-    mock_params_class.return_value = self.mock_params
-
-    self.CP = car.CarParams.new_message(
-      carFingerprint="MOCK",
-      pcmCruise=True,
-    )
-
-    self.mock_ci = MockCarInterface(self.CP)
-    self.mock_ci.CP = self.CP
-    self.mock_ci.CC = MagicMock()
-
-    self.mock_ri = MockRadarInterface(self.CP)
-
-    # We need to re-patch for each test since setup_method resets patches
-    with patch('openpilot.selfdrive.car.card.messaging') as self.mock_messaging:
-      with patch('openpilot.selfdrive.car.card.Params') as mock_params_class:
-        mock_params_class.return_value = self.mock_params
-        self.car = Car(CI=self.mock_ci, RI=self.mock_ri)
-
-  @patch('openpilot.selfdrive.car.card.messaging')
-  @patch('openpilot.selfdrive.car.card.Params')
-  def test_state_update_increments_timeout_counter_on_no_can(self, mock_params_class, mock_messaging):
+  def test_state_update_increments_timeout_counter_on_no_can(self, mocker):
     """Test that CAN timeout counter increments when no CAN messages received"""
-    mock_params = MagicMock()
+    mock_messaging = mocker.patch('openpilot.selfdrive.car.card.messaging')
+    mock_params_class = mocker.patch('openpilot.selfdrive.car.card.Params')
+
+    mock_params = mocker.MagicMock()
     mock_params.get_bool.return_value = False
     mock_params.get.return_value = None
     mock_params_class.return_value = mock_params
@@ -287,29 +261,30 @@ class TestCarStateUpdate:
     CP = car.CarParams.new_message(carFingerprint="MOCK", pcmCruise=True)
     mock_ci = MockCarInterface(CP)
     mock_ci.CP = CP
-    mock_ci.CC = MagicMock()
+    mock_ci.CC = mocker.MagicMock()
     mock_ri = MockRadarInterface(CP)
 
     car_obj = Car(CI=mock_ci, RI=mock_ri)
 
     # Mock no CAN messages
     mock_messaging.drain_sock_raw.return_value = []
-    mock_messaging.SubMaster.return_value = MagicMock()
+    mock_messaging.SubMaster.return_value = mocker.MagicMock()
 
-    with patch('openpilot.selfdrive.car.card.can_capnp_to_list', return_value=[]):
-      initial_counter = car_obj.can_rcv_cum_timeout_counter
-      car_obj.state_update()
-      assert car_obj.can_rcv_cum_timeout_counter == initial_counter + 1
+    mocker.patch('openpilot.selfdrive.car.card.can_capnp_to_list', return_value=[])
+    initial_counter = car_obj.can_rcv_cum_timeout_counter
+    car_obj.state_update()
+    assert car_obj.can_rcv_cum_timeout_counter == initial_counter + 1
 
 
 class TestVCruiseHelperIntegration:
   """Test VCruiseHelper integration with Car class"""
 
-  @patch('openpilot.selfdrive.car.card.messaging')
-  @patch('openpilot.selfdrive.car.card.Params')
-  def test_v_cruise_helper_initialization(self, mock_params_class, mock_messaging):
+  def test_v_cruise_helper_initialization(self, mocker):
     """Test that VCruiseHelper is initialized with correct CarParams"""
-    mock_params = MagicMock()
+    mocker.patch('openpilot.selfdrive.car.card.messaging')
+    mock_params_class = mocker.patch('openpilot.selfdrive.car.card.Params')
+
+    mock_params = mocker.MagicMock()
     mock_params.get_bool.return_value = False
     mock_params.get.return_value = None
     mock_params_class.return_value = mock_params
@@ -321,7 +296,7 @@ class TestVCruiseHelperIntegration:
 
     mock_ci = MockCarInterface(CP)
     mock_ci.CP = CP
-    mock_ci.CC = MagicMock()
+    mock_ci.CC = mocker.MagicMock()
     mock_ri = MockRadarInterface(CP)
 
     car_obj = Car(CI=mock_ci, RI=mock_ri)
@@ -330,11 +305,12 @@ class TestVCruiseHelperIntegration:
     assert car_obj.v_cruise_helper.CP.pcmCruise is False
     assert car_obj.v_cruise_helper.v_cruise_kph == V_CRUISE_UNSET
 
-  @patch('openpilot.selfdrive.car.card.messaging')
-  @patch('openpilot.selfdrive.car.card.Params')
-  def test_is_metric_and_experimental_mode_loaded(self, mock_params_class, mock_messaging):
+  def test_is_metric_and_experimental_mode_loaded(self, mocker):
     """Test that is_metric and experimental_mode are loaded from params"""
-    mock_params = MagicMock()
+    mocker.patch('openpilot.selfdrive.car.card.messaging')
+    mock_params_class = mocker.patch('openpilot.selfdrive.car.card.Params')
+
+    mock_params = mocker.MagicMock()
     mock_params.get_bool.side_effect = lambda key: {
       "IsReleaseBranch": False,
       "OpenpilotEnabledToggle": True,
@@ -351,7 +327,7 @@ class TestVCruiseHelperIntegration:
 
     mock_ci = MockCarInterface(CP)
     mock_ci.CP = CP
-    mock_ci.CC = MagicMock()
+    mock_ci.CC = mocker.MagicMock()
     mock_ri = MockRadarInterface(CP)
 
     car_obj = Car(CI=mock_ci, RI=mock_ri)
@@ -363,11 +339,12 @@ class TestVCruiseHelperIntegration:
 class TestControlsUpdate:
   """Test controls update functionality"""
 
-  @patch('openpilot.selfdrive.car.card.messaging')
-  @patch('openpilot.selfdrive.car.card.Params')
-  def test_controls_update_initializes_ci_on_first_run(self, mock_params_class, mock_messaging):
+  def test_controls_update_initializes_ci_on_first_run(self, mocker):
     """Test that CarInterface.init is called when controls first become ready"""
-    mock_params = MagicMock()
+    mocker.patch('openpilot.selfdrive.car.card.messaging')
+    mock_params_class = mocker.patch('openpilot.selfdrive.car.card.Params')
+
+    mock_params = mocker.MagicMock()
     mock_params.get_bool.return_value = False
     mock_params.get.return_value = None
     mock_params_class.return_value = mock_params
@@ -375,24 +352,24 @@ class TestControlsUpdate:
     CP = car.CarParams.new_message(carFingerprint="MOCK")
     mock_ci = MockCarInterface(CP)
     mock_ci.CP = CP
-    mock_ci.CC = MagicMock()
-    mock_ci.init = MagicMock()
+    mock_ci.CC = mocker.MagicMock()
+    mock_ci.init = mocker.MagicMock()
     mock_ri = MockRadarInterface(CP)
 
     car_obj = Car(CI=mock_ci, RI=mock_ri)
     car_obj.initialized_prev = False
 
     # Mock sm.all_alive to return True
-    car_obj.sm = MagicMock()
+    car_obj.sm = mocker.MagicMock()
     car_obj.sm.all_alive.return_value = True
 
     # Create mock CarState and CarControl
     CS = car.CarState.new_message(canValid=True)
     CC = car.CarControl.new_message()
 
-    with patch('openpilot.selfdrive.car.card.REPLAY', False):
-      with patch('openpilot.selfdrive.car.card.time.monotonic', return_value=1000):
-        car_obj.controls_update(CS, CC)
+    mocker.patch('openpilot.selfdrive.car.card.REPLAY', False)
+    mocker.patch('openpilot.selfdrive.car.card.time.monotonic', return_value=1000)
+    car_obj.controls_update(CS, CC)
 
     # CI.init should have been called
     mock_ci.init.assert_called_once()
@@ -403,11 +380,12 @@ class TestControlsUpdate:
 class TestStatePublish:
   """Test state publishing functionality"""
 
-  @patch('openpilot.selfdrive.car.card.messaging')
-  @patch('openpilot.selfdrive.car.card.Params')
-  def test_state_publish_sends_car_state(self, mock_params_class, mock_messaging):
+  def test_state_publish_sends_car_state(self, mocker):
     """Test that carState message is published"""
-    mock_params = MagicMock()
+    mocker.patch('openpilot.selfdrive.car.card.messaging')
+    mock_params_class = mocker.patch('openpilot.selfdrive.car.card.Params')
+
+    mock_params = mocker.MagicMock()
     mock_params.get_bool.return_value = False
     mock_params.get.return_value = None
     mock_params_class.return_value = mock_params
@@ -415,14 +393,14 @@ class TestStatePublish:
     CP = car.CarParams.new_message(carFingerprint="MOCK")
     mock_ci = MockCarInterface(CP)
     mock_ci.CP = CP
-    mock_ci.CC = MagicMock()
+    mock_ci.CC = mocker.MagicMock()
     mock_ri = MockRadarInterface(CP)
 
     car_obj = Car(CI=mock_ci, RI=mock_ri)
 
     # Mock the PubMaster
-    car_obj.pm = MagicMock()
-    car_obj.sm = MagicMock()
+    car_obj.pm = mocker.MagicMock()
+    car_obj.sm = mocker.MagicMock()
     car_obj.sm.all_checks.return_value = True
     car_obj.sm.frame = 1
 
@@ -435,11 +413,12 @@ class TestStatePublish:
     assert 'carState' in call_args
     assert 'carOutput' in call_args
 
-  @patch('openpilot.selfdrive.car.card.messaging')
-  @patch('openpilot.selfdrive.car.card.Params')
-  def test_state_publish_sends_car_params_periodically(self, mock_params_class, mock_messaging):
+  def test_state_publish_sends_car_params_periodically(self, mocker):
     """Test that carParams is published every 50 seconds"""
-    mock_params = MagicMock()
+    mocker.patch('openpilot.selfdrive.car.card.messaging')
+    mock_params_class = mocker.patch('openpilot.selfdrive.car.card.Params')
+
+    mock_params = mocker.MagicMock()
     mock_params.get_bool.return_value = False
     mock_params.get.return_value = None
     mock_params_class.return_value = mock_params
@@ -447,13 +426,13 @@ class TestStatePublish:
     CP = car.CarParams.new_message(carFingerprint="MOCK")
     mock_ci = MockCarInterface(CP)
     mock_ci.CP = CP
-    mock_ci.CC = MagicMock()
+    mock_ci.CC = mocker.MagicMock()
     mock_ri = MockRadarInterface(CP)
 
     car_obj = Car(CI=mock_ci, RI=mock_ri)
 
-    car_obj.pm = MagicMock()
-    car_obj.sm = MagicMock()
+    car_obj.pm = mocker.MagicMock()
+    car_obj.sm = mocker.MagicMock()
     car_obj.sm.all_checks.return_value = True
     # Frame 0 should trigger carParams publish (0 % 5000 == 0)
     car_obj.sm.frame = 0
@@ -464,11 +443,12 @@ class TestStatePublish:
     call_args = [call[0][0] for call in car_obj.pm.send.call_args_list]
     assert 'carParams' in call_args
 
-  @patch('openpilot.selfdrive.car.card.messaging')
-  @patch('openpilot.selfdrive.car.card.Params')
-  def test_state_publish_sends_live_tracks_when_radar_data(self, mock_params_class, mock_messaging):
+  def test_state_publish_sends_live_tracks_when_radar_data(self, mocker):
     """Test that liveTracks is published when radar data is available"""
-    mock_params = MagicMock()
+    mocker.patch('openpilot.selfdrive.car.card.messaging')
+    mock_params_class = mocker.patch('openpilot.selfdrive.car.card.Params')
+
+    mock_params = mocker.MagicMock()
     mock_params.get_bool.return_value = False
     mock_params.get.return_value = None
     mock_params_class.return_value = mock_params
@@ -476,13 +456,13 @@ class TestStatePublish:
     CP = car.CarParams.new_message(carFingerprint="MOCK")
     mock_ci = MockCarInterface(CP)
     mock_ci.CP = CP
-    mock_ci.CC = MagicMock()
+    mock_ci.CC = mocker.MagicMock()
     mock_ri = MockRadarInterface(CP)
 
     car_obj = Car(CI=mock_ci, RI=mock_ri)
 
-    car_obj.pm = MagicMock()
-    car_obj.sm = MagicMock()
+    car_obj.pm = mocker.MagicMock()
+    car_obj.sm = mocker.MagicMock()
     car_obj.sm.all_checks.return_value = True
     car_obj.sm.frame = 1
 
@@ -498,12 +478,13 @@ class TestStatePublish:
 class TestSecOCKey:
   """Test SecOC key handling"""
 
-  @patch('openpilot.selfdrive.car.card.messaging')
-  @patch('openpilot.selfdrive.car.card.Params')
-  @patch('builtins.open')
-  def test_secoc_key_from_cache(self, mock_open, mock_params_class, mock_messaging):
+  def test_secoc_key_from_cache(self, mocker):
     """Test that SecOC key is read from cache when available"""
-    mock_params = MagicMock()
+    mocker.patch('openpilot.selfdrive.car.card.messaging')
+    mock_params_class = mocker.patch('openpilot.selfdrive.car.card.Params')
+    mock_open = mocker.patch('builtins.open')
+
+    mock_params = mocker.MagicMock()
     mock_params.get_bool.side_effect = lambda key: {
       "IsReleaseBranch": False,  # Not release branch allows SecOC loading
       "OpenpilotEnabledToggle": True,
@@ -517,7 +498,7 @@ class TestSecOCKey:
     mock_params_class.return_value = mock_params
 
     # Mock file read for user key
-    mock_file = MagicMock()
+    mock_file = mocker.MagicMock()
     mock_file.__enter__.return_value.readline.return_value = "0123456789ABCDEF0123456789ABCDEF"
     mock_open.return_value = mock_file
 
@@ -528,8 +509,8 @@ class TestSecOCKey:
 
     mock_ci = MockCarInterface(CP)
     mock_ci.CP = CP
-    mock_ci.CC = MagicMock()
-    mock_ci.CS = MagicMock()
+    mock_ci.CC = mocker.MagicMock()
+    mock_ci.CS = mocker.MagicMock()
     mock_ri = MockRadarInterface(CP)
 
     car_obj = Car(CI=mock_ci, RI=mock_ri)
@@ -541,11 +522,12 @@ class TestSecOCKey:
 class TestCarParamsPersistence:
   """Test CarParams persistence functionality"""
 
-  @patch('openpilot.selfdrive.car.card.messaging')
-  @patch('openpilot.selfdrive.car.card.Params')
-  def test_car_params_cached(self, mock_params_class, mock_messaging):
+  def test_car_params_cached(self, mocker):
     """Test that CarParams are cached"""
-    mock_params = MagicMock()
+    mocker.patch('openpilot.selfdrive.car.card.messaging')
+    mock_params_class = mocker.patch('openpilot.selfdrive.car.card.Params')
+
+    mock_params = mocker.MagicMock()
     mock_params.get_bool.return_value = False
     mock_params.get.return_value = None
     mock_params_class.return_value = mock_params
@@ -553,10 +535,10 @@ class TestCarParamsPersistence:
     CP = car.CarParams.new_message(carFingerprint="MOCK")
     mock_ci = MockCarInterface(CP)
     mock_ci.CP = CP
-    mock_ci.CC = MagicMock()
+    mock_ci.CC = mocker.MagicMock()
     mock_ri = MockRadarInterface(CP)
 
-    car_obj = Car(CI=mock_ci, RI=mock_ri)
+    Car(CI=mock_ci, RI=mock_ri)
 
     # Should write CarParams to params
     put_calls = [call[0][0] for call in mock_params.put.call_args_list]
@@ -566,11 +548,12 @@ class TestCarParamsPersistence:
     assert "CarParamsCache" in put_nonblocking_calls
     assert "CarParamsPersistent" in put_nonblocking_calls
 
-  @patch('openpilot.selfdrive.car.card.messaging')
-  @patch('openpilot.selfdrive.car.card.Params')
-  def test_prev_car_params_saved(self, mock_params_class, mock_messaging):
+  def test_prev_car_params_saved(self, mocker):
     """Test that previous route's CarParams are saved"""
-    mock_params = MagicMock()
+    mocker.patch('openpilot.selfdrive.car.card.messaging')
+    mock_params_class = mocker.patch('openpilot.selfdrive.car.card.Params')
+
+    mock_params = mocker.MagicMock()
     mock_params.get_bool.return_value = False
     # Return some previous CarParams data
     mock_params.get.side_effect = lambda key, **kwargs: {
@@ -581,10 +564,10 @@ class TestCarParamsPersistence:
     CP = car.CarParams.new_message(carFingerprint="MOCK")
     mock_ci = MockCarInterface(CP)
     mock_ci.CP = CP
-    mock_ci.CC = MagicMock()
+    mock_ci.CC = mocker.MagicMock()
     mock_ri = MockRadarInterface(CP)
 
-    car_obj = Car(CI=mock_ci, RI=mock_ri)
+    Car(CI=mock_ci, RI=mock_ri)
 
     # Should save previous CarParams
     put_calls = [call[0] for call in mock_params.put.call_args_list]
@@ -594,11 +577,12 @@ class TestCarParamsPersistence:
 class TestAlternativeExperience:
   """Test that alternativeExperience is reset"""
 
-  @patch('openpilot.selfdrive.car.card.messaging')
-  @patch('openpilot.selfdrive.car.card.Params')
-  def test_alternative_experience_reset(self, mock_params_class, mock_messaging):
+  def test_alternative_experience_reset(self, mocker):
     """Test that alternativeExperience is set to 0"""
-    mock_params = MagicMock()
+    mocker.patch('openpilot.selfdrive.car.card.messaging')
+    mock_params_class = mocker.patch('openpilot.selfdrive.car.card.Params')
+
+    mock_params = mocker.MagicMock()
     mock_params.get_bool.return_value = False
     mock_params.get.return_value = None
     mock_params_class.return_value = mock_params
@@ -610,7 +594,7 @@ class TestAlternativeExperience:
 
     mock_ci = MockCarInterface(CP)
     mock_ci.CP = CP
-    mock_ci.CC = MagicMock()
+    mock_ci.CC = mocker.MagicMock()
     mock_ri = MockRadarInterface(CP)
 
     car_obj = Car(CI=mock_ci, RI=mock_ri)
@@ -622,11 +606,12 @@ class TestAlternativeExperience:
 class TestRatekeeper:
   """Test Ratekeeper configuration"""
 
-  @patch('openpilot.selfdrive.car.card.messaging')
-  @patch('openpilot.selfdrive.car.card.Params')
-  def test_ratekeeper_100hz(self, mock_params_class, mock_messaging):
+  def test_ratekeeper_100hz(self, mocker):
     """Test that Ratekeeper is configured for 100Hz"""
-    mock_params = MagicMock()
+    mocker.patch('openpilot.selfdrive.car.card.messaging')
+    mock_params_class = mocker.patch('openpilot.selfdrive.car.card.Params')
+
+    mock_params = mocker.MagicMock()
     mock_params.get_bool.return_value = False
     mock_params.get.return_value = None
     mock_params_class.return_value = mock_params
@@ -634,7 +619,7 @@ class TestRatekeeper:
     CP = car.CarParams.new_message(carFingerprint="MOCK")
     mock_ci = MockCarInterface(CP)
     mock_ci.CP = CP
-    mock_ci.CC = MagicMock()
+    mock_ci.CC = mocker.MagicMock()
     mock_ri = MockRadarInterface(CP)
 
     car_obj = Car(CI=mock_ci, RI=mock_ri)

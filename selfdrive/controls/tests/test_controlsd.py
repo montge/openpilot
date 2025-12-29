@@ -1,5 +1,4 @@
 import math
-from unittest.mock import MagicMock, patch
 
 import pytest
 from parameterized import parameterized
@@ -11,7 +10,6 @@ from opendbc.car.toyota.values import CAR as TOYOTA
 from opendbc.car.nissan.values import CAR as NISSAN
 from opendbc.car.car_helpers import interfaces
 from openpilot.common.params import Params
-from openpilot.common.realtime import DT_CTRL
 from openpilot.selfdrive.controls.lib.latcontrol_pid import LatControlPID
 from openpilot.selfdrive.controls.lib.latcontrol_torque import LatControlTorque
 from openpilot.selfdrive.controls.lib.latcontrol_angle import LatControlAngle
@@ -40,11 +38,13 @@ def setup_params_with_car(car_name):
 class TestControlsInitialization:
   """Tests for Controls class initialization with different car types."""
 
-  @parameterized.expand([
-    (HONDA.HONDA_CIVIC, LatControlPID),
-    (TOYOTA.TOYOTA_RAV4, LatControlTorque),
-    (NISSAN.NISSAN_LEAF, LatControlAngle),
-  ])
+  @parameterized.expand(
+    [
+      (HONDA.HONDA_CIVIC, LatControlPID),
+      (TOYOTA.TOYOTA_RAV4, LatControlTorque),
+      (NISSAN.NISSAN_LEAF, LatControlAngle),
+    ]
+  )
   def test_controls_init_lateral_controller_type(self, car_name, expected_lat_controller):
     """Test that Controls initializes the correct lateral controller type based on car."""
     setup_params_with_car(car_name)
@@ -96,12 +96,12 @@ class MockSubMaster:
   def __init__(self, services):
     self.services = services
     self.data = {}
-    self.logMonoTime = {s: 0 for s in services}
-    self.valid = {s: True for s in services}
-    self.updated = {s: False for s in services}
-    self.seen = {s: True for s in services}
-    self.alive = {s: True for s in services}
-    self.freq_ok = {s: True for s in services}
+    self.logMonoTime = dict.fromkeys(services, 0)
+    self.valid = dict.fromkeys(services, True)
+    self.updated = dict.fromkeys(services, False)
+    self.seen = dict.fromkeys(services, True)
+    self.alive = dict.fromkeys(services, True)
+    self.freq_ok = dict.fromkeys(services, True)
 
     # Initialize with default messages
     for s in services:
@@ -139,9 +139,21 @@ class TestControlsStateControl:
 
   def _setup_mock_sm(self):
     """Set up mock SubMaster with sensible defaults."""
-    services = ['liveDelay', 'liveParameters', 'liveTorqueParameters', 'modelV2', 'selfdriveState',
-                'liveCalibration', 'livePose', 'longitudinalPlan', 'carState', 'carOutput',
-                'driverMonitoringState', 'onroadEvents', 'driverAssistance']
+    services = [
+      'liveDelay',
+      'liveParameters',
+      'liveTorqueParameters',
+      'modelV2',
+      'selfdriveState',
+      'liveCalibration',
+      'livePose',
+      'longitudinalPlan',
+      'carState',
+      'carOutput',
+      'driverMonitoringState',
+      'onroadEvents',
+      'driverAssistance',
+    ]
     self.mock_sm = MockSubMaster(services)
     self.controls.sm = self.mock_sm
 
@@ -158,10 +170,20 @@ class TestControlsStateControl:
     self._set_driver_assistance()
     self._set_onroad_events([])
 
-  def _set_car_state(self, vEgo=20.0, steeringAngleDeg=0.0, standstill=False,
-                     steerFaultTemporary=False, steerFaultPermanent=False,
-                     steeringPressed=False, aEgo=0.0, brakePressed=False,
-                     vCruise=40.0, cruiseEnabled=True, cruiseStandstill=False):
+  def _set_car_state(
+    self,
+    vEgo=20.0,
+    steeringAngleDeg=0.0,
+    standstill=False,
+    steerFaultTemporary=False,
+    steerFaultPermanent=False,
+    steeringPressed=False,
+    aEgo=0.0,
+    brakePressed=False,
+    vCruise=40.0,
+    cruiseEnabled=True,
+    cruiseStandstill=False,
+  ):
     """Set carState in the mock SubMaster."""
     msg = messaging.new_message('carState')
     cs = msg.carState
@@ -180,8 +202,7 @@ class TestControlsStateControl:
     cs.canValid = True
     self.mock_sm.data['carState'] = msg.as_reader().carState
 
-  def _set_live_parameters(self, stiffnessFactor=1.0, steerRatio=15.0,
-                            angleOffsetDeg=0.0, roll=0.0):
+  def _set_live_parameters(self, stiffnessFactor=1.0, steerRatio=15.0, angleOffsetDeg=0.0, roll=0.0):
     """Set liveParameters in the mock SubMaster."""
     msg = messaging.new_message('liveParameters')
     lp = msg.liveParameters
@@ -191,8 +212,7 @@ class TestControlsStateControl:
     lp.roll = roll
     self.mock_sm.data['liveParameters'] = msg.as_reader().liveParameters
 
-  def _set_live_torque_parameters(self, useParams=False, latAccelFactor=2.0,
-                                   latAccelOffset=0.0, friction=0.1):
+  def _set_live_torque_parameters(self, useParams=False, latAccelFactor=2.0, latAccelOffset=0.0, friction=0.1):
     """Set liveTorqueParameters in the mock SubMaster."""
     msg = messaging.new_message('liveTorqueParameters')
     ltp = msg.liveTorqueParameters
@@ -202,8 +222,7 @@ class TestControlsStateControl:
     ltp.frictionCoefficientFiltered = friction
     self.mock_sm.data['liveTorqueParameters'] = msg.as_reader().liveTorqueParameters
 
-  def _set_model_v2(self, desiredCurvature=0.0, laneChangeState=LaneChangeState.off,
-                     laneChangeDirection=LaneChangeDirection.none):
+  def _set_model_v2(self, desiredCurvature=0.0, laneChangeState=LaneChangeState.off, laneChangeDirection=LaneChangeDirection.none):
     """Set modelV2 in the mock SubMaster."""
     msg = messaging.new_message('modelV2')
     model = msg.modelV2
@@ -212,8 +231,7 @@ class TestControlsStateControl:
     model.meta.laneChangeDirection = laneChangeDirection
     self.mock_sm.data['modelV2'] = msg.as_reader().modelV2
 
-  def _set_selfdrive_state(self, enabled=True, active=True,
-                            state=State.enabled, personality=log.LongitudinalPersonality.standard):
+  def _set_selfdrive_state(self, enabled=True, active=True, state=State.enabled, personality=log.LongitudinalPersonality.standard):
     """Set selfdriveState in the mock SubMaster."""
     msg = messaging.new_message('selfdriveState')
     ss = msg.selfdriveState
@@ -317,10 +335,7 @@ class TestControlsStateControl:
 
   def test_state_control_lane_change_blinkers_left(self):
     """Test that left blinker is set during left lane change."""
-    self._set_model_v2(
-      laneChangeState=LaneChangeState.laneChangeStarting,
-      laneChangeDirection=LaneChangeDirection.left
-    )
+    self._set_model_v2(laneChangeState=LaneChangeState.laneChangeStarting, laneChangeDirection=LaneChangeDirection.left)
 
     CC, lac_log = self.controls.state_control()
 
@@ -329,10 +344,7 @@ class TestControlsStateControl:
 
   def test_state_control_lane_change_blinkers_right(self):
     """Test that right blinker is set during right lane change."""
-    self._set_model_v2(
-      laneChangeState=LaneChangeState.laneChangeStarting,
-      laneChangeDirection=LaneChangeDirection.right
-    )
+    self._set_model_v2(laneChangeState=LaneChangeState.laneChangeStarting, laneChangeDirection=LaneChangeDirection.right)
 
     CC, lac_log = self.controls.state_control()
 
@@ -421,9 +433,21 @@ class TestControlsActuatorSafety:
     self.controls = Controls()
 
     # Set up mock SubMaster
-    services = ['liveDelay', 'liveParameters', 'liveTorqueParameters', 'modelV2', 'selfdriveState',
-                'liveCalibration', 'livePose', 'longitudinalPlan', 'carState', 'carOutput',
-                'driverMonitoringState', 'onroadEvents', 'driverAssistance']
+    services = [
+      'liveDelay',
+      'liveParameters',
+      'liveTorqueParameters',
+      'modelV2',
+      'selfdriveState',
+      'liveCalibration',
+      'livePose',
+      'longitudinalPlan',
+      'carState',
+      'carOutput',
+      'driverMonitoringState',
+      'onroadEvents',
+      'driverAssistance',
+    ]
     self.mock_sm = MockSubMaster(services)
     self.controls.sm = self.mock_sm
     self._setup_default_sm()
@@ -493,9 +517,21 @@ class TestControlsPublish:
     self.controls = Controls()
 
     # Set up mock SubMaster
-    services = ['liveDelay', 'liveParameters', 'liveTorqueParameters', 'modelV2', 'selfdriveState',
-                'liveCalibration', 'livePose', 'longitudinalPlan', 'carState', 'carOutput',
-                'driverMonitoringState', 'onroadEvents', 'driverAssistance']
+    services = [
+      'liveDelay',
+      'liveParameters',
+      'liveTorqueParameters',
+      'modelV2',
+      'selfdriveState',
+      'liveCalibration',
+      'livePose',
+      'longitudinalPlan',
+      'carState',
+      'carOutput',
+      'driverMonitoringState',
+      'onroadEvents',
+      'driverAssistance',
+    ]
     self.mock_sm = MockSubMaster(services)
     self.controls.sm = self.mock_sm
     self._setup_default_sm()
@@ -598,6 +634,7 @@ class TestControlsPublish:
   def test_publish_hud_control_set_speed(self):
     """Test that HUD control setSpeed is set from vCruiseCluster."""
     from openpilot.common.constants import CV
+
     v_cruise_cluster = 50.0  # km/h
     self._setup_default_sm(vCruiseCluster=v_cruise_cluster)
 
@@ -668,9 +705,21 @@ class TestControlsUpdate:
     self.controls = Controls()
 
     # Set up mock SubMaster
-    services = ['liveDelay', 'liveParameters', 'liveTorqueParameters', 'modelV2', 'selfdriveState',
-                'liveCalibration', 'livePose', 'longitudinalPlan', 'carState', 'carOutput',
-                'driverMonitoringState', 'onroadEvents', 'driverAssistance']
+    services = [
+      'liveDelay',
+      'liveParameters',
+      'liveTorqueParameters',
+      'modelV2',
+      'selfdriveState',
+      'liveCalibration',
+      'livePose',
+      'longitudinalPlan',
+      'carState',
+      'carOutput',
+      'driverMonitoringState',
+      'onroadEvents',
+      'driverAssistance',
+    ]
     self.mock_sm = MockSubMaster(services)
     self.controls.sm = self.mock_sm
 
@@ -718,9 +767,21 @@ class TestControlsIntegration:
     self.controls = Controls()
 
     # Set up mock SubMaster
-    services = ['liveDelay', 'liveParameters', 'liveTorqueParameters', 'modelV2', 'selfdriveState',
-                'liveCalibration', 'livePose', 'longitudinalPlan', 'carState', 'carOutput',
-                'driverMonitoringState', 'onroadEvents', 'driverAssistance']
+    services = [
+      'liveDelay',
+      'liveParameters',
+      'liveTorqueParameters',
+      'modelV2',
+      'selfdriveState',
+      'liveCalibration',
+      'livePose',
+      'longitudinalPlan',
+      'carState',
+      'carOutput',
+      'driverMonitoringState',
+      'onroadEvents',
+      'driverAssistance',
+    ]
     self.mock_sm = MockSubMaster(services)
     self.controls.sm = self.mock_sm
     self._setup_complete_sm()
@@ -854,11 +915,13 @@ class TestControlsIntegration:
 class TestControlsDifferentCars:
   """Tests with different car types to ensure compatibility."""
 
-  @parameterized.expand([
-    (HONDA.HONDA_CIVIC,),
-    (TOYOTA.TOYOTA_RAV4,),
-    (NISSAN.NISSAN_LEAF,),
-  ])
+  @parameterized.expand(
+    [
+      (HONDA.HONDA_CIVIC,),
+      (TOYOTA.TOYOTA_RAV4,),
+      (NISSAN.NISSAN_LEAF,),
+    ]
+  )
   def test_initialization_different_cars(self, car_name):
     """Test that Controls initializes correctly for different car types."""
     setup_params_with_car(car_name)
@@ -870,19 +933,33 @@ class TestControlsDifferentCars:
     assert controls.LoC is not None
     assert controls.VM is not None
 
-  @parameterized.expand([
-    (HONDA.HONDA_CIVIC,),
-    (TOYOTA.TOYOTA_RAV4,),
-  ])
+  @parameterized.expand(
+    [
+      (HONDA.HONDA_CIVIC,),
+      (TOYOTA.TOYOTA_RAV4,),
+    ]
+  )
   def test_state_control_different_cars(self, car_name):
     """Test state_control works for different car types."""
     setup_params_with_car(car_name)
     controls = Controls()
 
     # Set up mock SubMaster
-    services = ['liveDelay', 'liveParameters', 'liveTorqueParameters', 'modelV2', 'selfdriveState',
-                'liveCalibration', 'livePose', 'longitudinalPlan', 'carState', 'carOutput',
-                'driverMonitoringState', 'onroadEvents', 'driverAssistance']
+    services = [
+      'liveDelay',
+      'liveParameters',
+      'liveTorqueParameters',
+      'modelV2',
+      'selfdriveState',
+      'liveCalibration',
+      'livePose',
+      'longitudinalPlan',
+      'carState',
+      'carOutput',
+      'driverMonitoringState',
+      'onroadEvents',
+      'driverAssistance',
+    ]
     mock_sm = MockSubMaster(services)
     controls.sm = mock_sm
 
@@ -939,9 +1016,21 @@ class TestControlsNaNInfHandling:
     self.controls = Controls()
 
     # Set up mock SubMaster
-    services = ['liveDelay', 'liveParameters', 'liveTorqueParameters', 'modelV2', 'selfdriveState',
-                'liveCalibration', 'livePose', 'longitudinalPlan', 'carState', 'carOutput',
-                'driverMonitoringState', 'onroadEvents', 'driverAssistance']
+    services = [
+      'liveDelay',
+      'liveParameters',
+      'liveTorqueParameters',
+      'modelV2',
+      'selfdriveState',
+      'liveCalibration',
+      'livePose',
+      'longitudinalPlan',
+      'carState',
+      'carOutput',
+      'driverMonitoringState',
+      'onroadEvents',
+      'driverAssistance',
+    ]
     self.mock_sm = MockSubMaster(services)
     self.controls.sm = self.mock_sm
     self._setup_default_sm()
@@ -1066,15 +1155,26 @@ class TestControlsCruiseLogic:
     self.CP = setup_params_with_car(TOYOTA.TOYOTA_RAV4)
     self.controls = Controls()
 
-    services = ['liveDelay', 'liveParameters', 'liveTorqueParameters', 'modelV2', 'selfdriveState',
-                'liveCalibration', 'livePose', 'longitudinalPlan', 'carState', 'carOutput',
-                'driverMonitoringState', 'onroadEvents', 'driverAssistance']
+    services = [
+      'liveDelay',
+      'liveParameters',
+      'liveTorqueParameters',
+      'modelV2',
+      'selfdriveState',
+      'liveCalibration',
+      'livePose',
+      'longitudinalPlan',
+      'carState',
+      'carOutput',
+      'driverMonitoringState',
+      'onroadEvents',
+      'driverAssistance',
+    ]
     self.mock_sm = MockSubMaster(services)
     self.controls.sm = self.mock_sm
     self._setup_default_sm()
 
-  def _setup_default_sm(self, vEgo=20.0, cruiseEnabled=True, cruiseStandstill=False,
-                        enabled=True, active=True, shouldStop=False):
+  def _setup_default_sm(self, vEgo=20.0, cruiseEnabled=True, cruiseStandstill=False, enabled=True, active=True, shouldStop=False):
     """Set up mock SubMaster with configurable state."""
     msg = messaging.new_message('carState')
     msg.carState.vEgo = vEgo
@@ -1177,9 +1277,21 @@ class TestControlsForceDecel:
     self.CP = setup_params_with_car(TOYOTA.TOYOTA_RAV4)
     self.controls = Controls()
 
-    services = ['liveDelay', 'liveParameters', 'liveTorqueParameters', 'modelV2', 'selfdriveState',
-                'liveCalibration', 'livePose', 'longitudinalPlan', 'carState', 'carOutput',
-                'driverMonitoringState', 'onroadEvents', 'driverAssistance']
+    services = [
+      'liveDelay',
+      'liveParameters',
+      'liveTorqueParameters',
+      'modelV2',
+      'selfdriveState',
+      'liveCalibration',
+      'livePose',
+      'longitudinalPlan',
+      'carState',
+      'carOutput',
+      'driverMonitoringState',
+      'onroadEvents',
+      'driverAssistance',
+    ]
     self.mock_sm = MockSubMaster(services)
     self.controls.sm = self.mock_sm
     self._setup_default_sm()
@@ -1231,12 +1343,10 @@ class TestControlsForceDecel:
     """Test forceDecel is True when awarenessStatus < 0."""
     self._setup_default_sm(awarenessStatus=-0.5)
 
-    CC, lac_log = self.controls.state_control()
-    lac_log = log.ControlsState.LateralTorqueState.new_message()
+    self.controls.state_control()
 
     # Check the forceDecel calculation directly
-    force_decel = bool((self.mock_sm['driverMonitoringState'].awarenessStatus < 0.) or
-                       (self.mock_sm['selfdriveState'].state == State.softDisabling))
+    force_decel = bool((self.mock_sm['driverMonitoringState'].awarenessStatus < 0.0) or (self.mock_sm['selfdriveState'].state == State.softDisabling))
 
     assert force_decel is True
 
@@ -1246,8 +1356,7 @@ class TestControlsForceDecel:
 
     CC, lac_log = self.controls.state_control()
 
-    force_decel = bool((self.mock_sm['driverMonitoringState'].awarenessStatus < 0.) or
-                       (self.mock_sm['selfdriveState'].state == State.softDisabling))
+    force_decel = bool((self.mock_sm['driverMonitoringState'].awarenessStatus < 0.0) or (self.mock_sm['selfdriveState'].state == State.softDisabling))
 
     assert force_decel is True
 
@@ -1257,8 +1366,7 @@ class TestControlsForceDecel:
 
     CC, lac_log = self.controls.state_control()
 
-    force_decel = bool((self.mock_sm['driverMonitoringState'].awarenessStatus < 0.) or
-                       (self.mock_sm['selfdriveState'].state == State.softDisabling))
+    force_decel = bool((self.mock_sm['driverMonitoringState'].awarenessStatus < 0.0) or (self.mock_sm['selfdriveState'].state == State.softDisabling))
 
     assert force_decel is False
 
@@ -1275,9 +1383,21 @@ class TestControlsSteerLimitedBySafety:
     self.CP_torque = setup_params_with_car(TOYOTA.TOYOTA_RAV4)
     self.controls_torque = Controls()
 
-    services = ['liveDelay', 'liveParameters', 'liveTorqueParameters', 'modelV2', 'selfdriveState',
-                'liveCalibration', 'livePose', 'longitudinalPlan', 'carState', 'carOutput',
-                'driverMonitoringState', 'onroadEvents', 'driverAssistance']
+    services = [
+      'liveDelay',
+      'liveParameters',
+      'liveTorqueParameters',
+      'modelV2',
+      'selfdriveState',
+      'liveCalibration',
+      'livePose',
+      'longitudinalPlan',
+      'carState',
+      'carOutput',
+      'driverMonitoringState',
+      'onroadEvents',
+      'driverAssistance',
+    ]
 
     # Set up mock for angle control
     self.mock_sm_angle = MockSubMaster(services)
@@ -1373,9 +1493,21 @@ class TestControlsVehicleModelUpdate:
     self.CP = setup_params_with_car(TOYOTA.TOYOTA_RAV4)
     self.controls = Controls()
 
-    services = ['liveDelay', 'liveParameters', 'liveTorqueParameters', 'modelV2', 'selfdriveState',
-                'liveCalibration', 'livePose', 'longitudinalPlan', 'carState', 'carOutput',
-                'driverMonitoringState', 'onroadEvents', 'driverAssistance']
+    services = [
+      'liveDelay',
+      'liveParameters',
+      'liveTorqueParameters',
+      'modelV2',
+      'selfdriveState',
+      'liveCalibration',
+      'livePose',
+      'longitudinalPlan',
+      'carState',
+      'carOutput',
+      'driverMonitoringState',
+      'onroadEvents',
+      'driverAssistance',
+    ]
     self.mock_sm = MockSubMaster(services)
     self.controls.sm = self.mock_sm
     self._setup_default_sm()

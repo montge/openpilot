@@ -1,55 +1,53 @@
 """Tests for cereal/services.py - service definitions."""
-import unittest
-
 from cereal.services import (
   QueueSize, Service, SERVICE_LIST, build_header,
 )
 
 
-class TestQueueSize(unittest.TestCase):
+class TestQueueSize:
   """Test QueueSize enum."""
 
   def test_big_value(self):
     """Test BIG queue size is 10MB."""
-    self.assertEqual(QueueSize.BIG, 10 * 1024 * 1024)
+    assert QueueSize.BIG == 10 * 1024 * 1024
 
   def test_medium_value(self):
     """Test MEDIUM queue size is 2MB."""
-    self.assertEqual(QueueSize.MEDIUM, 2 * 1024 * 1024)
+    assert QueueSize.MEDIUM == 2 * 1024 * 1024
 
   def test_small_value(self):
     """Test SMALL queue size is 250KB."""
-    self.assertEqual(QueueSize.SMALL, 250 * 1024)
+    assert QueueSize.SMALL == 250 * 1024
 
   def test_ordering(self):
     """Test queue sizes are correctly ordered."""
-    self.assertGreater(QueueSize.BIG, QueueSize.MEDIUM)
-    self.assertGreater(QueueSize.MEDIUM, QueueSize.SMALL)
+    assert QueueSize.BIG > QueueSize.MEDIUM
+    assert QueueSize.MEDIUM > QueueSize.SMALL
 
 
-class TestService(unittest.TestCase):
+class TestService:
   """Test Service class."""
 
   def test_init_with_defaults(self):
     """Test Service initialization with defaults."""
     s = Service(should_log=True, frequency=20.0)
 
-    self.assertTrue(s.should_log)
-    self.assertEqual(s.frequency, 20.0)
-    self.assertIsNone(s.decimation)
-    self.assertEqual(s.queue_size, QueueSize.SMALL)
+    assert s.should_log is True
+    assert s.frequency == 20.0
+    assert s.decimation is None
+    assert s.queue_size == QueueSize.SMALL
 
   def test_init_with_decimation(self):
     """Test Service initialization with decimation."""
     s = Service(should_log=True, frequency=100.0, decimation=10)
 
-    self.assertEqual(s.decimation, 10)
+    assert s.decimation == 10
 
   def test_init_with_queue_size(self):
     """Test Service initialization with custom queue size."""
     s = Service(should_log=False, frequency=20.0, queue_size=QueueSize.BIG)
 
-    self.assertEqual(s.queue_size, QueueSize.BIG)
+    assert s.queue_size == QueueSize.BIG
 
   def test_init_all_params(self):
     """Test Service initialization with all parameters."""
@@ -60,118 +58,114 @@ class TestService(unittest.TestCase):
       queue_size=QueueSize.MEDIUM
     )
 
-    self.assertFalse(s.should_log)
-    self.assertEqual(s.frequency, 50.0)
-    self.assertEqual(s.decimation, 5)
-    self.assertEqual(s.queue_size, QueueSize.MEDIUM)
+    assert s.should_log is False
+    assert s.frequency == 50.0
+    assert s.decimation == 5
+    assert s.queue_size == QueueSize.MEDIUM
 
 
-class TestServiceList(unittest.TestCase):
+class TestServiceList:
   """Test SERVICE_LIST dictionary."""
 
   def test_service_list_not_empty(self):
     """Test SERVICE_LIST contains services."""
-    self.assertGreater(len(SERVICE_LIST), 0)
+    assert len(SERVICE_LIST) > 0
 
   def test_service_list_contains_can(self):
     """Test SERVICE_LIST contains can service."""
-    self.assertIn('can', SERVICE_LIST)
+    assert 'can' in SERVICE_LIST
 
   def test_service_list_contains_controlsState(self):
     """Test SERVICE_LIST contains controlsState service."""
-    self.assertIn('controlsState', SERVICE_LIST)
+    assert 'controlsState' in SERVICE_LIST
 
   def test_service_list_contains_carState(self):
     """Test SERVICE_LIST contains carState service."""
-    self.assertIn('carState', SERVICE_LIST)
+    assert 'carState' in SERVICE_LIST
 
   def test_service_list_contains_modelV2(self):
     """Test SERVICE_LIST contains modelV2 service."""
-    self.assertIn('modelV2', SERVICE_LIST)
+    assert 'modelV2' in SERVICE_LIST
 
   def test_service_list_values_are_services(self):
     """Test SERVICE_LIST values are Service instances."""
     for name, svc in SERVICE_LIST.items():
-      self.assertIsInstance(svc, Service, f"{name} is not a Service")
+      assert isinstance(svc, Service), f"{name} is not a Service"
 
   def test_can_has_big_queue(self):
     """Test can service has BIG queue size."""
-    self.assertEqual(SERVICE_LIST['can'].queue_size, QueueSize.BIG)
+    assert SERVICE_LIST['can'].queue_size == QueueSize.BIG
 
   def test_controlsState_has_medium_queue(self):
     """Test controlsState has MEDIUM queue size."""
-    self.assertEqual(SERVICE_LIST['controlsState'].queue_size, QueueSize.MEDIUM)
+    assert SERVICE_LIST['controlsState'].queue_size == QueueSize.MEDIUM
 
   def test_deviceState_should_log(self):
     """Test deviceState should_log is True."""
-    self.assertTrue(SERVICE_LIST['deviceState'].should_log)
+    assert SERVICE_LIST['deviceState'].should_log is True
 
   def test_roadEncodeIdx_should_not_log(self):
     """Test roadEncodeIdx should_log is False."""
-    self.assertFalse(SERVICE_LIST['roadEncodeIdx'].should_log)
+    assert SERVICE_LIST['roadEncodeIdx'].should_log is False
 
   def test_frequencies_positive(self):
     """Test all frequencies are non-negative."""
     for name, svc in SERVICE_LIST.items():
-      self.assertGreaterEqual(svc.frequency, 0, f"{name} has negative frequency")
+      assert svc.frequency >= 0, f"{name} has negative frequency"
 
   def test_high_freq_services(self):
     """Test high-frequency services have correct values."""
     # can, sendcan, controlsState, carState all at 100Hz
     for name in ['can', 'sendcan', 'controlsState', 'carState']:
-      self.assertEqual(SERVICE_LIST[name].frequency, 100.0)
+      assert SERVICE_LIST[name].frequency == 100.0
 
 
-class TestBuildHeader(unittest.TestCase):
+class TestBuildHeader:
   """Test build_header function."""
 
   def test_returns_string(self):
     """Test build_header returns a string."""
     result = build_header()
-    self.assertIsInstance(result, str)
+    assert isinstance(result, str)
 
   def test_includes_autogen_comment(self):
     """Test header includes autogenerated comment."""
     result = build_header()
-    self.assertIn("AUTOGENERATED", result)
+    assert "AUTOGENERATED" in result
 
   def test_includes_ifndef_guard(self):
     """Test header includes include guard."""
     result = build_header()
-    self.assertIn("#ifndef __SERVICES_H", result)
-    self.assertIn("#define __SERVICES_H", result)
-    self.assertIn("#endif", result)
+    assert "#ifndef __SERVICES_H" in result
+    assert "#define __SERVICES_H" in result
+    assert "#endif" in result
 
   def test_includes_service_struct(self):
     """Test header includes service struct definition."""
     result = build_header()
-    self.assertIn("struct service", result)
+    assert "struct service" in result
 
   def test_includes_map_include(self):
     """Test header includes map header."""
     result = build_header()
-    self.assertIn("#include <map>", result)
+    assert "#include <map>" in result
 
   def test_includes_service_entries(self):
     """Test header includes service entries."""
     result = build_header()
-    self.assertIn('"can"', result)
-    self.assertIn('"controlsState"', result)
-    self.assertIn('"carState"', result)
+    assert '"can"' in result
+    assert '"controlsState"' in result
+    assert '"carState"' in result
 
   def test_includes_frequency(self):
     """Test header includes frequency values."""
     result = build_header()
     # can service should have 100.0 frequency
-    self.assertIn("100.0", result)
+    assert "100.0" in result
 
   def test_includes_queue_sizes(self):
     """Test header includes queue size values."""
     result = build_header()
     # Should have actual byte values
-    self.assertIn(str(QueueSize.BIG), result)
-    self.assertIn(str(QueueSize.SMALL), result)
-
-
-if __name__ == '__main__':
-  unittest.main()
+    assert str(QueueSize.BIG) in result
+    assert str(QueueSize.SMALL) in result

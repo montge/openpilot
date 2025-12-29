@@ -1,5 +1,4 @@
 import time
-from unittest.mock import patch, MagicMock
 
 import pytest
 
@@ -44,58 +43,63 @@ class TestPriority:
 
 
 class TestSetCoreAffinity:
-  @patch('openpilot.common.realtime.PC', False)
-  @patch('openpilot.common.realtime.sys.platform', 'linux')
-  @patch('openpilot.common.realtime.os.sched_setaffinity')
-  def test_set_core_affinity_linux_not_pc(self, mock_setaffinity):
+  def test_set_core_affinity_linux_not_pc(self, mocker):
     """Test that core affinity is set on Linux non-PC."""
+    mocker.patch('openpilot.common.realtime.PC', False)
+    mocker.patch('openpilot.common.realtime.sys.platform', 'linux')
+    mock_setaffinity = mocker.patch('openpilot.common.realtime.os.sched_setaffinity')
+
     set_core_affinity([0, 1])
     mock_setaffinity.assert_called_once_with(0, [0, 1])
 
-  @patch('openpilot.common.realtime.PC', True)
-  @patch('openpilot.common.realtime.sys.platform', 'linux')
-  @patch('openpilot.common.realtime.os.sched_setaffinity')
-  def test_set_core_affinity_linux_pc(self, mock_setaffinity):
+  def test_set_core_affinity_linux_pc(self, mocker):
     """Test that core affinity is not set on Linux PC."""
+    mocker.patch('openpilot.common.realtime.PC', True)
+    mocker.patch('openpilot.common.realtime.sys.platform', 'linux')
+    mock_setaffinity = mocker.patch('openpilot.common.realtime.os.sched_setaffinity')
+
     set_core_affinity([0, 1])
     mock_setaffinity.assert_not_called()
 
-  @patch('openpilot.common.realtime.sys.platform', 'darwin')
-  @patch('openpilot.common.realtime.os.sched_setaffinity')
-  def test_set_core_affinity_non_linux(self, mock_setaffinity):
+  def test_set_core_affinity_non_linux(self, mocker):
     """Test that core affinity is not set on non-Linux platforms."""
+    mocker.patch('openpilot.common.realtime.sys.platform', 'darwin')
+    mock_setaffinity = mocker.patch('openpilot.common.realtime.os.sched_setaffinity')
+
     set_core_affinity([0, 1])
     mock_setaffinity.assert_not_called()
 
 
 class TestConfigRealtimeProcess:
-  @patch('openpilot.common.realtime.set_core_affinity')
-  @patch('openpilot.common.realtime.gc.disable')
-  @patch('openpilot.common.realtime.PC', True)
-  def test_config_realtime_process_pc(self, mock_gc_disable, mock_set_affinity):
+  def test_config_realtime_process_pc(self, mocker):
     """Test config_realtime_process on PC (no scheduler change)."""
+    mocker.patch('openpilot.common.realtime.PC', True)
+    mock_gc_disable = mocker.patch('openpilot.common.realtime.gc.disable')
+    mock_set_affinity = mocker.patch('openpilot.common.realtime.set_core_affinity')
+
     config_realtime_process(cores=2, priority=53)
 
     mock_gc_disable.assert_called_once()
     mock_set_affinity.assert_called_once_with([2])
 
-  @patch('openpilot.common.realtime.set_core_affinity')
-  @patch('openpilot.common.realtime.gc.disable')
-  @patch('openpilot.common.realtime.PC', True)
-  def test_config_realtime_process_with_core_list(self, mock_gc_disable, mock_set_affinity):
+  def test_config_realtime_process_with_core_list(self, mocker):
     """Test config_realtime_process with list of cores."""
+    mocker.patch('openpilot.common.realtime.PC', True)
+    mocker.patch('openpilot.common.realtime.gc.disable')
+    mock_set_affinity = mocker.patch('openpilot.common.realtime.set_core_affinity')
+
     config_realtime_process(cores=[0, 2, 4], priority=53)
 
     mock_set_affinity.assert_called_once_with([0, 2, 4])
 
-  @patch('openpilot.common.realtime.set_core_affinity')
-  @patch('openpilot.common.realtime.gc.disable')
-  @patch('openpilot.common.realtime.os.sched_setscheduler')
-  @patch('openpilot.common.realtime.PC', False)
-  @patch('openpilot.common.realtime.sys.platform', 'linux')
-  def test_config_realtime_process_linux_not_pc(self, mock_scheduler, mock_gc_disable, mock_set_affinity):
+  def test_config_realtime_process_linux_not_pc(self, mocker):
     """Test config_realtime_process on Linux non-PC."""
-    import os
+    mocker.patch('openpilot.common.realtime.PC', False)
+    mocker.patch('openpilot.common.realtime.sys.platform', 'linux')
+    mock_scheduler = mocker.patch('openpilot.common.realtime.os.sched_setscheduler')
+    mock_gc_disable = mocker.patch('openpilot.common.realtime.gc.disable')
+    mock_set_affinity = mocker.patch('openpilot.common.realtime.set_core_affinity')
+
     config_realtime_process(cores=2, priority=53)
 
     mock_gc_disable.assert_called_once()
@@ -180,8 +184,8 @@ class TestRatekeeper:
     """Test that first monitor_time call initializes timing."""
     rk = Ratekeeper(rate=100)
 
-    assert rk._last_monitor_time == -1.
-    assert rk._next_frame_time == -1.
+    assert rk._last_monitor_time == -1.0
+    assert rk._next_frame_time == -1.0
 
     rk.monitor_time()
 

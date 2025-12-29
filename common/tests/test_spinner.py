@@ -1,16 +1,14 @@
 import subprocess
-from unittest.mock import patch, MagicMock, PropertyMock
 
-import pytest
 
 from openpilot.common.spinner import Spinner
 
 
 class TestSpinner:
-  @patch('openpilot.common.spinner.subprocess.Popen')
-  def test_init_success(self, mock_popen):
+  def test_init_success(self, mocker):
     """Test Spinner initialization when subprocess starts successfully."""
-    mock_proc = MagicMock()
+    mock_proc = mocker.MagicMock()
+    mock_popen = mocker.patch('openpilot.common.spinner.subprocess.Popen')
     mock_popen.return_value = mock_proc
 
     spinner = Spinner()
@@ -18,42 +16,42 @@ class TestSpinner:
     assert spinner.spinner_proc is mock_proc
     mock_popen.assert_called_once()
 
-  @patch('openpilot.common.spinner.subprocess.Popen')
-  def test_init_oserror(self, mock_popen):
+  def test_init_oserror(self, mocker):
     """Test Spinner initialization when subprocess fails with OSError."""
+    mock_popen = mocker.patch('openpilot.common.spinner.subprocess.Popen')
     mock_popen.side_effect = OSError("No such file")
 
     spinner = Spinner()
 
     assert spinner.spinner_proc is None
 
-  @patch('openpilot.common.spinner.subprocess.Popen')
-  def test_context_manager_enter(self, mock_popen):
+  def test_context_manager_enter(self, mocker):
     """Test Spinner as context manager - __enter__."""
-    mock_popen.return_value = MagicMock()
+    mock_popen = mocker.patch('openpilot.common.spinner.subprocess.Popen')
+    mock_popen.return_value = mocker.MagicMock()
 
     with Spinner() as spinner:
       assert spinner is not None
       assert hasattr(spinner, 'spinner_proc')
 
-  @patch('openpilot.common.spinner.subprocess.Popen')
-  def test_context_manager_exit(self, mock_popen):
+  def test_context_manager_exit(self, mocker):
     """Test Spinner as context manager - __exit__ closes spinner."""
-    mock_proc = MagicMock()
+    mock_proc = mocker.MagicMock()
+    mock_popen = mocker.patch('openpilot.common.spinner.subprocess.Popen')
     mock_popen.return_value = mock_proc
 
     with Spinner():
       pass
 
     mock_proc.kill.assert_called_once()
-    mock_proc.communicate.assert_called_once_with(timeout=2.)
+    mock_proc.communicate.assert_called_once_with(timeout=2.0)
 
-  @patch('openpilot.common.spinner.subprocess.Popen')
-  def test_update_with_proc(self, mock_popen):
+  def test_update_with_proc(self, mocker):
     """Test update method when spinner_proc is available."""
-    mock_proc = MagicMock()
-    mock_stdin = MagicMock()
+    mock_proc = mocker.MagicMock()
+    mock_stdin = mocker.MagicMock()
     mock_proc.stdin = mock_stdin
+    mock_popen = mocker.patch('openpilot.common.spinner.subprocess.Popen')
     mock_popen.return_value = mock_proc
 
     spinner = Spinner()
@@ -62,22 +60,22 @@ class TestSpinner:
     mock_stdin.write.assert_called_once_with(b"Loading...\n")
     mock_stdin.flush.assert_called_once()
 
-  @patch('openpilot.common.spinner.subprocess.Popen')
-  def test_update_without_proc(self, mock_popen):
+  def test_update_without_proc(self, mocker):
     """Test update method when spinner_proc is None."""
+    mock_popen = mocker.patch('openpilot.common.spinner.subprocess.Popen')
     mock_popen.side_effect = OSError("No such file")
 
     spinner = Spinner()
     # Should not raise an error
     spinner.update("Loading...")
 
-  @patch('openpilot.common.spinner.subprocess.Popen')
-  def test_update_broken_pipe(self, mock_popen):
+  def test_update_broken_pipe(self, mocker):
     """Test update method handles BrokenPipeError on flush."""
-    mock_proc = MagicMock()
-    mock_stdin = MagicMock()
+    mock_proc = mocker.MagicMock()
+    mock_stdin = mocker.MagicMock()
     mock_stdin.flush.side_effect = BrokenPipeError()
     mock_proc.stdin = mock_stdin
+    mock_popen = mocker.patch('openpilot.common.spinner.subprocess.Popen')
     mock_popen.return_value = mock_proc
 
     spinner = Spinner()
@@ -86,12 +84,12 @@ class TestSpinner:
 
     mock_stdin.write.assert_called_once()
 
-  @patch('openpilot.common.spinner.subprocess.Popen')
-  def test_update_progress(self, mock_popen):
+  def test_update_progress(self, mocker):
     """Test update_progress method calculates percentage correctly."""
-    mock_proc = MagicMock()
-    mock_stdin = MagicMock()
+    mock_proc = mocker.MagicMock()
+    mock_stdin = mocker.MagicMock()
     mock_proc.stdin = mock_stdin
+    mock_popen = mocker.patch('openpilot.common.spinner.subprocess.Popen')
     mock_popen.return_value = mock_proc
 
     spinner = Spinner()
@@ -108,12 +106,12 @@ class TestSpinner:
     spinner.update_progress(cur=3.0, total=4.0)
     mock_stdin.write.assert_called_with(b"75\n")
 
-  @patch('openpilot.common.spinner.subprocess.Popen')
-  def test_update_progress_rounding(self, mock_popen):
+  def test_update_progress_rounding(self, mocker):
     """Test update_progress rounds to nearest integer."""
-    mock_proc = MagicMock()
-    mock_stdin = MagicMock()
+    mock_proc = mocker.MagicMock()
+    mock_stdin = mocker.MagicMock()
     mock_proc.stdin = mock_stdin
+    mock_popen = mocker.patch('openpilot.common.spinner.subprocess.Popen')
     mock_popen.return_value = mock_proc
 
     spinner = Spinner()
@@ -126,33 +124,33 @@ class TestSpinner:
     spinner.update_progress(cur=2.0, total=3.0)
     mock_stdin.write.assert_called_with(b"67\n")
 
-  @patch('openpilot.common.spinner.subprocess.Popen')
-  def test_close_with_proc(self, mock_popen):
+  def test_close_with_proc(self, mocker):
     """Test close method when spinner_proc is available."""
-    mock_proc = MagicMock()
+    mock_proc = mocker.MagicMock()
+    mock_popen = mocker.patch('openpilot.common.spinner.subprocess.Popen')
     mock_popen.return_value = mock_proc
 
     spinner = Spinner()
     spinner.close()
 
     mock_proc.kill.assert_called_once()
-    mock_proc.communicate.assert_called_once_with(timeout=2.)
+    mock_proc.communicate.assert_called_once_with(timeout=2.0)
     assert spinner.spinner_proc is None
 
-  @patch('openpilot.common.spinner.subprocess.Popen')
-  def test_close_without_proc(self, mock_popen):
+  def test_close_without_proc(self, mocker):
     """Test close method when spinner_proc is None."""
+    mock_popen = mocker.patch('openpilot.common.spinner.subprocess.Popen')
     mock_popen.side_effect = OSError("No such file")
 
     spinner = Spinner()
     # Should not raise an error
     spinner.close()
 
-  @patch('openpilot.common.spinner.subprocess.Popen')
-  def test_close_timeout_expired(self, mock_popen, capsys):
+  def test_close_timeout_expired(self, mocker, capsys):
     """Test close method handles TimeoutExpired."""
-    mock_proc = MagicMock()
-    mock_proc.communicate.side_effect = subprocess.TimeoutExpired(cmd="spinner", timeout=2.)
+    mock_proc = mocker.MagicMock()
+    mock_proc.communicate.side_effect = subprocess.TimeoutExpired(cmd="spinner", timeout=2.0)
+    mock_popen = mocker.patch('openpilot.common.spinner.subprocess.Popen')
     mock_popen.return_value = mock_proc
 
     spinner = Spinner()
@@ -162,10 +160,10 @@ class TestSpinner:
     assert "WARNING: failed to kill spinner" in captured.out
     assert spinner.spinner_proc is None
 
-  @patch('openpilot.common.spinner.subprocess.Popen')
-  def test_close_idempotent(self, mock_popen):
+  def test_close_idempotent(self, mocker):
     """Test that close can be called multiple times safely."""
-    mock_proc = MagicMock()
+    mock_proc = mocker.MagicMock()
+    mock_popen = mocker.patch('openpilot.common.spinner.subprocess.Popen')
     mock_popen.return_value = mock_proc
 
     spinner = Spinner()
@@ -175,10 +173,10 @@ class TestSpinner:
     # Kill should only be called once (first close sets spinner_proc to None)
     mock_proc.kill.assert_called_once()
 
-  @patch('openpilot.common.spinner.subprocess.Popen')
-  def test_del_calls_close(self, mock_popen):
+  def test_del_calls_close(self, mocker):
     """Test that __del__ calls close."""
-    mock_proc = MagicMock()
+    mock_proc = mocker.MagicMock()
+    mock_popen = mocker.patch('openpilot.common.spinner.subprocess.Popen')
     mock_popen.return_value = mock_proc
 
     spinner = Spinner()
@@ -186,10 +184,10 @@ class TestSpinner:
 
     mock_proc.kill.assert_called_once()
 
-  @patch('openpilot.common.spinner.subprocess.Popen')
-  def test_exit_calls_close(self, mock_popen):
+  def test_exit_calls_close(self, mocker):
     """Test that __exit__ calls close with exception info."""
-    mock_proc = MagicMock()
+    mock_proc = mocker.MagicMock()
+    mock_popen = mocker.patch('openpilot.common.spinner.subprocess.Popen')
     mock_popen.return_value = mock_proc
 
     spinner = Spinner()
@@ -197,23 +195,23 @@ class TestSpinner:
 
     mock_proc.kill.assert_called_once()
 
-  @patch('openpilot.common.spinner.subprocess.Popen')
-  def test_update_unicode(self, mock_popen):
+  def test_update_unicode(self, mocker):
     """Test update method with unicode characters."""
-    mock_proc = MagicMock()
-    mock_stdin = MagicMock()
+    mock_proc = mocker.MagicMock()
+    mock_stdin = mocker.MagicMock()
     mock_proc.stdin = mock_stdin
+    mock_popen = mocker.patch('openpilot.common.spinner.subprocess.Popen')
     mock_popen.return_value = mock_proc
 
     spinner = Spinner()
     spinner.update("Loading... \u2764")
 
-    mock_stdin.write.assert_called_once_with("Loading... \u2764\n".encode('utf8'))
+    mock_stdin.write.assert_called_once_with("Loading... \u2764\n".encode())
 
-  @patch('openpilot.common.spinner.subprocess.Popen')
-  def test_popen_arguments(self, mock_popen):
+  def test_popen_arguments(self, mocker):
     """Test that Popen is called with correct arguments."""
-    mock_popen.return_value = MagicMock()
+    mock_popen = mocker.patch('openpilot.common.spinner.subprocess.Popen')
+    mock_popen.return_value = mocker.MagicMock()
 
     Spinner()
 

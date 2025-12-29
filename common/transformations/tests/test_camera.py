@@ -1,15 +1,24 @@
 """Tests for common/transformations/camera.py - camera transformations."""
+
 import numpy as np
 import pytest
 
 from openpilot.common.transformations.camera import (
-  CameraConfig, DeviceCameraConfig, _NoneCameraConfig,
+  CameraConfig,
+  DeviceCameraConfig,
+  _NoneCameraConfig,
   DEVICE_CAMERAS,
-  device_frame_from_view_frame, view_frame_from_device_frame,
-  get_view_frame_from_road_frame, get_view_frame_from_calib_frame,
-  vp_from_ke, roll_from_ke,
-  normalize, denormalize, get_calib_from_vp,
-  device_from_ecef, img_from_device,
+  device_frame_from_view_frame,
+  view_frame_from_device_frame,
+  get_view_frame_from_road_frame,
+  get_view_frame_from_calib_frame,
+  vp_from_ke,
+  roll_from_ke,
+  normalize,
+  denormalize,
+  get_calib_from_vp,
+  device_from_ecef,
+  img_from_device,
 )
 
 
@@ -61,9 +70,11 @@ class TestCameraConfig:
 
   def test_camera_config_frozen(self):
     """Test CameraConfig is immutable."""
+    from dataclasses import FrozenInstanceError
+
     config = CameraConfig(1920, 1080, 1000.0)
 
-    with pytest.raises(Exception):  # FrozenInstanceError
+    with pytest.raises(FrozenInstanceError):
       config.width = 1280
 
 
@@ -141,7 +152,7 @@ class TestDeviceCameras:
 
   def test_device_cameras_are_device_camera_config(self):
     """Test all values are DeviceCameraConfig."""
-    for key, value in DEVICE_CAMERAS.items():
+    for _, value in DEVICE_CAMERAS.items():
       assert isinstance(value, DeviceCameraConfig)
 
 
@@ -165,11 +176,7 @@ class TestFrameTransforms:
 
   def test_device_from_view_is_transpose_of_view_from_device(self):
     """Test the matrices are transposes of each other."""
-    np.testing.assert_allclose(
-      device_frame_from_view_frame,
-      view_frame_from_device_frame.T,
-      atol=1e-10
-    )
+    np.testing.assert_allclose(device_frame_from_view_frame, view_frame_from_device_frame.T, atol=1e-10)
 
 
 class TestViewFrameFromRoadFrame:
@@ -217,11 +224,7 @@ class TestVpFromKe:
 
   def test_vp_returns_tuple(self):
     """Test vp_from_ke returns a tuple."""
-    K = np.array([
-      [1000, 0, 960],
-      [0, 1000, 540],
-      [0, 0, 1]
-    ])
+    K = np.array([[1000, 0, 960], [0, 1000, 540], [0, 0, 1]])
     E = get_view_frame_from_road_frame(0, 0, 0, 1.2)
     KE = K @ E
 
@@ -262,11 +265,7 @@ class TestRollFromKe:
 
   def test_returns_float(self):
     """Test roll_from_ke returns float."""
-    K = np.array([
-      [1000, 0, 960],
-      [0, 1000, 540],
-      [0, 0, 1]
-    ])
+    K = np.array([[1000, 0, 960], [0, 1000, 540], [0, 0, 1]])
     E = get_view_frame_from_road_frame(0.1, 0.05, 0.02, 1.2)
     KE = K @ E
 
@@ -407,10 +406,12 @@ class TestDeviceFromEcef:
     """Test transforming array of ECEF points."""
     pos_ecef = np.array([4000000, 0, 4000000])
     orientation_ecef = np.array([1.0, 0.0, 0.0, 0.0])
-    pts_ecef = np.array([
-      [4000100, 0, 4000000],
-      [4000000, 100, 4000000],
-    ])
+    pts_ecef = np.array(
+      [
+        [4000100, 0, 4000000],
+        [4000000, 100, 4000000],
+      ]
+    )
 
     result = device_from_ecef(pos_ecef, orientation_ecef, pts_ecef)
 
@@ -444,10 +445,12 @@ class TestImgFromDevice:
 
   def test_array_of_points(self):
     """Test array of device points."""
-    pts_device = np.array([
-      [10.0, 0.0, 0.0],
-      [10.0, 1.0, 0.0],
-    ])
+    pts_device = np.array(
+      [
+        [10.0, 0.0, 0.0],
+        [10.0, 1.0, 0.0],
+      ]
+    )
 
     result = img_from_device(pts_device)
 

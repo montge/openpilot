@@ -1,224 +1,216 @@
 """Tests for system/hardware/hw.py - hardware paths."""
+
 import os
-import platform
-import unittest
 from pathlib import Path
-from unittest.mock import patch
 
 from openpilot.system.hardware.hw import Paths, DEFAULT_DOWNLOAD_CACHE_ROOT
 
 
-class TestDefaultDownloadCacheRoot(unittest.TestCase):
+class TestDefaultDownloadCacheRoot:
   """Test DEFAULT_DOWNLOAD_CACHE_ROOT constant."""
 
   def test_default_value(self):
     """Test default download cache root path."""
-    self.assertEqual(DEFAULT_DOWNLOAD_CACHE_ROOT, "/tmp/comma_download_cache")
+    assert DEFAULT_DOWNLOAD_CACHE_ROOT == "/tmp/comma_download_cache"
 
 
-class TestPathsCommaHome(unittest.TestCase):
+class TestPathsCommaHome:
   """Test Paths.comma_home method."""
 
-  def test_comma_home_without_prefix(self):
+  def test_comma_home_without_prefix(self, mocker):
     """Test comma_home returns ~/.comma without prefix."""
-    with patch.dict(os.environ, {}, clear=True):
-      # Remove OPENPILOT_PREFIX if present
-      os.environ.pop('OPENPILOT_PREFIX', None)
-      result = Paths.comma_home()
+    mocker.patch.dict(os.environ, {}, clear=True)
+    # Remove OPENPILOT_PREFIX if present
+    os.environ.pop('OPENPILOT_PREFIX', None)
+    result = Paths.comma_home()
 
-      expected = os.path.join(str(Path.home()), ".comma")
-      self.assertEqual(result, expected)
+    expected = os.path.join(str(Path.home()), ".comma")
+    assert result == expected
 
-  def test_comma_home_with_prefix(self):
+  def test_comma_home_with_prefix(self, mocker):
     """Test comma_home includes prefix."""
-    with patch.dict(os.environ, {'OPENPILOT_PREFIX': '_test123'}):
-      result = Paths.comma_home()
+    mocker.patch.dict(os.environ, {'OPENPILOT_PREFIX': '_test123'})
+    result = Paths.comma_home()
 
-      expected = os.path.join(str(Path.home()), ".comma_test123")
-      self.assertEqual(result, expected)
+    expected = os.path.join(str(Path.home()), ".comma_test123")
+    assert result == expected
 
 
-class TestPathsLogRoot(unittest.TestCase):
+class TestPathsLogRoot:
   """Test Paths.log_root method."""
 
-  def test_log_root_from_env(self):
+  def test_log_root_from_env(self, mocker):
     """Test log_root uses LOG_ROOT env var if set."""
-    with patch.dict(os.environ, {'LOG_ROOT': '/custom/log/root'}):
-      result = Paths.log_root()
+    mocker.patch.dict(os.environ, {'LOG_ROOT': '/custom/log/root'})
+    result = Paths.log_root()
 
-      self.assertEqual(result, '/custom/log/root')
+    assert result == '/custom/log/root'
 
-  @patch('openpilot.system.hardware.hw.PC', True)
-  def test_log_root_pc(self):
+  def test_log_root_pc(self, mocker):
     """Test log_root on PC platform."""
-    with patch.dict(os.environ, {}, clear=True):
-      os.environ.pop('LOG_ROOT', None)
-      os.environ.pop('OPENPILOT_PREFIX', None)
-      result = Paths.log_root()
+    mocker.patch('openpilot.system.hardware.hw.PC', True)
+    mocker.patch.dict(os.environ, {}, clear=True)
+    os.environ.pop('LOG_ROOT', None)
+    os.environ.pop('OPENPILOT_PREFIX', None)
+    result = Paths.log_root()
 
-      expected = str(Path(Paths.comma_home()) / "media" / "0" / "realdata")
-      self.assertEqual(result, expected)
+    expected = str(Path(Paths.comma_home()) / "media" / "0" / "realdata")
+    assert result == expected
 
-  @patch('openpilot.system.hardware.hw.PC', False)
-  def test_log_root_device(self):
+  def test_log_root_device(self, mocker):
     """Test log_root on device (non-PC)."""
-    with patch.dict(os.environ, {}, clear=True):
-      os.environ.pop('LOG_ROOT', None)
-      result = Paths.log_root()
+    mocker.patch('openpilot.system.hardware.hw.PC', False)
+    mocker.patch.dict(os.environ, {}, clear=True)
+    os.environ.pop('LOG_ROOT', None)
+    result = Paths.log_root()
 
-      self.assertEqual(result, '/data/media/0/realdata/')
+    assert result == '/data/media/0/realdata/'
 
 
-class TestPathsSwaglogRoot(unittest.TestCase):
+class TestPathsSwaglogRoot:
   """Test Paths.swaglog_root method."""
 
-  @patch('openpilot.system.hardware.hw.PC', True)
-  def test_swaglog_root_pc(self):
+  def test_swaglog_root_pc(self, mocker):
     """Test swaglog_root on PC platform."""
+    mocker.patch('openpilot.system.hardware.hw.PC', True)
     result = Paths.swaglog_root()
 
     expected = os.path.join(Paths.comma_home(), "log")
-    self.assertEqual(result, expected)
+    assert result == expected
 
-  @patch('openpilot.system.hardware.hw.PC', False)
-  def test_swaglog_root_device(self):
+  def test_swaglog_root_device(self, mocker):
     """Test swaglog_root on device."""
+    mocker.patch('openpilot.system.hardware.hw.PC', False)
     result = Paths.swaglog_root()
 
-    self.assertEqual(result, "/data/log/")
+    assert result == "/data/log/"
 
 
-class TestPathsSwaglogIpc(unittest.TestCase):
+class TestPathsSwaglogIpc:
   """Test Paths.swaglog_ipc method."""
 
-  def test_swaglog_ipc_without_prefix(self):
+  def test_swaglog_ipc_without_prefix(self, mocker):
     """Test swaglog_ipc without prefix."""
-    with patch.dict(os.environ, {}, clear=True):
-      os.environ.pop('OPENPILOT_PREFIX', None)
-      result = Paths.swaglog_ipc()
+    mocker.patch.dict(os.environ, {}, clear=True)
+    os.environ.pop('OPENPILOT_PREFIX', None)
+    result = Paths.swaglog_ipc()
 
-      self.assertEqual(result, "ipc:///tmp/logmessage")
+    assert result == "ipc:///tmp/logmessage"
 
-  def test_swaglog_ipc_with_prefix(self):
+  def test_swaglog_ipc_with_prefix(self, mocker):
     """Test swaglog_ipc includes prefix."""
-    with patch.dict(os.environ, {'OPENPILOT_PREFIX': '_test'}):
-      result = Paths.swaglog_ipc()
+    mocker.patch.dict(os.environ, {'OPENPILOT_PREFIX': '_test'})
+    result = Paths.swaglog_ipc()
 
-      self.assertEqual(result, "ipc:///tmp/logmessage_test")
+    assert result == "ipc:///tmp/logmessage_test"
 
 
-class TestPathsDownloadCacheRoot(unittest.TestCase):
+class TestPathsDownloadCacheRoot:
   """Test Paths.download_cache_root method."""
 
-  def test_download_cache_from_env(self):
+  def test_download_cache_from_env(self, mocker):
     """Test download_cache_root uses COMMA_CACHE env var if set."""
-    with patch.dict(os.environ, {'COMMA_CACHE': '/custom/cache'}):
-      result = Paths.download_cache_root()
+    mocker.patch.dict(os.environ, {'COMMA_CACHE': '/custom/cache'})
+    result = Paths.download_cache_root()
 
-      self.assertEqual(result, '/custom/cache/')
+    assert result == '/custom/cache/'
 
-  def test_download_cache_default_without_prefix(self):
+  def test_download_cache_default_without_prefix(self, mocker):
     """Test download_cache_root uses default without prefix."""
-    with patch.dict(os.environ, {}, clear=True):
-      os.environ.pop('COMMA_CACHE', None)
-      os.environ.pop('OPENPILOT_PREFIX', None)
-      result = Paths.download_cache_root()
+    mocker.patch.dict(os.environ, {}, clear=True)
+    os.environ.pop('COMMA_CACHE', None)
+    os.environ.pop('OPENPILOT_PREFIX', None)
+    result = Paths.download_cache_root()
 
-      self.assertEqual(result, DEFAULT_DOWNLOAD_CACHE_ROOT + "/")
+    assert result == DEFAULT_DOWNLOAD_CACHE_ROOT + "/"
 
-  def test_download_cache_default_with_prefix(self):
+  def test_download_cache_default_with_prefix(self, mocker):
     """Test download_cache_root includes prefix."""
-    with patch.dict(os.environ, {'OPENPILOT_PREFIX': '_abc'}, clear=True):
-      os.environ.pop('COMMA_CACHE', None)
-      result = Paths.download_cache_root()
+    mocker.patch.dict(os.environ, {'OPENPILOT_PREFIX': '_abc'}, clear=True)
+    os.environ.pop('COMMA_CACHE', None)
+    result = Paths.download_cache_root()
 
-      self.assertEqual(result, DEFAULT_DOWNLOAD_CACHE_ROOT + "_abc/")
+    assert result == DEFAULT_DOWNLOAD_CACHE_ROOT + "_abc/"
 
 
-class TestPathsPersistRoot(unittest.TestCase):
+class TestPathsPersistRoot:
   """Test Paths.persist_root method."""
 
-  @patch('openpilot.system.hardware.hw.PC', True)
-  def test_persist_root_pc(self):
+  def test_persist_root_pc(self, mocker):
     """Test persist_root on PC platform."""
+    mocker.patch('openpilot.system.hardware.hw.PC', True)
     result = Paths.persist_root()
 
     expected = os.path.join(Paths.comma_home(), "persist")
-    self.assertEqual(result, expected)
+    assert result == expected
 
-  @patch('openpilot.system.hardware.hw.PC', False)
-  def test_persist_root_device(self):
+  def test_persist_root_device(self, mocker):
     """Test persist_root on device."""
+    mocker.patch('openpilot.system.hardware.hw.PC', False)
     result = Paths.persist_root()
 
-    self.assertEqual(result, "/persist/")
+    assert result == "/persist/"
 
 
-class TestPathsStatsRoot(unittest.TestCase):
+class TestPathsStatsRoot:
   """Test Paths.stats_root method."""
 
-  @patch('openpilot.system.hardware.hw.PC', True)
-  def test_stats_root_pc(self):
+  def test_stats_root_pc(self, mocker):
     """Test stats_root on PC platform."""
+    mocker.patch('openpilot.system.hardware.hw.PC', True)
     result = Paths.stats_root()
 
     expected = str(Path(Paths.comma_home()) / "stats")
-    self.assertEqual(result, expected)
+    assert result == expected
 
-  @patch('openpilot.system.hardware.hw.PC', False)
-  def test_stats_root_device(self):
+  def test_stats_root_device(self, mocker):
     """Test stats_root on device."""
+    mocker.patch('openpilot.system.hardware.hw.PC', False)
     result = Paths.stats_root()
 
-    self.assertEqual(result, "/data/stats/")
+    assert result == "/data/stats/"
 
 
-class TestPathsConfigRoot(unittest.TestCase):
+class TestPathsConfigRoot:
   """Test Paths.config_root method."""
 
-  @patch('openpilot.system.hardware.hw.PC', True)
-  def test_config_root_pc(self):
+  def test_config_root_pc(self, mocker):
     """Test config_root on PC platform."""
+    mocker.patch('openpilot.system.hardware.hw.PC', True)
     result = Paths.config_root()
 
-    self.assertEqual(result, Paths.comma_home())
+    assert result == Paths.comma_home()
 
-  @patch('openpilot.system.hardware.hw.PC', False)
-  def test_config_root_device(self):
+  def test_config_root_device(self, mocker):
     """Test config_root on device."""
+    mocker.patch('openpilot.system.hardware.hw.PC', False)
     result = Paths.config_root()
 
-    self.assertEqual(result, "/tmp/.comma")
+    assert result == "/tmp/.comma"
 
 
-class TestPathsShmPath(unittest.TestCase):
+class TestPathsShmPath:
   """Test Paths.shm_path method."""
 
-  @patch('openpilot.system.hardware.hw.PC', True)
-  @patch('openpilot.system.hardware.hw.platform.system')
-  def test_shm_path_macos(self, mock_system):
+  def test_shm_path_macos(self, mocker):
     """Test shm_path on macOS returns /tmp."""
-    mock_system.return_value = "Darwin"
+    mocker.patch('openpilot.system.hardware.hw.PC', True)
+    mocker.patch('openpilot.system.hardware.hw.platform.system', return_value="Darwin")
     result = Paths.shm_path()
 
-    self.assertEqual(result, "/tmp")
+    assert result == "/tmp"
 
-  @patch('openpilot.system.hardware.hw.PC', True)
-  @patch('openpilot.system.hardware.hw.platform.system')
-  def test_shm_path_linux_pc(self, mock_system):
+  def test_shm_path_linux_pc(self, mocker):
     """Test shm_path on Linux PC returns /dev/shm."""
-    mock_system.return_value = "Linux"
+    mocker.patch('openpilot.system.hardware.hw.PC', True)
+    mocker.patch('openpilot.system.hardware.hw.platform.system', return_value="Linux")
     result = Paths.shm_path()
 
-    self.assertEqual(result, "/dev/shm")
+    assert result == "/dev/shm"
 
-  @patch('openpilot.system.hardware.hw.PC', False)
-  def test_shm_path_device(self):
+  def test_shm_path_device(self, mocker):
     """Test shm_path on device returns /dev/shm."""
+    mocker.patch('openpilot.system.hardware.hw.PC', False)
     result = Paths.shm_path()
 
-    self.assertEqual(result, "/dev/shm")
-
-
-if __name__ == '__main__':
-  unittest.main()
+    assert result == "/dev/shm"

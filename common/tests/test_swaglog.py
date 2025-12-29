@@ -1,18 +1,20 @@
 """Tests for common/swaglog.py - logging utilities."""
+
 import logging
 import os
 import tempfile
-import unittest
-from unittest.mock import patch, MagicMock, PropertyMock
+
 
 from openpilot.common.swaglog import (
-  SwaglogRotatingFileHandler, UnixDomainSocketHandler, ForwardingHandler,
-  add_file_handler, cloudlog,
+  SwaglogRotatingFileHandler,
+  UnixDomainSocketHandler,
+  ForwardingHandler,
+  add_file_handler,
+  cloudlog,
 )
-from openpilot.common.logging_extra import SwagFormatter
 
 
-class TestSwaglogRotatingFileHandler(unittest.TestCase):
+class TestSwaglogRotatingFileHandler:
   """Test SwaglogRotatingFileHandler class."""
 
   def test_init_creates_first_file(self):
@@ -22,8 +24,8 @@ class TestSwaglogRotatingFileHandler(unittest.TestCase):
       handler = SwaglogRotatingFileHandler(base_filename, interval=60, max_bytes=1024)
 
       # Should have created a log file
-      self.assertEqual(len(handler.log_files), 1)
-      self.assertTrue(os.path.exists(handler.log_files[0]))
+      assert len(handler.log_files) == 1
+      assert os.path.exists(handler.log_files[0])
 
       handler.close()
 
@@ -40,11 +42,11 @@ class TestSwaglogRotatingFileHandler(unittest.TestCase):
       handler = SwaglogRotatingFileHandler(base_filename, interval=60)
 
       # Should find existing files + new one created
-      self.assertGreaterEqual(len(handler.log_files), 3)
+      assert len(handler.log_files) >= 3
 
       handler.close()
 
-  def test_should_rollover_size_exceeded(self):
+  def test_should_rollover_size_exceeded(self, mocker):
     """Test shouldRollover returns True when size exceeded."""
     with tempfile.TemporaryDirectory() as tmpdir:
       base_filename = os.path.join(tmpdir, "test_log")
@@ -53,22 +55,22 @@ class TestSwaglogRotatingFileHandler(unittest.TestCase):
       # Write some data to exceed max_bytes
       handler.stream.write("x" * 20)
 
-      record = MagicMock()
-      self.assertTrue(handler.shouldRollover(record))
+      record = mocker.MagicMock()
+      assert handler.shouldRollover(record) is True
 
       handler.close()
 
-  def test_should_rollover_time_exceeded(self):
+  def test_should_rollover_time_exceeded(self, mocker):
     """Test shouldRollover returns True when time exceeded."""
     with tempfile.TemporaryDirectory() as tmpdir:
       base_filename = os.path.join(tmpdir, "test_log")
-      handler = SwaglogRotatingFileHandler(base_filename, interval=1, max_bytes=1024*1024)
+      handler = SwaglogRotatingFileHandler(base_filename, interval=1, max_bytes=1024 * 1024)
 
       # Set last_rollover to past
       handler.last_rollover = 0
 
-      record = MagicMock()
-      self.assertTrue(handler.shouldRollover(record))
+      record = mocker.MagicMock()
+      assert handler.shouldRollover(record) is True
 
       handler.close()
 
@@ -83,8 +85,8 @@ class TestSwaglogRotatingFileHandler(unittest.TestCase):
 
       handler.doRollover()
 
-      self.assertEqual(len(handler.log_files), initial_count + 1)
-      self.assertEqual(handler.last_file_idx, initial_idx + 1)
+      assert len(handler.log_files) == initial_count + 1
+      assert handler.last_file_idx == initial_idx + 1
 
       handler.close()
 
@@ -99,88 +101,89 @@ class TestSwaglogRotatingFileHandler(unittest.TestCase):
         handler.doRollover()
 
       # Should only keep backup_count files
-      self.assertLessEqual(len(handler.log_files), 3)
+      assert len(handler.log_files) <= 3
 
       handler.close()
 
 
-class TestUnixDomainSocketHandler(unittest.TestCase):
+class TestUnixDomainSocketHandler:
   """Test UnixDomainSocketHandler class."""
 
-  def test_init(self):
+  def test_init(self, mocker):
     """Test handler initializes correctly."""
-    formatter = MagicMock()
+    formatter = mocker.MagicMock()
     handler = UnixDomainSocketHandler(formatter)
 
-    self.assertIsNone(handler.pid)
-    self.assertIsNone(handler.zctx)
-    self.assertIsNone(handler.sock)
+    assert handler.pid is None
+    assert handler.zctx is None
+    assert handler.sock is None
 
-  def test_close_without_connection(self):
+  def test_close_without_connection(self, mocker):
     """Test close does nothing when not connected."""
-    formatter = MagicMock()
+    formatter = mocker.MagicMock()
     handler = UnixDomainSocketHandler(formatter)
 
     # Should not raise
     handler.close()
 
-  @patch('zmq.Context')
-  def test_connect_creates_socket(self, mock_context):
+  def test_connect_creates_socket(self, mocker):
     """Test connect creates ZMQ socket."""
-    formatter = MagicMock()
+    mock_context = mocker.patch('zmq.Context')
+    formatter = mocker.MagicMock()
     handler = UnixDomainSocketHandler(formatter)
 
-    mock_ctx = MagicMock()
+    mock_ctx = mocker.MagicMock()
     mock_context.return_value = mock_ctx
-    mock_sock = MagicMock()
+    mock_sock = mocker.MagicMock()
     mock_ctx.socket.return_value = mock_sock
 
     handler.connect()
 
-    self.assertEqual(handler.zctx, mock_ctx)
-    self.assertEqual(handler.sock, mock_sock)
-    self.assertEqual(handler.pid, os.getpid())
+    assert handler.zctx == mock_ctx
+    assert handler.sock == mock_sock
+    assert handler.pid == os.getpid()
 
     mock_sock.setsockopt.assert_called()
     mock_sock.connect.assert_called()
 
 
-class TestForwardingHandler(unittest.TestCase):
+class TestForwardingHandler:
   """Test ForwardingHandler class."""
 
-  def test_init(self):
+  def test_init(self, mocker):
     """Test handler initializes with target logger."""
-    target = MagicMock()
+    target = mocker.MagicMock()
     handler = ForwardingHandler(target)
 
-    self.assertEqual(handler.target_logger, target)
+    assert handler.target_logger == target
 
-  def test_emit_forwards_to_target(self):
+  def test_emit_forwards_to_target(self, mocker):
     """Test emit forwards record to target logger."""
-    target = MagicMock()
+    target = mocker.MagicMock()
     handler = ForwardingHandler(target)
 
-    record = MagicMock()
+    record = mocker.MagicMock()
     handler.emit(record)
 
     target.handle.assert_called_once_with(record)
 
 
-class TestCloudlog(unittest.TestCase):
+class TestCloudlog:
   """Test cloudlog instance."""
 
   def test_cloudlog_is_swaglogger(self):
     """Test cloudlog is a SwagLogger instance."""
     from openpilot.common.logging_extra import SwagLogger
-    self.assertIsInstance(cloudlog, SwagLogger)
+
+    assert isinstance(cloudlog, SwagLogger)
 
   def test_cloudlog_level_is_debug(self):
     """Test cloudlog level is set to DEBUG."""
-    self.assertEqual(cloudlog.level, logging.DEBUG)
+    assert cloudlog.level == logging.DEBUG
 
   def test_cloudlog_has_handlers(self):
     """Test cloudlog has handlers attached."""
-    self.assertGreater(len(cloudlog.handlers), 0)
+    assert len(cloudlog.handlers) > 0
 
   def test_cloudlog_can_log(self):
     """Test cloudlog can log messages without error."""
@@ -196,21 +199,17 @@ class TestCloudlog(unittest.TestCase):
     cloudlog.info("test with bound context")
 
 
-class TestAddFileHandler(unittest.TestCase):
+class TestAddFileHandler:
   """Test add_file_handler function."""
 
-  @patch('openpilot.common.swaglog.get_file_handler')
-  def test_add_file_handler_adds_handler(self, mock_get_handler):
+  def test_add_file_handler_adds_handler(self, mocker):
     """Test add_file_handler adds handler to logger."""
-    mock_handler = MagicMock()
+    mock_get_handler = mocker.patch('openpilot.common.swaglog.get_file_handler')
+    mock_handler = mocker.MagicMock()
     mock_get_handler.return_value = mock_handler
 
-    logger = MagicMock()
+    logger = mocker.MagicMock()
     add_file_handler(logger)
 
     mock_handler.setFormatter.assert_called_once()
     logger.addHandler.assert_called_once_with(mock_handler)
-
-
-if __name__ == '__main__':
-  unittest.main()

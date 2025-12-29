@@ -1,104 +1,113 @@
 """Tests for monitoring/helpers.py - driver monitoring classes and functions."""
-import math
-import unittest
-from unittest.mock import MagicMock, patch
-
-import numpy as np
 
 from openpilot.selfdrive.monitoring.helpers import (
-  DRIVER_MONITOR_SETTINGS, DistractedType, DriverPose, DriverProb, DriverBlink,
-  face_orientation_from_net, DriverMonitoring, EFL, W, H
+  DRIVER_MONITOR_SETTINGS,
+  DistractedType,
+  DriverPose,
+  DriverProb,
+  DriverBlink,
+  face_orientation_from_net,
+  DriverMonitoring,
 )
 from openpilot.common.realtime import DT_DMON
 
 
-class TestDriverMonitorSettings(unittest.TestCase):
+class TestDriverMonitorSettings:
   """Test DRIVER_MONITOR_SETTINGS class."""
 
   def test_settings_initialization_default(self):
     """Test settings initialize with default device type."""
     settings = DRIVER_MONITOR_SETTINGS(device_type='tici')
 
-    self.assertEqual(settings._DT_DMON, DT_DMON)
-    self.assertEqual(settings._AWARENESS_TIME, 30.0)
-    self.assertEqual(settings._DISTRACTED_TIME, 11.0)
-    self.assertEqual(settings._FACE_THRESHOLD, 0.7)
-    self.assertEqual(settings._PHONE_THRESH, 0.4)
+    assert settings._DT_DMON == DT_DMON
+    assert settings._AWARENESS_TIME == 30.0
+    assert settings._DISTRACTED_TIME == 11.0
+    assert settings._FACE_THRESHOLD == 0.7
+    assert settings._PHONE_THRESH == 0.4
 
   def test_settings_initialization_mici(self):
     """Test settings with mici device type."""
     settings = DRIVER_MONITOR_SETTINGS(device_type='mici')
 
-    self.assertEqual(settings._PHONE_THRESH, 0.75)
+    assert settings._PHONE_THRESH == 0.75
 
   def test_settings_has_all_expected_attributes(self):
     """Test that all expected settings attributes exist."""
     settings = DRIVER_MONITOR_SETTINGS(device_type='tici')
 
     expected_attrs = [
-      '_AWARENESS_TIME', '_AWARENESS_PRE_TIME_TILL_TERMINAL',
-      '_DISTRACTED_TIME', '_DISTRACTED_PRE_TIME_TILL_TERMINAL',
-      '_FACE_THRESHOLD', '_EYE_THRESHOLD', '_SG_THRESHOLD', '_BLINK_THRESHOLD',
-      '_PHONE_THRESH', '_POSE_PITCH_THRESHOLD', '_POSE_YAW_THRESHOLD',
-      '_PITCH_NATURAL_OFFSET', '_YAW_NATURAL_OFFSET',
-      '_MAX_TERMINAL_ALERTS', '_MAX_TERMINAL_DURATION',
+      '_AWARENESS_TIME',
+      '_AWARENESS_PRE_TIME_TILL_TERMINAL',
+      '_DISTRACTED_TIME',
+      '_DISTRACTED_PRE_TIME_TILL_TERMINAL',
+      '_FACE_THRESHOLD',
+      '_EYE_THRESHOLD',
+      '_SG_THRESHOLD',
+      '_BLINK_THRESHOLD',
+      '_PHONE_THRESH',
+      '_POSE_PITCH_THRESHOLD',
+      '_POSE_YAW_THRESHOLD',
+      '_PITCH_NATURAL_OFFSET',
+      '_YAW_NATURAL_OFFSET',
+      '_MAX_TERMINAL_ALERTS',
+      '_MAX_TERMINAL_DURATION',
     ]
 
     for attr in expected_attrs:
-      self.assertTrue(hasattr(settings, attr), f"Missing attribute: {attr}")
+      assert hasattr(settings, attr), f"Missing attribute: {attr}"
 
 
-class TestDistractedType(unittest.TestCase):
+class TestDistractedType:
   """Test DistractedType constants."""
 
   def test_not_distracted_is_zero(self):
     """Test NOT_DISTRACTED is 0."""
-    self.assertEqual(DistractedType.NOT_DISTRACTED, 0)
+    assert DistractedType.NOT_DISTRACTED == 0
 
   def test_distracted_types_are_bit_flags(self):
     """Test distracted types can be combined as bit flags."""
     combined = DistractedType.DISTRACTED_POSE | DistractedType.DISTRACTED_BLINK
-    self.assertTrue(combined & DistractedType.DISTRACTED_POSE)
-    self.assertTrue(combined & DistractedType.DISTRACTED_BLINK)
-    self.assertFalse(combined & DistractedType.DISTRACTED_PHONE)
+    assert combined & DistractedType.DISTRACTED_POSE
+    assert combined & DistractedType.DISTRACTED_BLINK
+    assert not (combined & DistractedType.DISTRACTED_PHONE)
 
   def test_distracted_types_are_unique(self):
     """Test distracted types are unique powers of 2."""
     types = [DistractedType.DISTRACTED_POSE, DistractedType.DISTRACTED_BLINK, DistractedType.DISTRACTED_PHONE]
     for i, t in enumerate(types):
-      self.assertEqual(t, 1 << i)
+      assert t == 1 << i
 
 
-class TestDriverPose(unittest.TestCase):
+class TestDriverPose:
   """Test DriverPose class."""
 
-  def setUp(self):
+  def setup_method(self):
     self.settings = DRIVER_MONITOR_SETTINGS(device_type='tici')
 
   def test_driver_pose_initialization(self):
     """Test DriverPose initializes correctly."""
     pose = DriverPose(self.settings)
 
-    self.assertEqual(pose.yaw, 0.0)
-    self.assertEqual(pose.pitch, 0.0)
-    self.assertEqual(pose.roll, 0.0)
-    self.assertEqual(pose.yaw_std, 0.0)
-    self.assertEqual(pose.pitch_std, 0.0)
-    self.assertEqual(pose.roll_std, 0.0)
-    self.assertFalse(pose.calibrated)
-    self.assertTrue(pose.low_std)
-    self.assertEqual(pose.cfactor_pitch, 1.0)
-    self.assertEqual(pose.cfactor_yaw, 1.0)
+    assert pose.yaw == 0.0
+    assert pose.pitch == 0.0
+    assert pose.roll == 0.0
+    assert pose.yaw_std == 0.0
+    assert pose.pitch_std == 0.0
+    assert pose.roll_std == 0.0
+    assert not pose.calibrated
+    assert pose.low_std
+    assert pose.cfactor_pitch == 1.0
+    assert pose.cfactor_yaw == 1.0
 
   def test_driver_pose_has_offseters(self):
     """Test DriverPose has pitch and yaw offseters."""
     pose = DriverPose(self.settings)
 
-    self.assertIsNotNone(pose.pitch_offseter)
-    self.assertIsNotNone(pose.yaw_offseter)
+    assert pose.pitch_offseter is not None
+    assert pose.yaw_offseter is not None
 
 
-class TestDriverProb(unittest.TestCase):
+class TestDriverProb:
   """Test DriverProb class."""
 
   def test_driver_prob_initialization(self):
@@ -106,23 +115,23 @@ class TestDriverProb(unittest.TestCase):
     raw_priors = (0.05, 0.015, 2)
     prob = DriverProb(raw_priors=raw_priors, max_trackable=100)
 
-    self.assertEqual(prob.prob, 0.0)
-    self.assertIsNotNone(prob.prob_offseter)
-    self.assertFalse(prob.prob_calibrated)
+    assert prob.prob == 0.0
+    assert prob.prob_offseter is not None
+    assert not prob.prob_calibrated
 
 
-class TestDriverBlink(unittest.TestCase):
+class TestDriverBlink:
   """Test DriverBlink class."""
 
   def test_driver_blink_initialization(self):
     """Test DriverBlink initializes correctly."""
     blink = DriverBlink()
 
-    self.assertEqual(blink.left, 0.0)
-    self.assertEqual(blink.right, 0.0)
+    assert blink.left == 0.0
+    assert blink.right == 0.0
 
 
-class TestFaceOrientationFromNet(unittest.TestCase):
+class TestFaceOrientationFromNet:
   """Test face_orientation_from_net function."""
 
   def test_face_orientation_at_center(self):
@@ -133,10 +142,10 @@ class TestFaceOrientationFromNet(unittest.TestCase):
 
     roll, pitch, yaw = face_orientation_from_net(angles_desc, pos_desc, rpy_calib)
 
-    self.assertAlmostEqual(roll, 0.0, places=5)
+    assert abs(roll - 0.0) < 1e-5
     # Pitch and yaw will have focal angle offset for center position
-    self.assertIsInstance(pitch, float)
-    self.assertIsInstance(yaw, float)
+    assert isinstance(pitch, float)
+    assert isinstance(yaw, float)
 
   def test_face_orientation_applies_calibration(self):
     """Test that calibration is applied to pitch and yaw."""
@@ -149,8 +158,8 @@ class TestFaceOrientationFromNet(unittest.TestCase):
     _, pitch_cal, yaw_cal = face_orientation_from_net(angles_desc, pos_desc, rpy_calib_nonzero)
 
     # Calibration should affect pitch and yaw
-    self.assertNotAlmostEqual(pitch_zero, pitch_cal, places=5)
-    self.assertNotAlmostEqual(yaw_zero, yaw_cal, places=5)
+    assert abs(pitch_zero - pitch_cal) > 1e-5
+    assert abs(yaw_zero - yaw_cal) > 1e-5
 
   def test_face_orientation_roll_unaffected_by_calib(self):
     """Test that roll is not affected by calibration."""
@@ -160,56 +169,52 @@ class TestFaceOrientationFromNet(unittest.TestCase):
 
     roll, _, _ = face_orientation_from_net(angles_desc, pos_desc, rpy_calib)
 
-    self.assertAlmostEqual(roll, 0.3, places=5)  # roll_net unchanged
+    assert abs(roll - 0.3) < 1e-5  # roll_net unchanged
 
 
-class TestDriverMonitoringInit(unittest.TestCase):
+class TestDriverMonitoringInit:
   """Test DriverMonitoring initialization."""
 
-  @patch('openpilot.selfdrive.monitoring.helpers.Params')
-  def test_driver_monitoring_initialization(self, mock_params):
+  def test_driver_monitoring_initialization(self, mocker):
     """Test DriverMonitoring initializes correctly."""
-    mock_params.return_value.get_bool.return_value = False
+    mocker.patch('openpilot.selfdrive.monitoring.helpers.Params').return_value.get_bool.return_value = False
 
     dm = DriverMonitoring(rhd_saved=False, always_on=False)
 
-    self.assertIsNotNone(dm.settings)
-    self.assertIsNotNone(dm.wheelpos)
-    self.assertIsNotNone(dm.phone)
-    self.assertIsNotNone(dm.pose)
-    self.assertIsNotNone(dm.blink)
-    self.assertFalse(dm.always_on)
-    self.assertEqual(dm.awareness, 1.0)
-    self.assertFalse(dm.face_detected)
-    self.assertFalse(dm.driver_distracted)
-    self.assertEqual(dm.terminal_alert_cnt, 0)
+    assert dm.settings is not None
+    assert dm.wheelpos is not None
+    assert dm.phone is not None
+    assert dm.pose is not None
+    assert dm.blink is not None
+    assert not dm.always_on
+    assert dm.awareness == 1.0
+    assert not dm.face_detected
+    assert not dm.driver_distracted
+    assert dm.terminal_alert_cnt == 0
 
-  @patch('openpilot.selfdrive.monitoring.helpers.Params')
-  def test_driver_monitoring_rhd_saved(self, mock_params):
+  def test_driver_monitoring_rhd_saved(self, mocker):
     """Test DriverMonitoring with RHD saved setting."""
-    mock_params.return_value.get_bool.return_value = False
+    mocker.patch('openpilot.selfdrive.monitoring.helpers.Params').return_value.get_bool.return_value = False
 
     dm = DriverMonitoring(rhd_saved=True)
 
-    self.assertTrue(dm.wheel_on_right_default)
+    assert dm.wheel_on_right_default
 
-  @patch('openpilot.selfdrive.monitoring.helpers.Params')
-  def test_driver_monitoring_always_on(self, mock_params):
+  def test_driver_monitoring_always_on(self, mocker):
     """Test DriverMonitoring with always_on enabled."""
-    mock_params.return_value.get_bool.return_value = False
+    mocker.patch('openpilot.selfdrive.monitoring.helpers.Params').return_value.get_bool.return_value = False
 
     dm = DriverMonitoring(always_on=True)
 
-    self.assertTrue(dm.always_on)
+    assert dm.always_on
 
 
-class TestDriverMonitoringResetAwareness(unittest.TestCase):
+class TestDriverMonitoringResetAwareness:
   """Test DriverMonitoring._reset_awareness."""
 
-  @patch('openpilot.selfdrive.monitoring.helpers.Params')
-  def test_reset_awareness_sets_all_to_one(self, mock_params):
+  def test_reset_awareness_sets_all_to_one(self, mocker):
     """Test _reset_awareness sets all awareness values to 1."""
-    mock_params.return_value.get_bool.return_value = False
+    mocker.patch('openpilot.selfdrive.monitoring.helpers.Params').return_value.get_bool.return_value = False
 
     dm = DriverMonitoring()
     dm.awareness = 0.5
@@ -218,64 +223,58 @@ class TestDriverMonitoringResetAwareness(unittest.TestCase):
 
     dm._reset_awareness()
 
-    self.assertEqual(dm.awareness, 1.0)
-    self.assertEqual(dm.awareness_active, 1.0)
-    self.assertEqual(dm.awareness_passive, 1.0)
+    assert dm.awareness == 1.0
+    assert dm.awareness_active == 1.0
+    assert dm.awareness_passive == 1.0
 
 
-class TestDriverMonitoringSetTimers(unittest.TestCase):
+class TestDriverMonitoringSetTimers:
   """Test DriverMonitoring._set_timers."""
 
-  @patch('openpilot.selfdrive.monitoring.helpers.Params')
-  def test_set_timers_active_mode(self, mock_params):
+  def test_set_timers_active_mode(self, mocker):
     """Test _set_timers for active monitoring mode."""
-    mock_params.return_value.get_bool.return_value = False
+    mocker.patch('openpilot.selfdrive.monitoring.helpers.Params').return_value.get_bool.return_value = False
 
     dm = DriverMonitoring()
     dm._set_timers(active_monitoring=True)
 
-    self.assertTrue(dm.active_monitoring_mode)
-    self.assertGreater(dm.step_change, 0)
+    assert dm.active_monitoring_mode
+    assert dm.step_change > 0
 
-  @patch('openpilot.selfdrive.monitoring.helpers.Params')
-  def test_set_timers_passive_mode(self, mock_params):
+  def test_set_timers_passive_mode(self, mocker):
     """Test _set_timers for passive monitoring mode."""
-    mock_params.return_value.get_bool.return_value = False
+    mocker.patch('openpilot.selfdrive.monitoring.helpers.Params').return_value.get_bool.return_value = False
 
     dm = DriverMonitoring()
     dm._set_timers(active_monitoring=False)
 
-    self.assertFalse(dm.active_monitoring_mode)
+    assert not dm.active_monitoring_mode
     # Passive mode has different timing thresholds
-    self.assertLess(dm.threshold_pre, 1.0)
+    assert dm.threshold_pre < 1.0
 
 
-class TestDriverMonitoringSetPolicy(unittest.TestCase):
+class TestDriverMonitoringSetPolicy:
   """Test DriverMonitoring._set_policy."""
 
-  @patch('openpilot.selfdrive.monitoring.helpers.Params')
-  def test_set_policy_adjusts_cfactors(self, mock_params):
+  def test_set_policy_adjusts_cfactors(self, mocker):
     """Test _set_policy adjusts pose cfactors."""
-    mock_params.return_value.get_bool.return_value = False
+    mocker.patch('openpilot.selfdrive.monitoring.helpers.Params').return_value.get_bool.return_value = False
 
     dm = DriverMonitoring()
-    initial_pitch_factor = dm.pose.cfactor_pitch
-    initial_yaw_factor = dm.pose.cfactor_yaw
 
     dm._set_policy(brake_disengage_prob=0.8, car_speed=30.0)
 
     # cfactors should be updated based on brake disengage probability
-    self.assertIsInstance(dm.pose.cfactor_pitch, float)
-    self.assertIsInstance(dm.pose.cfactor_yaw, float)
+    assert isinstance(dm.pose.cfactor_pitch, float)
+    assert isinstance(dm.pose.cfactor_yaw, float)
 
 
-class TestDriverMonitoringGetDistractedTypes(unittest.TestCase):
+class TestDriverMonitoringGetDistractedTypes:
   """Test DriverMonitoring._get_distracted_types."""
 
-  @patch('openpilot.selfdrive.monitoring.helpers.Params')
-  def test_get_distracted_types_empty_when_not_distracted(self, mock_params):
+  def test_get_distracted_types_empty_when_not_distracted(self, mocker):
     """Test returns empty when not distracted."""
-    mock_params.return_value.get_bool.return_value = False
+    mocker.patch('openpilot.selfdrive.monitoring.helpers.Params').return_value.get_bool.return_value = False
 
     dm = DriverMonitoring()
     # Default pose is centered, not distracted
@@ -287,12 +286,11 @@ class TestDriverMonitoringGetDistractedTypes(unittest.TestCase):
 
     types = dm._get_distracted_types()
 
-    self.assertEqual(types, [])
+    assert types == []
 
-  @patch('openpilot.selfdrive.monitoring.helpers.Params')
-  def test_get_distracted_types_pose_distracted(self, mock_params):
+  def test_get_distracted_types_pose_distracted(self, mocker):
     """Test detects pose distraction."""
-    mock_params.return_value.get_bool.return_value = False
+    mocker.patch('openpilot.selfdrive.monitoring.helpers.Params').return_value.get_bool.return_value = False
 
     dm = DriverMonitoring()
     dm.pose.pitch = -0.5  # Looking down
@@ -302,10 +300,9 @@ class TestDriverMonitoringGetDistractedTypes(unittest.TestCase):
 
     assert DistractedType.DISTRACTED_POSE in types
 
-  @patch('openpilot.selfdrive.monitoring.helpers.Params')
-  def test_get_distracted_types_blink_distracted(self, mock_params):
+  def test_get_distracted_types_blink_distracted(self, mocker):
     """Test detects blink distraction (eyes closed)."""
-    mock_params.return_value.get_bool.return_value = False
+    mocker.patch('openpilot.selfdrive.monitoring.helpers.Params').return_value.get_bool.return_value = False
 
     dm = DriverMonitoring()
     dm.blink.left = 0.9
@@ -315,10 +312,9 @@ class TestDriverMonitoringGetDistractedTypes(unittest.TestCase):
 
     assert DistractedType.DISTRACTED_BLINK in types
 
-  @patch('openpilot.selfdrive.monitoring.helpers.Params')
-  def test_get_distracted_types_phone_distracted(self, mock_params):
+  def test_get_distracted_types_phone_distracted(self, mocker):
     """Test detects phone distraction."""
-    mock_params.return_value.get_bool.return_value = False
+    mocker.patch('openpilot.selfdrive.monitoring.helpers.Params').return_value.get_bool.return_value = False
 
     dm = DriverMonitoring()
     dm.phone.prob = 0.8  # High phone probability
@@ -328,56 +324,51 @@ class TestDriverMonitoringGetDistractedTypes(unittest.TestCase):
     assert DistractedType.DISTRACTED_PHONE in types
 
 
-class TestDriverMonitoringGetStatePacket(unittest.TestCase):
+class TestDriverMonitoringGetStatePacket:
   """Test DriverMonitoring.get_state_packet."""
 
-  @patch('openpilot.selfdrive.monitoring.helpers.Params')
-  def test_get_state_packet_returns_message(self, mock_params):
+  def test_get_state_packet_returns_message(self, mocker):
     """Test get_state_packet returns a valid message."""
-    mock_params.return_value.get_bool.return_value = False
+    mocker.patch('openpilot.selfdrive.monitoring.helpers.Params').return_value.get_bool.return_value = False
 
     dm = DriverMonitoring()
     packet = dm.get_state_packet(valid=True)
 
-    self.assertIsNotNone(packet)
-    self.assertIsNotNone(packet.driverMonitoringState)
+    assert packet is not None
+    assert packet.driverMonitoringState is not None
 
-  @patch('openpilot.selfdrive.monitoring.helpers.Params')
-  def test_get_state_packet_contains_expected_fields(self, mock_params):
+  def test_get_state_packet_contains_expected_fields(self, mocker):
     """Test get_state_packet contains expected fields."""
-    mock_params.return_value.get_bool.return_value = False
+    mocker.patch('openpilot.selfdrive.monitoring.helpers.Params').return_value.get_bool.return_value = False
 
     dm = DriverMonitoring()
     packet = dm.get_state_packet()
 
     state = packet.driverMonitoringState
     # Check some key fields exist
-    self.assertIsNotNone(state.awarenessStatus)
-    self.assertIsNotNone(state.faceDetected)
-    self.assertIsNotNone(state.isDistracted)
+    assert state.awarenessStatus is not None
+    assert state.faceDetected is not None
+    assert state.isDistracted is not None
 
 
-class TestDriverMonitoringUpdateEvents(unittest.TestCase):
+class TestDriverMonitoringUpdateEvents:
   """Test DriverMonitoring._update_events method."""
 
-  @patch('openpilot.selfdrive.monitoring.helpers.Params')
-  def test_update_events_resets_on_driver_engaged(self, mock_params):
+  def test_update_events_resets_on_driver_engaged(self, mocker):
     """Test awareness resets when driver is engaged in passive mode."""
-    mock_params.return_value.get_bool.return_value = False
+    mocker.patch('openpilot.selfdrive.monitoring.helpers.Params').return_value.get_bool.return_value = False
 
     dm = DriverMonitoring()
     dm.awareness = 0.5
     dm.active_monitoring_mode = False
 
-    dm._update_events(driver_engaged=True, op_engaged=False, standstill=False,
-                      wrong_gear=False, car_speed=20.0)
+    dm._update_events(driver_engaged=True, op_engaged=False, standstill=False, wrong_gear=False, car_speed=20.0)
 
-    self.assertEqual(dm.awareness, 1.0)
+    assert dm.awareness == 1.0
 
-  @patch('openpilot.selfdrive.monitoring.helpers.Params')
-  def test_update_events_decrements_awareness_when_distracted(self, mock_params):
+  def test_update_events_decrements_awareness_when_distracted(self, mocker):
     """Test awareness decreases when driver is distracted."""
-    mock_params.return_value.get_bool.return_value = False
+    mocker.patch('openpilot.selfdrive.monitoring.helpers.Params').return_value.get_bool.return_value = False
 
     dm = DriverMonitoring()
     dm.awareness = 1.0
@@ -385,29 +376,26 @@ class TestDriverMonitoringUpdateEvents(unittest.TestCase):
     dm.active_monitoring_mode = True
 
     initial_awareness = dm.awareness
-    dm._update_events(driver_engaged=False, op_engaged=True, standstill=False,
-                      wrong_gear=False, car_speed=20.0)
+    dm._update_events(driver_engaged=False, op_engaged=True, standstill=False, wrong_gear=False, car_speed=20.0)
 
-    self.assertLess(dm.awareness, initial_awareness)
+    assert dm.awareness < initial_awareness
 
-  @patch('openpilot.selfdrive.monitoring.helpers.Params')
-  def test_update_events_terminal_alert_too_distracted(self, mock_params):
+  def test_update_events_terminal_alert_too_distracted(self, mocker):
     """Test too_distracted flag is set after max terminal alerts."""
+    mock_params = mocker.patch('openpilot.selfdrive.monitoring.helpers.Params')
     mock_params.return_value.get_bool.return_value = False
-    mock_params.return_value.put_bool_nonblocking = MagicMock()
+    mock_params.return_value.put_bool_nonblocking = mocker.MagicMock()
 
     dm = DriverMonitoring()
     dm.terminal_alert_cnt = dm.settings._MAX_TERMINAL_ALERTS
 
-    dm._update_events(driver_engaged=False, op_engaged=True, standstill=False,
-                      wrong_gear=False, car_speed=20.0)
+    dm._update_events(driver_engaged=False, op_engaged=True, standstill=False, wrong_gear=False, car_speed=20.0)
 
-    self.assertTrue(dm.too_distracted)
+    assert dm.too_distracted
 
-  @patch('openpilot.selfdrive.monitoring.helpers.Params')
-  def test_update_events_awareness_recovery(self, mock_params):
+  def test_update_events_awareness_recovery(self, mocker):
     """Test awareness recovers when driver is attentive."""
-    mock_params.return_value.get_bool.return_value = False
+    mocker.patch('openpilot.selfdrive.monitoring.helpers.Params').return_value.get_bool.return_value = False
 
     dm = DriverMonitoring()
     dm.awareness = 0.5
@@ -417,39 +405,31 @@ class TestDriverMonitoringUpdateEvents(unittest.TestCase):
     dm.active_monitoring_mode = True
 
     initial_awareness = dm.awareness
-    dm._update_events(driver_engaged=False, op_engaged=True, standstill=False,
-                      wrong_gear=False, car_speed=20.0)
+    dm._update_events(driver_engaged=False, op_engaged=True, standstill=False, wrong_gear=False, car_speed=20.0)
 
-    self.assertGreater(dm.awareness, initial_awareness)
+    assert dm.awareness > initial_awareness
 
-  @patch('openpilot.selfdrive.monitoring.helpers.Params')
-  def test_update_events_resets_on_disengage(self, mock_params):
+  def test_update_events_resets_on_disengage(self, mocker):
     """Test awareness resets when openpilot disengages in normal mode."""
-    mock_params.return_value.get_bool.return_value = False
+    mocker.patch('openpilot.selfdrive.monitoring.helpers.Params').return_value.get_bool.return_value = False
 
     dm = DriverMonitoring()
     dm.awareness = 0.3
     dm.always_on = False
     dm.active_monitoring_mode = True
 
-    dm._update_events(driver_engaged=False, op_engaged=False, standstill=False,
-                      wrong_gear=False, car_speed=20.0)
+    dm._update_events(driver_engaged=False, op_engaged=False, standstill=False, wrong_gear=False, car_speed=20.0)
 
-    self.assertEqual(dm.awareness, 1.0)
+    assert dm.awareness == 1.0
 
 
-class TestDriverMonitoringUpdateStates(unittest.TestCase):
+class TestDriverMonitoringUpdateStates:
   """Test DriverMonitoring._update_states method."""
 
-  @patch('openpilot.selfdrive.monitoring.helpers.Params')
-  def test_update_states_face_detection(self, mock_params):
+  def test_update_states_face_detection(self, mocker):
     """Test face detection updates correctly."""
-    mock_params.return_value.get_bool.return_value = False
+    mocker.patch('openpilot.selfdrive.monitoring.helpers.Params').return_value.get_bool.return_value = False
 
     dm = DriverMonitoring()
     # Initially no face detected
-    self.assertFalse(dm.face_detected)
-
-
-if __name__ == '__main__':
-  unittest.main()
+    assert not dm.face_detected

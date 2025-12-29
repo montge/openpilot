@@ -1,8 +1,7 @@
 import pytest
 import numpy as np
-from unittest.mock import MagicMock, patch
 
-from cereal import car, log
+from cereal import car
 from opendbc.car.interfaces import ACCEL_MIN, ACCEL_MAX
 from openpilot.selfdrive.controls.lib.longitudinal_planner import (
   LongitudinalPlanner,
@@ -10,12 +9,10 @@ from openpilot.selfdrive.controls.lib.longitudinal_planner import (
   get_coast_accel,
   limit_accel_in_turns,
   A_CRUISE_MAX_VALS,
-  A_CRUISE_MAX_BP,
   ALLOW_THROTTLE_THRESHOLD,
   MIN_ALLOW_THROTTLE_SPEED,
 )
 from openpilot.selfdrive.modeld.constants import ModelConstants
-from openpilot.selfdrive.controls.lib.longcontrol import LongCtrlState
 
 
 class TestGetMaxAccel:
@@ -115,9 +112,9 @@ class TestLimitAccelInTurns:
 class TestParseModel:
   """Tests for LongitudinalPlanner.parse_model static method."""
 
-  def _create_model_msg(self, n_elements=ModelConstants.IDX_N, throttle_prob=1.0):
+  def _create_model_msg(self, mocker, n_elements=ModelConstants.IDX_N, throttle_prob=1.0):
     """Create a modelV2 message with specified array sizes."""
-    model = MagicMock()
+    model = mocker.MagicMock()
     model.position.x = list(np.linspace(0, 100, n_elements))
     model.velocity.x = list(np.linspace(10, 20, n_elements))
     model.acceleration.x = list(np.linspace(0, 2, n_elements))
@@ -127,9 +124,9 @@ class TestParseModel:
       model.meta.disengagePredictions.gasPressProbs = []
     return model
 
-  def test_valid_model_parsed_correctly(self):
+  def test_valid_model_parsed_correctly(self, mocker):
     """Valid model with correct array lengths should parse successfully."""
-    model = self._create_model_msg(n_elements=ModelConstants.IDX_N)
+    model = self._create_model_msg(mocker, n_elements=ModelConstants.IDX_N)
     x, v, a, j, throttle_prob = LongitudinalPlanner.parse_model(model)
 
     assert len(x) > 0
@@ -138,9 +135,9 @@ class TestParseModel:
     assert len(j) > 0
     assert throttle_prob == 1.0
 
-  def test_invalid_model_returns_zeros(self):
+  def test_invalid_model_returns_zeros(self, mocker):
     """Invalid model with wrong array lengths should return zeros."""
-    model = self._create_model_msg(n_elements=5)  # Wrong size
+    model = self._create_model_msg(mocker, n_elements=5)  # Wrong size
     x, v, a, j, throttle_prob = LongitudinalPlanner.parse_model(model)
 
     assert np.all(x == 0)
@@ -148,16 +145,16 @@ class TestParseModel:
     assert np.all(a == 0)
     assert np.all(j == 0)
 
-  def test_missing_throttle_prob_defaults_to_one(self):
+  def test_missing_throttle_prob_defaults_to_one(self, mocker):
     """Missing throttle probability should default to 1.0."""
-    model = self._create_model_msg(n_elements=ModelConstants.IDX_N, throttle_prob=None)
+    model = self._create_model_msg(mocker, n_elements=ModelConstants.IDX_N, throttle_prob=None)
     _, _, _, _, throttle_prob = LongitudinalPlanner.parse_model(model)
 
     assert throttle_prob == 1.0
 
-  def test_low_throttle_prob(self):
+  def test_low_throttle_prob(self, mocker):
     """Low throttle probability should be returned correctly."""
-    model = self._create_model_msg(n_elements=ModelConstants.IDX_N, throttle_prob=0.2)
+    model = self._create_model_msg(mocker, n_elements=ModelConstants.IDX_N, throttle_prob=0.2)
     _, _, _, _, throttle_prob = LongitudinalPlanner.parse_model(model)
 
     assert throttle_prob == pytest.approx(0.2, abs=0.01)
@@ -201,6 +198,7 @@ class TestLongitudinalPlannerInit:
     planner = LongitudinalPlanner(CP)
 
     from openpilot.selfdrive.controls.lib.drive_helpers import CONTROL_N
+
     assert len(planner.v_desired_trajectory) == CONTROL_N
     assert len(planner.a_desired_trajectory) == CONTROL_N
     assert len(planner.j_desired_trajectory) == CONTROL_N

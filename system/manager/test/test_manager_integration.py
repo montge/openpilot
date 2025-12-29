@@ -3,16 +3,14 @@
 Tests process lifecycle, dependencies, orchestration, and cleanup.
 Uses mocks to avoid starting actual hardware-dependent processes.
 """
-import os
+
 import signal
 import time
 from collections.abc import Callable
 from multiprocessing import Process
-from unittest.mock import MagicMock, patch, PropertyMock
 
-import pytest
 
-from cereal import car, log
+from cereal import car
 from openpilot.common.params import Params
 from openpilot.system.manager.process import (
   ManagerProcess,
@@ -240,10 +238,7 @@ class TestEnsureRunning:
     ]
 
     try:
-      running = ensure_running(
-        procs, started=True, params=self.params, CP=self.CP,
-        not_run=["blocked_proc"]
-      )
+      running = ensure_running(procs, started=True, params=self.params, CP=self.CP, not_run=["blocked_proc"])
       assert len(running) == 1
       assert procs[0].proc is not None
       assert procs[1].proc is None
@@ -398,24 +393,14 @@ class TestPythonProcess:
   def test_python_process_prepare_imports_module(self):
     """Test that prepare() imports the module."""
     # Use a simple stdlib module for testing
-    proc = PythonProcess(
-      name="test_import",
-      module="json",
-      should_run=lambda s, p, c: True,
-      enabled=True
-    )
+    proc = PythonProcess(name="test_import", module="json", should_run=lambda s, p, c: True, enabled=True)
 
     # Should not raise
     proc.prepare()
 
   def test_python_process_prepare_disabled(self):
     """Test that prepare() is a no-op when disabled."""
-    proc = PythonProcess(
-      name="test_disabled",
-      module="nonexistent.module.that.does.not.exist",
-      should_run=lambda s, p, c: True,
-      enabled=False
-    )
+    proc = PythonProcess(name="test_disabled", module="nonexistent.module.that.does.not.exist", should_run=lambda s, p, c: True, enabled=False)
 
     # Should not raise because it's disabled
     proc.prepare()
@@ -426,12 +411,7 @@ class TestNativeProcess:
 
   def test_native_process_prepare_is_noop(self):
     """Test that NativeProcess.prepare() does nothing."""
-    proc = NativeProcess(
-      name="test_native",
-      cwd=".",
-      cmdline=["echo", "hello"],
-      should_run=lambda s, p, c: True
-    )
+    proc = NativeProcess(name="test_native", cwd=".", cmdline=["echo", "hello"], should_run=lambda s, p, c: True)
     # Should not raise
     proc.prepare()
 
@@ -441,22 +421,14 @@ class TestDaemonProcess:
 
   def test_daemon_should_run_always_true(self):
     """Test that DaemonProcess.should_run always returns True."""
-    proc = DaemonProcess(
-      name="test_daemon",
-      module="test.module",
-      param_name="TestPid"
-    )
+    proc = DaemonProcess(name="test_daemon", module="test.module", param_name="TestPid")
 
     assert proc.should_run(True, None, None) is True
     assert proc.should_run(False, None, None) is True
 
   def test_daemon_stop_is_noop(self):
     """Test that DaemonProcess.stop() does nothing."""
-    proc = DaemonProcess(
-      name="test_daemon",
-      module="test.module",
-      param_name="TestPid"
-    )
+    proc = DaemonProcess(name="test_daemon", module="test.module", param_name="TestPid")
 
     # Should not raise
     result = proc.stop()
@@ -490,52 +462,46 @@ class TestSignaling:
 class TestManagerCleanup:
   """Tests for manager cleanup functionality."""
 
-  def test_cleanup_stops_all_processes(self):
+  def test_cleanup_stops_all_processes(self, mocker):
     """Test that manager_cleanup stops all managed processes."""
     from openpilot.system.manager import manager
 
     # Create mock processes
     mock_procs = {
-      "proc1": MagicMock(),
-      "proc2": MagicMock(),
+      "proc1": mocker.MagicMock(),
+      "proc2": mocker.MagicMock(),
     }
 
-    with patch.dict('openpilot.system.manager.process_config.managed_processes', mock_procs):
-      manager.manager_cleanup()
+    mocker.patch.dict('openpilot.system.manager.process_config.managed_processes', mock_procs)
+    manager.manager_cleanup()
 
-      # Each process should have stop called twice (block=False then block=True)
-      for name, proc in mock_procs.items():
-        assert proc.stop.call_count == 2
+    # Each process should have stop called twice (block=False then block=True)
+    for _, proc in mock_procs.items():
+      assert proc.stop.call_count == 2
 
 
 class TestManagerInit:
   """Tests for manager initialization."""
 
-  @patch('openpilot.system.manager.manager.managed_processes', {})
-  @patch('openpilot.system.manager.manager.save_bootlog')
-  @patch('openpilot.system.manager.manager.register')
-  @patch('openpilot.system.manager.manager.HARDWARE')
-  @patch('openpilot.system.manager.manager.sentry')
-  @patch('openpilot.system.manager.manager.get_build_metadata')
-  def test_manager_init_clears_params(
-    self, mock_build_meta, mock_sentry, mock_hw, mock_register, mock_bootlog
-  ):
+  def test_manager_init_clears_params(self, mocker):
     """Test that manager_init clears appropriate params."""
     from openpilot.system.manager import manager
 
+    mocker.patch('openpilot.system.manager.manager.managed_processes', {})
+    mocker.patch('openpilot.system.manager.manager.save_bootlog')
+    mock_register = mocker.patch('openpilot.system.manager.manager.register')
+    mock_hw = mocker.patch('openpilot.system.manager.manager.HARDWARE')
+    mocker.patch('openpilot.system.manager.manager.sentry')
+    mock_build_meta = mocker.patch('openpilot.system.manager.manager.get_build_metadata')
+
     # Setup mocks
-    mock_build_meta.return_value = MagicMock(
+    mock_build_meta.return_value = mocker.MagicMock(
       release_channel=False,
-      openpilot=MagicMock(
-        version="test",
-        git_commit="abc123",
-        git_commit_date="2024-01-01",
-        git_origin="test",
-        git_normalized_origin="test",
-        is_dirty=False
+      openpilot=mocker.MagicMock(
+        version="test", git_commit="abc123", git_commit_date="2024-01-01", git_origin="test", git_normalized_origin="test", is_dirty=False
       ),
       channel="test",
-      tested_channel=False
+      tested_channel=False,
     )
     mock_register.return_value = "test_dongle_id"
     mock_hw.get_serial.return_value = "test_serial"
@@ -607,8 +573,11 @@ class TestShouldRunConditions:
     """Test and_ combines conditions correctly."""
     from openpilot.system.manager.process_config import and_
 
-    always_true = lambda s, p, c: True
-    always_false = lambda s, p, c: False
+    def always_true(s, p, c):
+      return True
+
+    def always_false(s, p, c):
+      return False
 
     combined = and_(always_true, always_true)
     assert combined(True, None, None) is True
@@ -620,8 +589,11 @@ class TestShouldRunConditions:
     """Test or_ combines conditions correctly."""
     from openpilot.system.manager.process_config import or_
 
-    always_true = lambda s, p, c: True
-    always_false = lambda s, p, c: False
+    def always_true(s, p, c):
+      return True
+
+    def always_false(s, p, c):
+      return False
 
     combined = or_(always_false, always_false)
     assert combined(True, None, None) is False
@@ -633,77 +605,74 @@ class TestShouldRunConditions:
 class TestManagerThread:
   """Tests for the manager main loop (manager_thread)."""
 
-  @patch('openpilot.system.manager.manager.messaging')
-  @patch('openpilot.system.manager.manager.ensure_running')
-  @patch('openpilot.system.manager.manager.write_onroad_params')
-  def test_manager_thread_exits_on_shutdown_param(
-    self, mock_write_onroad, mock_ensure_running, mock_messaging
-  ):
+  def test_manager_thread_exits_on_shutdown_param(self, mocker):
     """Test that manager_thread exits when shutdown param is set."""
     from openpilot.system.manager import manager
 
     params = Params()
 
     # Setup mocks
-    mock_sm = MagicMock()
-    mock_sm.__getitem__ = MagicMock(return_value=MagicMock(started=False))
+    mock_sm = mocker.MagicMock()
+    mock_sm.__getitem__ = mocker.MagicMock(return_value=mocker.MagicMock(started=False))
     mock_sm.all_checks.return_value = False
+    mock_messaging = mocker.patch('openpilot.system.manager.manager.messaging')
     mock_messaging.SubMaster.return_value = mock_sm
-    mock_messaging.PubMaster.return_value = MagicMock()
-    mock_ensure_running.return_value = []
+    mock_messaging.PubMaster.return_value = mocker.MagicMock()
+    mocker.patch('openpilot.system.manager.manager.ensure_running', return_value=[])
+    mocker.patch('openpilot.system.manager.manager.write_onroad_params')
 
     # Set shutdown param after first iteration
     call_count = [0]
+
     def update_side_effect(*args):
       call_count[0] += 1
       if call_count[0] >= 2:
         params.put_bool("DoShutdown", True)
+
     mock_sm.update.side_effect = update_side_effect
 
-    with patch.dict('openpilot.system.manager.process_config.managed_processes', {}):
-      # Should exit cleanly
-      manager.manager_thread()
+    mocker.patch.dict('openpilot.system.manager.process_config.managed_processes', {})
+    # Should exit cleanly
+    manager.manager_thread()
 
     # Verify it ran at least twice
     assert call_count[0] >= 2
 
-  @patch('openpilot.system.manager.manager.messaging')
-  @patch('openpilot.system.manager.manager.ensure_running')
-  @patch('openpilot.system.manager.manager.write_onroad_params')
-  def test_manager_thread_handles_onroad_transition(
-    self, mock_write_onroad, mock_ensure_running, mock_messaging
-  ):
+  def test_manager_thread_handles_onroad_transition(self, mocker):
     """Test that manager_thread handles onroad/offroad transitions."""
     from openpilot.system.manager import manager
 
     params = Params()
 
     # Setup mocks
-    mock_sm = MagicMock()
+    mock_sm = mocker.MagicMock()
     started_values = [False, True, True, False]  # Simulate transition
     call_count = [0]
 
     def get_item(key):
       if key == 'deviceState':
-        return MagicMock(started=started_values[min(call_count[0], len(started_values) - 1)])
+        return mocker.MagicMock(started=started_values[min(call_count[0], len(started_values) - 1)])
       elif key == 'pandaStates':
         return []
-      return MagicMock()
+      return mocker.MagicMock()
 
-    mock_sm.__getitem__ = MagicMock(side_effect=get_item)
+    mock_sm.__getitem__ = mocker.MagicMock(side_effect=get_item)
     mock_sm.all_checks.return_value = False
+    mock_messaging = mocker.patch('openpilot.system.manager.manager.messaging')
     mock_messaging.SubMaster.return_value = mock_sm
-    mock_messaging.PubMaster.return_value = MagicMock()
-    mock_ensure_running.return_value = []
+    mock_messaging.PubMaster.return_value = mocker.MagicMock()
+    mocker.patch('openpilot.system.manager.manager.ensure_running', return_value=[])
+    mock_write_onroad = mocker.patch('openpilot.system.manager.manager.write_onroad_params')
 
     def update_side_effect(*args):
       call_count[0] += 1
       if call_count[0] >= len(started_values):
         params.put_bool("DoShutdown", True)
+
     mock_sm.update.side_effect = update_side_effect
 
-    with patch.dict('openpilot.system.manager.process_config.managed_processes', {}):
-      manager.manager_thread()
+    mocker.patch.dict('openpilot.system.manager.process_config.managed_processes', {})
+    manager.manager_thread()
 
     # Verify write_onroad_params was called
     assert mock_write_onroad.call_count >= 1
