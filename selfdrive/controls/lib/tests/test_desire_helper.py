@@ -199,6 +199,41 @@ class TestDesireHelperUpdate:
 
     assert helper.lane_change_ll_prob > 0.5
 
+  def test_lane_change_finishing_completes_with_blinker(self, mocker):
+    """Test laneChangeFinishing completes to preLaneChange when blinker still on."""
+    helper = DesireHelper()
+    helper.lane_change_state = LaneChangeState.laneChangeFinishing
+    helper.lane_change_ll_prob = 0.995  # Just below 0.99 threshold
+    helper.lane_change_direction = LaneChangeDirection.left
+    helper.prev_one_blinker = True
+
+    CS = create_mock_carstate(mocker, v_ego=LANE_CHANGE_SPEED_MIN + 1, left_blinker=True)
+    # Update enough times to push ll_prob above 0.99
+    for _ in range(10):
+      helper.update(CS, lateral_active=True, lane_change_prob=0.5)
+
+    assert helper.lane_change_ll_prob > 0.99
+    assert helper.lane_change_state == LaneChangeState.preLaneChange
+    # Direction is updated in preLaneChange based on current blinker
+    assert helper.lane_change_direction == LaneChangeDirection.left
+
+  def test_lane_change_finishing_completes_without_blinker(self, mocker):
+    """Test laneChangeFinishing completes to off when blinker released."""
+    helper = DesireHelper()
+    helper.lane_change_state = LaneChangeState.laneChangeFinishing
+    helper.lane_change_ll_prob = 0.995  # Just below 0.99 threshold
+    helper.lane_change_direction = LaneChangeDirection.left
+    helper.prev_one_blinker = True
+
+    CS = create_mock_carstate(mocker, v_ego=LANE_CHANGE_SPEED_MIN + 1)  # No blinker
+    # Update enough times to push ll_prob above 0.99
+    for _ in range(10):
+      helper.update(CS, lateral_active=True, lane_change_prob=0.5)
+
+    assert helper.lane_change_ll_prob > 0.99
+    assert helper.lane_change_state == LaneChangeState.off
+    assert helper.lane_change_direction == LaneChangeDirection.none
+
   def test_lane_change_timer_increments_during_change(self, mocker):
     """Test lane change timer increments during lane change."""
     helper = DesireHelper()
@@ -221,6 +256,32 @@ class TestDesireHelperUpdate:
     helper.update(CS, lateral_active=True, lane_change_prob=0.5)
 
     assert helper.lane_change_timer == 0.0
+
+  def test_keep_pulse_timer_resets_after_one_second(self, mocker):
+    """Test keep pulse timer resets after exceeding 1 second in preLaneChange."""
+    helper = DesireHelper()
+    helper.lane_change_state = LaneChangeState.preLaneChange
+    helper.lane_change_direction = LaneChangeDirection.left
+    helper.keep_pulse_timer = 1.05  # Just over 1 second
+    helper.prev_one_blinker = True
+
+    CS = create_mock_carstate(mocker, v_ego=LANE_CHANGE_SPEED_MIN + 1, left_blinker=True)
+    helper.update(CS, lateral_active=True, lane_change_prob=0.5)
+
+    assert helper.keep_pulse_timer == 0.0
+
+  def test_keep_pulse_timer_increments_in_pre_lane_change(self, mocker):
+    """Test keep pulse timer increments during preLaneChange."""
+    helper = DesireHelper()
+    helper.lane_change_state = LaneChangeState.preLaneChange
+    helper.lane_change_direction = LaneChangeDirection.left
+    helper.keep_pulse_timer = 0.0
+    helper.prev_one_blinker = True
+
+    CS = create_mock_carstate(mocker, v_ego=LANE_CHANGE_SPEED_MIN + 1, left_blinker=True)
+    helper.update(CS, lateral_active=True, lane_change_prob=0.5)
+
+    assert helper.keep_pulse_timer > 0.0
 
 
 class TestDesireHelperDesire:
