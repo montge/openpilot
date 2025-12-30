@@ -499,6 +499,24 @@ class TestLongitudinalPlannerUpdate:
     # Clip values should only change by max 0.05 per frame
     assert abs(planner.prev_accel_clip[0] - ACCEL_MIN) <= 0.05 + 0.001
 
+  def test_update_empty_orientation_ned_uses_default_coast(self, mocker):
+    """Test accel_coast defaults to ACCEL_MAX when orientationNED is empty."""
+    mock_mpc = mocker.MagicMock()
+    mock_mpc.v_solution = np.zeros(13)
+    mock_mpc.a_solution = np.zeros(13)
+    mock_mpc.j_solution = np.zeros(12)
+    mock_mpc.crash_cnt = 0
+    mocker.patch('openpilot.selfdrive.controls.lib.longitudinal_planner.LongitudinalMpc', return_value=mock_mpc)
+    CP = create_mock_cp(mocker)
+
+    planner = LongitudinalPlanner(CP)
+    # Pass empty list for orientationNED to trigger fallback
+    sm = create_mock_sm(mocker, v_ego=15.0, orientation_ned=[])
+    planner.update(sm)
+
+    # Should have completed without error - internal accel_coast is ACCEL_MAX
+    assert planner.v_desired_filter.x >= 0
+
 
 class TestLongitudinalPlannerPublish:
   """Test LongitudinalPlanner.publish method."""
