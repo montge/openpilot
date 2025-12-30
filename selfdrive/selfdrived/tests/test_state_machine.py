@@ -6,8 +6,13 @@ from openpilot.selfdrive.selfdrived.events import Events, ET, EVENTS, NormalPerm
 State = log.SelfdriveState.OpenpilotState
 
 # The event types that maintain the current state
-MAINTAIN_STATES = {State.enabled: (None,), State.disabled: (None,), State.softDisabling: (ET.SOFT_DISABLE,),
-                   State.preEnabled: (ET.PRE_ENABLE,), State.overriding: (ET.OVERRIDE_LATERAL, ET.OVERRIDE_LONGITUDINAL)}
+MAINTAIN_STATES = {
+  State.enabled: (None,),
+  State.disabled: (None,),
+  State.softDisabling: (ET.SOFT_DISABLE,),
+  State.preEnabled: (ET.PRE_ENABLE,),
+  State.overriding: (ET.OVERRIDE_LATERAL, ET.OVERRIDE_LONGITUDINAL),
+}
 ALL_STATES = tuple(State.schema.enumerants.values())
 # The event types checked in DISABLED section of state machine
 ENABLE_EVENT_TYPES = (ET.ENABLE, ET.PRE_ENABLE, ET.OVERRIDE_LATERAL, ET.OVERRIDE_LONGITUDINAL)
@@ -314,8 +319,8 @@ class TestStateMachineReturnValues:
     self.state_machine.state = State.disabled
     enabled, active = self.state_machine.update(self.events)
 
-    assert enabled == False
-    assert active == False
+    assert enabled is False
+    assert active is False
 
   def test_pre_enabled_returns_enabled_not_active(self):
     """preEnabled should return enabled=True, active=False."""
@@ -323,16 +328,16 @@ class TestStateMachineReturnValues:
     self.events.add(make_event([ET.PRE_ENABLE]))
     enabled, active = self.state_machine.update(self.events)
 
-    assert enabled == True
-    assert active == False
+    assert enabled is True
+    assert active is False
 
   def test_enabled_returns_enabled_and_active(self):
     """Enabled state should return enabled=True, active=True."""
     self.state_machine.state = State.enabled
     enabled, active = self.state_machine.update(self.events)
 
-    assert enabled == True
-    assert active == True
+    assert enabled is True
+    assert active is True
 
   def test_soft_disabling_returns_enabled_and_active(self):
     """softDisabling should return enabled=True, active=True."""
@@ -341,8 +346,8 @@ class TestStateMachineReturnValues:
     self.events.add(make_event([ET.SOFT_DISABLE]))
     enabled, active = self.state_machine.update(self.events)
 
-    assert enabled == True
-    assert active == True
+    assert enabled is True
+    assert active is True
 
   def test_overriding_returns_enabled_and_active(self):
     """Overriding state should return enabled=True, active=True."""
@@ -350,8 +355,8 @@ class TestStateMachineReturnValues:
     self.events.add(make_event([ET.OVERRIDE_LATERAL]))
     enabled, active = self.state_machine.update(self.events)
 
-    assert enabled == True
-    assert active == True
+    assert enabled is True
+    assert active is True
 
 
 class TestStateMachineDisablePriority:

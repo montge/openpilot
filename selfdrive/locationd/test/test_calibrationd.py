@@ -5,32 +5,46 @@ import numpy as np
 import cereal.messaging as messaging
 from cereal import log
 from openpilot.common.params import Params
-from openpilot.selfdrive.locationd.calibrationd import Calibrator, INPUTS_NEEDED, INPUTS_WANTED, BLOCK_SIZE, MIN_SPEED_FILTER, \
-                                                         MAX_YAW_RATE_FILTER, SMOOTH_CYCLES, HEIGHT_INIT, MAX_ALLOWED_PITCH_SPREAD, MAX_ALLOWED_YAW_SPREAD
+from openpilot.selfdrive.locationd.calibrationd import (
+  Calibrator,
+  INPUTS_NEEDED,
+  INPUTS_WANTED,
+  BLOCK_SIZE,
+  MIN_SPEED_FILTER,
+  MAX_YAW_RATE_FILTER,
+  SMOOTH_CYCLES,
+  HEIGHT_INIT,
+  MAX_ALLOWED_PITCH_SPREAD,
+  MAX_ALLOWED_YAW_SPREAD,
+)
 
 
-def process_messages(c, cam_odo_calib, cycles,
-                     cam_odo_speed=MIN_SPEED_FILTER + 1,
-                     carstate_speed=MIN_SPEED_FILTER + 1,
-                     cam_odo_yr=0.0,
-                     cam_odo_speed_std=1e-3,
-                     cam_odo_height_std=1e-3):
+def process_messages(
+  c,
+  cam_odo_calib,
+  cycles,
+  cam_odo_speed=MIN_SPEED_FILTER + 1,
+  carstate_speed=MIN_SPEED_FILTER + 1,
+  cam_odo_yr=0.0,
+  cam_odo_speed_std=1e-3,
+  cam_odo_height_std=1e-3,
+):
   old_rpy_weight_prev = 0.0
   for _ in range(cycles):
-    assert (old_rpy_weight_prev - c.old_rpy_weight < 1/SMOOTH_CYCLES + 1e-3)
+    assert old_rpy_weight_prev - c.old_rpy_weight < 1 / SMOOTH_CYCLES + 1e-3
     old_rpy_weight_prev = c.old_rpy_weight
     c.handle_v_ego(carstate_speed)
-    c.handle_cam_odom([cam_odo_speed,
-                       np.sin(cam_odo_calib[2]) * cam_odo_speed,
-                       -np.sin(cam_odo_calib[1]) * cam_odo_speed],
-                        [0.0, 0.0, cam_odo_yr],
-                        [0.0, 0.0, 0.0],
-                        [cam_odo_speed_std, cam_odo_speed_std, cam_odo_speed_std],
-                        [0.0, 0.0, HEIGHT_INIT.item()],
-                        [cam_odo_height_std, cam_odo_height_std, cam_odo_height_std])
+    c.handle_cam_odom(
+      [cam_odo_speed, np.sin(cam_odo_calib[2]) * cam_odo_speed, -np.sin(cam_odo_calib[1]) * cam_odo_speed],
+      [0.0, 0.0, cam_odo_yr],
+      [0.0, 0.0, 0.0],
+      [cam_odo_speed_std, cam_odo_speed_std, cam_odo_speed_std],
+      [0.0, 0.0, HEIGHT_INIT.item()],
+      [cam_odo_height_std, cam_odo_height_std, cam_odo_height_std],
+    )
+
 
 class TestCalibrationd:
-
   def test_read_saved_params(self):
     msg = messaging.new_message('liveCalibration')
     msg.liveCalibration.validBlocks = random.randint(1, 10)
@@ -43,7 +57,6 @@ class TestCalibrationd:
     np.testing.assert_allclose(msg.liveCalibration.height, c.height)
     assert msg.liveCalibration.validBlocks == c.valid_blocks
 
-
   def test_calibration_basics(self):
     c = Calibrator(param_put=False)
     process_messages(c, [0.0, 0.0, 0.0], BLOCK_SIZE * INPUTS_WANTED)
@@ -51,7 +64,6 @@ class TestCalibrationd:
     np.testing.assert_allclose(c.rpy, np.zeros(3))
     np.testing.assert_allclose(c.height, HEIGHT_INIT)
     c.reset()
-
 
   def test_calibration_low_speed_reject(self):
     c = Calibrator(param_put=False)
@@ -61,7 +73,6 @@ class TestCalibrationd:
     np.testing.assert_allclose(c.rpy, np.zeros(3))
     np.testing.assert_allclose(c.height, HEIGHT_INIT)
 
-
   def test_calibration_yaw_rate_reject(self):
     c = Calibrator(param_put=False)
     process_messages(c, [0.0, 0.0, 0.0], BLOCK_SIZE * INPUTS_WANTED, cam_odo_yr=MAX_YAW_RATE_FILTER)
@@ -69,13 +80,11 @@ class TestCalibrationd:
     np.testing.assert_allclose(c.rpy, np.zeros(3))
     np.testing.assert_allclose(c.height, HEIGHT_INIT)
 
-
   def test_calibration_speed_std_reject(self):
     c = Calibrator(param_put=False)
     process_messages(c, [0.0, 0.0, 0.0], BLOCK_SIZE * INPUTS_WANTED, cam_odo_speed_std=1e3)
     assert c.valid_blocks == INPUTS_NEEDED
     np.testing.assert_allclose(c.rpy, np.zeros(3))
-
 
   def test_calibration_speed_std_height_reject(self):
     c = Calibrator(param_put=False)
@@ -83,13 +92,12 @@ class TestCalibrationd:
     assert c.valid_blocks == INPUTS_NEEDED
     np.testing.assert_allclose(c.rpy, np.zeros(3))
 
-
   def test_calibration_auto_reset(self):
     c = Calibrator(param_put=False)
     process_messages(c, [0.0, 0.0, 0.0], BLOCK_SIZE * INPUTS_NEEDED)
     assert c.valid_blocks == INPUTS_NEEDED
     np.testing.assert_allclose(c.rpy, [0.0, 0.0, 0.0], atol=1e-3)
-    process_messages(c, [0.0, MAX_ALLOWED_PITCH_SPREAD*0.9, MAX_ALLOWED_YAW_SPREAD*0.9], BLOCK_SIZE + 10)
+    process_messages(c, [0.0, MAX_ALLOWED_PITCH_SPREAD * 0.9, MAX_ALLOWED_YAW_SPREAD * 0.9], BLOCK_SIZE + 10)
     assert c.valid_blocks == INPUTS_NEEDED + 1
     assert c.cal_status == log.LiveCalibrationData.Status.calibrated
 
@@ -97,19 +105,19 @@ class TestCalibrationd:
     process_messages(c, [0.0, 0.0, 0.0], BLOCK_SIZE * INPUTS_NEEDED)
     assert c.valid_blocks == INPUTS_NEEDED
     np.testing.assert_allclose(c.rpy, [0.0, 0.0, 0.0])
-    process_messages(c, [0.0, MAX_ALLOWED_PITCH_SPREAD*1.1, 0.0], BLOCK_SIZE + 10)
+    process_messages(c, [0.0, MAX_ALLOWED_PITCH_SPREAD * 1.1, 0.0], BLOCK_SIZE + 10)
     assert c.valid_blocks == 1
     assert c.cal_status == log.LiveCalibrationData.Status.recalibrating
-    np.testing.assert_allclose(c.rpy, [0.0, MAX_ALLOWED_PITCH_SPREAD*1.1, 0.0], atol=1e-2)
+    np.testing.assert_allclose(c.rpy, [0.0, MAX_ALLOWED_PITCH_SPREAD * 1.1, 0.0], atol=1e-2)
 
     c = Calibrator(param_put=False)
     process_messages(c, [0.0, 0.0, 0.0], BLOCK_SIZE * INPUTS_NEEDED)
     assert c.valid_blocks == INPUTS_NEEDED
     np.testing.assert_allclose(c.rpy, [0.0, 0.0, 0.0])
-    process_messages(c, [0.0, 0.0, MAX_ALLOWED_YAW_SPREAD*1.1], BLOCK_SIZE + 10)
+    process_messages(c, [0.0, 0.0, MAX_ALLOWED_YAW_SPREAD * 1.1], BLOCK_SIZE + 10)
     assert c.valid_blocks == 1
     assert c.cal_status == log.LiveCalibrationData.Status.recalibrating
-    np.testing.assert_allclose(c.rpy, [0.0, 0.0, MAX_ALLOWED_YAW_SPREAD*1.1], atol=1e-2)
+    np.testing.assert_allclose(c.rpy, [0.0, 0.0, MAX_ALLOWED_YAW_SPREAD * 1.1], atol=1e-2)
 
 
 class TestCalibrationHelpers:
@@ -118,27 +126,31 @@ class TestCalibrationHelpers:
   def test_is_calibration_valid_within_limits(self):
     """Test is_calibration_valid returns True for valid calibration."""
     from openpilot.selfdrive.locationd.calibrationd import is_calibration_valid, PITCH_LIMITS, YAW_LIMITS
+
     # Center of valid range
     rpy = np.array([0.0, (PITCH_LIMITS[0] + PITCH_LIMITS[1]) / 2, (YAW_LIMITS[0] + YAW_LIMITS[1]) / 2])
-    assert is_calibration_valid(rpy) == True
+    assert is_calibration_valid(rpy)
 
   def test_is_calibration_valid_outside_pitch(self):
     """Test is_calibration_valid returns False for invalid pitch."""
-    from openpilot.selfdrive.locationd.calibrationd import is_calibration_valid, PITCH_LIMITS, YAW_LIMITS
+    from openpilot.selfdrive.locationd.calibrationd import is_calibration_valid, PITCH_LIMITS
+
     # Pitch outside limits
     rpy = np.array([0.0, PITCH_LIMITS[1] + 0.1, 0.0])
-    assert is_calibration_valid(rpy) == False
+    assert not is_calibration_valid(rpy)
 
   def test_is_calibration_valid_outside_yaw(self):
     """Test is_calibration_valid returns False for invalid yaw."""
     from openpilot.selfdrive.locationd.calibrationd import is_calibration_valid, YAW_LIMITS
+
     # Yaw outside limits
     rpy = np.array([0.0, 0.0, YAW_LIMITS[1] + 0.1])
-    assert is_calibration_valid(rpy) == False
+    assert not is_calibration_valid(rpy)
 
   def test_sanity_clip_nan_values(self):
     """Test sanity_clip replaces NaN with RPY_INIT."""
     from openpilot.selfdrive.locationd.calibrationd import sanity_clip, RPY_INIT
+
     rpy = np.array([np.nan, 0.0, 0.0])
     result = sanity_clip(rpy)
     np.testing.assert_allclose(result, RPY_INIT)
@@ -146,6 +158,7 @@ class TestCalibrationHelpers:
   def test_sanity_clip_clips_pitch(self):
     """Test sanity_clip clips pitch to limits."""
     from openpilot.selfdrive.locationd.calibrationd import sanity_clip, PITCH_LIMITS
+
     rpy = np.array([0.0, 1.0, 0.0])  # Pitch way out of bounds
     result = sanity_clip(rpy)
     assert result[1] <= PITCH_LIMITS[1] + 0.005
@@ -153,6 +166,7 @@ class TestCalibrationHelpers:
   def test_sanity_clip_clips_yaw(self):
     """Test sanity_clip clips yaw to limits."""
     from openpilot.selfdrive.locationd.calibrationd import sanity_clip, YAW_LIMITS
+
     rpy = np.array([0.0, 0.0, 1.0])  # Yaw way out of bounds
     result = sanity_clip(rpy)
     assert result[2] <= YAW_LIMITS[1] + 0.005
@@ -160,6 +174,7 @@ class TestCalibrationHelpers:
   def test_moving_avg_with_linear_decay(self):
     """Test moving_avg_with_linear_decay calculation."""
     from openpilot.selfdrive.locationd.calibrationd import moving_avg_with_linear_decay
+
     prev_mean = np.array([1.0, 2.0, 3.0])
     new_val = np.array([10.0, 20.0, 30.0])
     # At idx=0, result should be weighted towards new_val
@@ -169,6 +184,7 @@ class TestCalibrationHelpers:
   def test_moving_avg_midpoint(self):
     """Test moving_avg_with_linear_decay at midpoint."""
     from openpilot.selfdrive.locationd.calibrationd import moving_avg_with_linear_decay
+
     prev_mean = np.array([0.0])
     new_val = np.array([10.0])
     # At idx=5, block_size=10, weight is 50/50
@@ -244,7 +260,7 @@ class TestCalibratorMethods:
     """Test get_msg returns valid message."""
     c = Calibrator(param_put=False)
     msg = c.get_msg(valid=True)
-    assert msg.valid == True
+    assert msg.valid
     assert msg.liveCalibration.validBlocks == c.valid_blocks
 
   def test_calibrator_get_msg_not_car(self):

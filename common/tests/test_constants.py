@@ -1,5 +1,4 @@
 """Tests for common/constants.py - conversion constants."""
-import math
 
 import numpy as np
 import pytest
@@ -165,10 +164,14 @@ class TestConversionConsistency:
   def test_all_speed_conversions_positive(self):
     """Test all speed conversions are positive."""
     conversions = [
-      CV.MPH_TO_KPH, CV.KPH_TO_MPH,
-      CV.MS_TO_KPH, CV.KPH_TO_MS,
-      CV.MS_TO_MPH, CV.MPH_TO_MS,
-      CV.MS_TO_KNOTS, CV.KNOTS_TO_MS,
+      CV.MPH_TO_KPH,
+      CV.KPH_TO_MPH,
+      CV.MS_TO_KPH,
+      CV.KPH_TO_MS,
+      CV.MS_TO_MPH,
+      CV.MPH_TO_MS,
+      CV.MS_TO_KNOTS,
+      CV.KNOTS_TO_MS,
     ]
     for conv in conversions:
       assert conv > 0

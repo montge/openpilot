@@ -1,6 +1,6 @@
 """Tests for tools/lib/helpers.py - regex patterns for routes and segments."""
+
 import re
-import pytest
 
 from openpilot.tools.lib.helpers import RE
 

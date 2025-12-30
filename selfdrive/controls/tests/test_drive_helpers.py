@@ -107,7 +107,7 @@ class TestClipCurvature:
     v_ego = 10.0
     prev_curv = 0.0
     new_curv = 0.1  # Large change
-    max_rate = MAX_LATERAL_JERK / (v_ego ** 2)
+    max_rate = MAX_LATERAL_JERK / (v_ego**2)
     max_delta = max_rate * DT_CTRL
 
     result, limited = clip_curvature(v_ego, prev_curv, new_curv, roll=0.0)
@@ -119,13 +119,13 @@ class TestClipCurvature:
     v_ego = 10.0
     # Calculate a curvature that exceeds lateral accel limit
     max_lat_accel = MAX_LATERAL_ACCEL_NO_ROLL
-    max_curv_from_accel = max_lat_accel / (v_ego ** 2)
+    max_curv_from_accel = max_lat_accel / (v_ego**2)
 
     # When prev and new are the same, no jerk limiting applies
     new_curv = max_curv_from_accel * 2
     result, limited = clip_curvature(v_ego, prev_curvature=new_curv, new_curvature=new_curv, roll=0.0)
     assert result <= max_curv_from_accel + 0.001
-    assert limited == True  # Use == for numpy bool
+    assert limited
 
   def test_max_curvature_clipping(self):
     """Curvature should be clipped to MAX_CURVATURE."""
@@ -133,7 +133,7 @@ class TestClipCurvature:
     new_curv = 0.5  # Way beyond MAX_CURVATURE (0.2)
     result, limited = clip_curvature(v_ego, prev_curvature=new_curv, new_curvature=new_curv, roll=0.0)
     assert result <= MAX_CURVATURE
-    assert limited == True  # Use == for numpy bool
+    assert limited
 
   def test_low_speed_uses_min_speed(self):
     """Very low speed should use MIN_SPEED for calculations."""
@@ -158,11 +158,11 @@ class TestClipCurvature:
     v_ego = 10.0
     # Curvature that exceeds lateral accel limit (negative)
     max_lat_accel = MAX_LATERAL_ACCEL_NO_ROLL
-    max_curv_from_accel = max_lat_accel / (v_ego ** 2)
+    max_curv_from_accel = max_lat_accel / (v_ego**2)
     new_curv = -max_curv_from_accel * 2  # Exceeds limit
     result, limited = clip_curvature(v_ego, prev_curvature=new_curv, new_curvature=new_curv, roll=0.0)
     assert result >= -max_curv_from_accel - 0.001
-    assert limited == True  # Use == for numpy bool
+    assert limited
 
 
 class TestGetAccelFromPlan:
@@ -176,7 +176,7 @@ class TestGetAccelFromPlan:
 
     a_target, should_stop = get_accel_from_plan(speeds, accels, t_idxs, action_t=0.05)
     assert a_target != 0.0
-    assert should_stop == False  # Use == for numpy bool
+    assert not should_stop
 
   def test_invalid_plan_returns_zero(self):
     """Plan with mismatched lengths should return zero accel."""
@@ -186,7 +186,7 @@ class TestGetAccelFromPlan:
 
     a_target, should_stop = get_accel_from_plan(speeds, accels, t_idxs, action_t=0.05)
     assert a_target == 0.0
-    assert should_stop == True  # v_target=0 < vEgoStopping
+    assert should_stop  # v_target=0 < vEgoStopping
 
   def test_should_stop_when_target_below_threshold(self):
     """Should stop when both v_target and v_target_1sec are below threshold."""
@@ -196,7 +196,7 @@ class TestGetAccelFromPlan:
     accels = np.array([0.0, 0.0, 0.0, 0.0, 0.0])
 
     a_target, should_stop = get_accel_from_plan(speeds, accels, t_idxs, action_t=0.1, vEgoStopping=0.05)
-    assert should_stop == True
+    assert should_stop
 
   def test_should_not_stop_when_target_above_threshold(self):
     """Should not stop when targets are above vEgoStopping threshold."""
@@ -205,7 +205,7 @@ class TestGetAccelFromPlan:
     accels = np.array([0.0, 0.0, 0.0, 0.0, 0.0])
 
     a_target, should_stop = get_accel_from_plan(speeds, accels, t_idxs, action_t=0.1, vEgoStopping=0.05)
-    assert should_stop == False
+    assert not should_stop
 
   def test_custom_vEgoStopping_threshold(self):
     """Custom vEgoStopping threshold should be respected."""
@@ -218,8 +218,8 @@ class TestGetAccelFromPlan:
     # With low threshold, should not stop
     _, should_stop_low = get_accel_from_plan(speeds, accels, t_idxs, action_t=0.1, vEgoStopping=0.01)
 
-    assert should_stop_high == True
-    assert should_stop_low == False
+    assert should_stop_high
+    assert not should_stop_low
 
 
 class TestCurvFromPsis:
