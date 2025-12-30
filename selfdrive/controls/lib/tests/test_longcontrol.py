@@ -184,6 +184,16 @@ class TestLongControlStateTrans:
     )
     assert result == LongCtrlState.off
 
+  def test_pid_stays_pid_when_below_vego_starting(self, mocker):
+    """Test PID stays PID even when v_ego < vEgoStarting (started_condition is False)."""
+    CP = create_mock_cp(mocker)
+    CP.vEgoStarting = 0.3
+    # v_ego below vEgoStarting, but we're already in PID so we stay there
+    result = long_control_state_trans(
+      CP, active=True, long_control_state=LongCtrlState.pid, v_ego=0.1, should_stop=False, brake_pressed=False, cruise_standstill=False
+    )
+    assert result == LongCtrlState.pid
+
 
 class TestLongControl:
   """Test LongControl class."""
@@ -293,6 +303,22 @@ class TestLongControl:
 
     # Should decrease from last output
     assert output < 0.5
+
+  def test_stopping_at_stop_accel(self, mocker):
+    """Test stopping when output_accel <= stopAccel (no decel needed)."""
+    CP = create_mock_cp(mocker)
+    CP.stopAccel = -2.0
+    lc = LongControl(CP)
+    lc.long_control_state = LongCtrlState.stopping
+    lc.last_output_accel = -2.5  # Already at or below stopAccel
+    CS = create_mock_cs(mocker)
+    CS.vEgo = 0.1
+    accel_limits = [-3.5, 2.0]
+
+    output = lc.update(active=True, CS=CS, a_target=0.0, should_stop=True, accel_limits=accel_limits)
+
+    # Output should be clamped, stays at last_output_accel (no decel applied)
+    assert output == lc.last_output_accel
 
   def test_pid_limits_set(self, mocker):
     """Test PID limits are set from accel_limits."""
