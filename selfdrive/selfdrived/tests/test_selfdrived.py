@@ -1,12 +1,8 @@
-import pytest
-from unittest.mock import MagicMock, patch, PropertyMock
-
 from cereal import car, log
-import cereal.messaging as messaging
 from openpilot.common.realtime import DT_CTRL
 from openpilot.selfdrive.selfdrived.selfdrived import SelfdriveD
 from openpilot.selfdrive.selfdrived.events import Events, ET, EVENTS, NormalPermanentAlert
-from openpilot.selfdrive.selfdrived.state import StateMachine, SOFT_DISABLE_TIME
+from openpilot.selfdrive.selfdrived.state import StateMachine
 
 State = log.SelfdriveState.OpenpilotState
 EventName = log.OnroadEvent.EventName
@@ -15,10 +11,19 @@ ButtonType = car.CarState.ButtonEvent.Type
 SafetyModel = car.CarParams.SafetyModel
 
 
-def make_car_params(brand='mock', passive=False, pcm_cruise=False, openpilot_long=False,
-                    not_car=False, min_steer_speed=0., min_enable_speed=0.,
-                    alpha_long_available=False, sec_oc_required=False, sec_oc_key_available=False,
-                    car_fingerprint='TOYOTA_RAV4'):
+def make_car_params(
+  brand='mock',
+  passive=False,
+  pcm_cruise=False,
+  openpilot_long=False,
+  not_car=False,
+  min_steer_speed=0.0,
+  min_enable_speed=0.0,
+  alpha_long_available=False,
+  sec_oc_required=False,
+  sec_oc_key_available=False,
+  car_fingerprint='TOYOTA_RAV4',
+):
   """Create a mock CarParams with common configurations."""
   CP = car.CarParams.new_message()
   CP.brand = brand
@@ -35,10 +40,22 @@ def make_car_params(brand='mock', passive=False, pcm_cruise=False, openpilot_lon
   return CP
 
 
-def make_car_state(v_ego=0., cruise_enabled=False, can_valid=True, standstill=False,
-                   gas_pressed=False, brake_pressed=False, steering_pressed=False,
-                   door_open=False, seatbelt_unlatched=False, can_timeout=False,
-                   regen_braking=False, v_cruise=0., left_blindspot=False, right_blindspot=False):
+def make_car_state(
+  v_ego=0.0,
+  cruise_enabled=False,
+  can_valid=True,
+  standstill=False,
+  gas_pressed=False,
+  brake_pressed=False,
+  steering_pressed=False,
+  door_open=False,
+  seatbelt_unlatched=False,
+  can_timeout=False,
+  regen_braking=False,
+  v_cruise=0.0,
+  left_blindspot=False,
+  right_blindspot=False,
+):
   """Create a mock CarState with common configurations."""
   CS = car.CarState.new_message()
   CS.vEgo = v_ego
@@ -76,12 +93,33 @@ class MockSubMaster:
   def _init_default_data(self):
     # Initialize default data for commonly used services
     services = [
-      'deviceState', 'pandaStates', 'peripheralState', 'modelV2', 'liveCalibration',
-      'carOutput', 'driverMonitoringState', 'longitudinalPlan', 'livePose', 'liveDelay',
-      'managerState', 'liveParameters', 'radarState', 'liveTorqueParameters',
-      'controlsState', 'carControl', 'driverAssistance', 'alertDebug', 'userBookmark', 'audioFeedback',
-      'roadCameraState', 'driverCameraState', 'wideRoadCameraState',
-      'accelerometer', 'gyroscope', 'gpsLocationExternal', 'gpsLocation'
+      'deviceState',
+      'pandaStates',
+      'peripheralState',
+      'modelV2',
+      'liveCalibration',
+      'carOutput',
+      'driverMonitoringState',
+      'longitudinalPlan',
+      'livePose',
+      'liveDelay',
+      'managerState',
+      'liveParameters',
+      'radarState',
+      'liveTorqueParameters',
+      'controlsState',
+      'carControl',
+      'driverAssistance',
+      'alertDebug',
+      'userBookmark',
+      'audioFeedback',
+      'roadCameraState',
+      'driverCameraState',
+      'wideRoadCameraState',
+      'accelerometer',
+      'gyroscope',
+      'gpsLocationExternal',
+      'gpsLocation',
     ]
     for service in services:
       self.valid[service] = True
@@ -144,6 +182,41 @@ class MockPubMaster:
     self.sent_messages[service] = msg
 
 
+def setup_selfdrived_mocks(mocker, comma_remote=True, tested_channel=True, device_type='tici'):
+  """Set up common mocks for SelfdriveD testing.
+
+  Returns a dict with all the mock objects.
+  """
+  mock_params_instance = mocker.MagicMock()
+  mock_params_instance.get_bool.return_value = False
+  mock_params_instance.get.return_value = None
+
+  mock_params = mocker.patch('openpilot.selfdrive.selfdrived.selfdrived.Params', return_value=mock_params_instance)
+  mock_build_meta = mocker.patch('openpilot.selfdrive.selfdrived.selfdrived.get_build_metadata')
+  mock_build_meta.return_value.openpilot.comma_remote = comma_remote
+  mock_build_meta.return_value.tested_channel = tested_channel
+
+  mock_hw = mocker.patch('openpilot.selfdrive.selfdrived.selfdrived.HARDWARE')
+  mock_hw.get_device_type.return_value = device_type
+
+  mock_sm = MockSubMaster()
+  mock_sm_cls = mocker.patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.SubMaster', return_value=mock_sm)
+  mock_pm = MockPubMaster(['selfdriveState', 'onroadEvents'])
+  mock_pm_cls = mocker.patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.PubMaster', return_value=mock_pm)
+  mocker.patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.sub_sock')
+
+  return {
+    'params': mock_params,
+    'params_instance': mock_params_instance,
+    'build_meta': mock_build_meta,
+    'hw': mock_hw,
+    'sm': mock_sm,
+    'sm_cls': mock_sm_cls,
+    'pm': mock_pm,
+    'pm_cls': mock_pm_cls,
+  }
+
+
 class TestSelfdriveD:
   """Tests for the SelfdriveD class."""
 
@@ -151,28 +224,9 @@ class TestSelfdriveD:
     """Set up test fixtures."""
     self.CP = make_car_params(brand='toyota', openpilot_long=True)
 
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.Params')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.get_build_metadata')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.PubMaster')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.SubMaster')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.sub_sock')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.HARDWARE')
-  def test_initialization_with_car_params(self, mock_hw, mock_sub_sock, mock_sm_cls, mock_pm_cls, mock_build_meta, mock_params):
+  def test_initialization_with_car_params(self, mocker):
     """Test SelfdriveD initialization when CarParams is passed directly."""
-    # Setup mocks
-    mock_params_instance = MagicMock()
-    mock_params.return_value = mock_params_instance
-    mock_params_instance.get_bool.return_value = False
-    mock_params_instance.get.return_value = None
-
-    mock_build_meta.return_value.openpilot.comma_remote = True
-    mock_build_meta.return_value.tested_channel = True
-
-    mock_hw.get_device_type.return_value = 'tici'
-
-    mock_sm = MockSubMaster()
-    mock_sm_cls.return_value = mock_sm
-    mock_pm_cls.return_value = MockPubMaster(['selfdriveState', 'onroadEvents'])
+    setup_selfdrived_mocks(mocker)
 
     # Create SelfdriveD with CarParams
     sd = SelfdriveD(CP=self.CP)
@@ -185,79 +239,27 @@ class TestSelfdriveD:
     assert isinstance(sd.state_machine, StateMachine)
     assert isinstance(sd.events, Events)
 
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.Params')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.get_build_metadata')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.PubMaster')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.SubMaster')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.sub_sock')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.HARDWARE')
-  def test_startup_event_normal(self, mock_hw, mock_sub_sock, mock_sm_cls, mock_pm_cls, mock_build_meta, mock_params):
+  def test_startup_event_normal(self, mocker):
     """Test startup event is set correctly for normal builds."""
-    mock_params_instance = MagicMock()
-    mock_params.return_value = mock_params_instance
-    mock_params_instance.get_bool.return_value = False
-    mock_params_instance.get.return_value = None
-
-    mock_build_meta.return_value.openpilot.comma_remote = True
-    mock_build_meta.return_value.tested_channel = True
-
-    mock_hw.get_device_type.return_value = 'tici'
-
-    mock_sm_cls.return_value = MockSubMaster()
-    mock_pm_cls.return_value = MockPubMaster(['selfdriveState', 'onroadEvents'])
+    setup_selfdrived_mocks(mocker, comma_remote=True, tested_channel=True)
 
     CP = make_car_params(brand='toyota')
     sd = SelfdriveD(CP=CP)
 
     assert sd.startup_event == EventName.startup
 
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.Params')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.get_build_metadata')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.PubMaster')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.SubMaster')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.sub_sock')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.HARDWARE')
-  def test_startup_event_master(self, mock_hw, mock_sub_sock, mock_sm_cls, mock_pm_cls, mock_build_meta, mock_params):
+  def test_startup_event_master(self, mocker):
     """Test startup event is set to startupMaster for dev builds."""
-    mock_params_instance = MagicMock()
-    mock_params.return_value = mock_params_instance
-    mock_params_instance.get_bool.return_value = False
-    mock_params_instance.get.return_value = None
-
-    # Not a release build
-    mock_build_meta.return_value.openpilot.comma_remote = False
-    mock_build_meta.return_value.tested_channel = False
-
-    mock_hw.get_device_type.return_value = 'tici'
-
-    mock_sm_cls.return_value = MockSubMaster()
-    mock_pm_cls.return_value = MockPubMaster(['selfdriveState', 'onroadEvents'])
+    setup_selfdrived_mocks(mocker, comma_remote=False, tested_channel=False)
 
     CP = make_car_params(brand='toyota')
     sd = SelfdriveD(CP=CP)
 
     assert sd.startup_event == EventName.startupMaster
 
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.Params')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.get_build_metadata')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.PubMaster')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.SubMaster')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.sub_sock')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.HARDWARE')
-  def test_startup_event_no_car(self, mock_hw, mock_sub_sock, mock_sm_cls, mock_pm_cls, mock_build_meta, mock_params):
+  def test_startup_event_no_car(self, mocker):
     """Test startup event for unrecognized car."""
-    mock_params_instance = MagicMock()
-    mock_params.return_value = mock_params_instance
-    mock_params_instance.get_bool.return_value = False
-    mock_params_instance.get.return_value = None
-
-    mock_build_meta.return_value.openpilot.comma_remote = True
-    mock_build_meta.return_value.tested_channel = True
-
-    mock_hw.get_device_type.return_value = 'tici'
-
-    mock_sm_cls.return_value = MockSubMaster()
-    mock_pm_cls.return_value = MockPubMaster(['selfdriveState', 'onroadEvents'])
+    setup_selfdrived_mocks(mocker)
 
     # Mock car brand
     CP = make_car_params(brand='mock')
@@ -265,52 +267,18 @@ class TestSelfdriveD:
 
     assert sd.startup_event == EventName.startupNoCar
 
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.Params')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.get_build_metadata')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.PubMaster')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.SubMaster')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.sub_sock')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.HARDWARE')
-  def test_startup_event_passive(self, mock_hw, mock_sub_sock, mock_sm_cls, mock_pm_cls, mock_build_meta, mock_params):
+  def test_startup_event_passive(self, mocker):
     """Test startup event for passive/dashcam mode."""
-    mock_params_instance = MagicMock()
-    mock_params.return_value = mock_params_instance
-    mock_params_instance.get_bool.return_value = False
-    mock_params_instance.get.return_value = None
-
-    mock_build_meta.return_value.openpilot.comma_remote = True
-    mock_build_meta.return_value.tested_channel = True
-
-    mock_hw.get_device_type.return_value = 'tici'
-
-    mock_sm_cls.return_value = MockSubMaster()
-    mock_pm_cls.return_value = MockPubMaster(['selfdriveState', 'onroadEvents'])
+    setup_selfdrived_mocks(mocker)
 
     CP = make_car_params(brand='toyota', passive=True)
     sd = SelfdriveD(CP=CP)
 
     assert sd.startup_event == EventName.startupNoControl
 
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.Params')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.get_build_metadata')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.PubMaster')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.SubMaster')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.sub_sock')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.HARDWARE')
-  def test_startup_event_sec_oc_key_missing(self, mock_hw, mock_sub_sock, mock_sm_cls, mock_pm_cls, mock_build_meta, mock_params):
+  def test_startup_event_sec_oc_key_missing(self, mocker):
     """Test startup event when SecOC key is required but not available."""
-    mock_params_instance = MagicMock()
-    mock_params.return_value = mock_params_instance
-    mock_params_instance.get_bool.return_value = False
-    mock_params_instance.get.return_value = None
-
-    mock_build_meta.return_value.openpilot.comma_remote = True
-    mock_build_meta.return_value.tested_channel = True
-
-    mock_hw.get_device_type.return_value = 'tici'
-
-    mock_sm_cls.return_value = MockSubMaster()
-    mock_pm_cls.return_value = MockPubMaster(['selfdriveState', 'onroadEvents'])
+    setup_selfdrived_mocks(mocker)
 
     CP = make_car_params(brand='toyota', sec_oc_required=True, sec_oc_key_available=False)
     sd = SelfdriveD(CP=CP)
@@ -321,46 +289,24 @@ class TestSelfdriveD:
 class TestUpdateEvents:
   """Tests for the update_events method."""
 
-  def setup_method(self):
-    """Set up test fixtures for update_events tests."""
-    pass
-
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.CarSpecificEvents')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.Params')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.get_build_metadata')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.PubMaster')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.SubMaster')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.sub_sock')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.HARDWARE')
-  def _create_selfdrived(self, mock_hw, mock_sub_sock, mock_sm_cls, mock_pm_cls, mock_build_meta, mock_params, mock_car_events, **cp_kwargs):
+  def _create_selfdrived(self, mocker, **cp_kwargs):
     """Helper to create a SelfdriveD instance for testing."""
-    mock_params_instance = MagicMock()
-    mock_params.return_value = mock_params_instance
-    mock_params_instance.get_bool.return_value = False
-    mock_params_instance.get.return_value = None
-
-    mock_build_meta.return_value.openpilot.comma_remote = True
-    mock_build_meta.return_value.tested_channel = True
-
-    mock_hw.get_device_type.return_value = 'tici'
+    mocks = setup_selfdrived_mocks(mocker)
 
     # Mock CarSpecificEvents to return empty Events
-    mock_car_events_instance = MagicMock()
+    mock_car_events = mocker.patch('openpilot.selfdrive.selfdrived.selfdrived.CarSpecificEvents')
+    mock_car_events_instance = mocker.MagicMock()
     mock_car_events.return_value = mock_car_events_instance
     mock_car_events_instance.update.return_value = Events()
 
-    mock_sm = MockSubMaster()
-    mock_sm_cls.return_value = mock_sm
-    mock_pm_cls.return_value = MockPubMaster(['selfdriveState', 'onroadEvents'])
-
     CP = make_car_params(**cp_kwargs)
     sd = SelfdriveD(CP=CP)
-    sd.sm = mock_sm  # Replace with our mock
-    return sd, mock_sm
+    sd.sm = mocks['sm']  # Replace with our mock
+    return sd, mocks['sm']
 
-  def test_update_events_adds_initializing_when_not_initialized(self):
+  def test_update_events_adds_initializing_when_not_initialized(self, mocker):
     """Test that selfdriveInitializing event is added when not initialized."""
-    sd, mock_sm = self._create_selfdrived(brand='toyota')
+    sd, mock_sm = self._create_selfdrived(mocker, brand='toyota')
     sd.initialized = False
 
     CS = make_car_state(can_valid=True)
@@ -368,9 +314,9 @@ class TestUpdateEvents:
 
     assert EventName.selfdriveInitializing in sd.events.names
 
-  def test_update_events_thermal_overheat(self):
+  def test_update_events_thermal_overheat(self, mocker):
     """Test that overheat event is added when thermal status is red."""
-    sd, mock_sm = self._create_selfdrived(brand='toyota')
+    sd, mock_sm = self._create_selfdrived(mocker, brand='toyota')
     sd.initialized = True
 
     # Set thermal status to red (overheat)
@@ -382,9 +328,9 @@ class TestUpdateEvents:
 
     assert EventName.overheat in sd.events.names
 
-  def test_update_events_low_disk_space(self):
+  def test_update_events_low_disk_space(self, mocker):
     """Test that outOfSpace event is added when disk space is low."""
-    sd, mock_sm = self._create_selfdrived(brand='toyota')
+    sd, mock_sm = self._create_selfdrived(mocker, brand='toyota')
     sd.initialized = True
 
     mock_sm.data['deviceState'] = log.DeviceState.new_message()
@@ -393,14 +339,14 @@ class TestUpdateEvents:
     CS = make_car_state(can_valid=True)
 
     # Need to patch SIMULATION to False
-    with patch('openpilot.selfdrive.selfdrived.selfdrived.SIMULATION', False):
-      sd.update_events(CS)
+    mocker.patch('openpilot.selfdrive.selfdrived.selfdrived.SIMULATION', False)
+    sd.update_events(CS)
 
     assert EventName.outOfSpace in sd.events.names
 
-  def test_update_events_low_memory(self):
+  def test_update_events_low_memory(self, mocker):
     """Test that lowMemory event is added when memory usage is high."""
-    sd, mock_sm = self._create_selfdrived(brand='toyota')
+    sd, mock_sm = self._create_selfdrived(mocker, brand='toyota')
     sd.initialized = True
 
     mock_sm.data['deviceState'] = log.DeviceState.new_message()
@@ -408,14 +354,14 @@ class TestUpdateEvents:
 
     CS = make_car_state(can_valid=True)
 
-    with patch('openpilot.selfdrive.selfdrived.selfdrived.SIMULATION', False):
-      sd.update_events(CS)
+    mocker.patch('openpilot.selfdrive.selfdrived.selfdrived.SIMULATION', False)
+    sd.update_events(CS)
 
     assert EventName.lowMemory in sd.events.names
 
-  def test_update_events_pedal_pressed_gas(self):
+  def test_update_events_pedal_pressed_gas(self, mocker):
     """Test that pedalPressed event is added on gas press with disengage setting."""
-    sd, mock_sm = self._create_selfdrived(brand='toyota')
+    sd, mock_sm = self._create_selfdrived(mocker, brand='toyota')
     sd.initialized = True
     sd.disengage_on_accelerator = True
     sd.CS_prev = make_car_state(gas_pressed=False)
@@ -425,9 +371,9 @@ class TestUpdateEvents:
 
     assert EventName.pedalPressed in sd.events.names
 
-  def test_update_events_pedal_pressed_brake(self):
+  def test_update_events_pedal_pressed_brake(self, mocker):
     """Test that pedalPressed event is added on brake press when not standing."""
-    sd, mock_sm = self._create_selfdrived(brand='toyota')
+    sd, mock_sm = self._create_selfdrived(mocker, brand='toyota')
     sd.initialized = True
     sd.CS_prev = make_car_state(brake_pressed=False)
 
@@ -436,9 +382,9 @@ class TestUpdateEvents:
 
     assert EventName.pedalPressed in sd.events.names
 
-  def test_update_events_can_timeout(self):
+  def test_update_events_can_timeout(self, mocker):
     """Test that canBusMissing event is added on CAN timeout."""
-    sd, mock_sm = self._create_selfdrived(brand='toyota')
+    sd, mock_sm = self._create_selfdrived(mocker, brand='toyota')
     sd.initialized = True
 
     CS = make_car_state(can_valid=True, can_timeout=True)
@@ -446,9 +392,9 @@ class TestUpdateEvents:
 
     assert EventName.canBusMissing in sd.events.names
 
-  def test_update_events_can_error(self):
+  def test_update_events_can_error(self, mocker):
     """Test that canError event is added when CAN is invalid."""
-    sd, mock_sm = self._create_selfdrived(brand='toyota')
+    sd, mock_sm = self._create_selfdrived(mocker, brand='toyota')
     sd.initialized = True
 
     CS = make_car_state(can_valid=False, can_timeout=False)
@@ -456,9 +402,9 @@ class TestUpdateEvents:
 
     assert EventName.canError in sd.events.names
 
-  def test_update_events_calibration_incomplete(self):
+  def test_update_events_calibration_incomplete(self, mocker):
     """Test that calibrationIncomplete event is added when uncalibrated."""
-    sd, mock_sm = self._create_selfdrived(brand='toyota')
+    sd, mock_sm = self._create_selfdrived(mocker, brand='toyota')
     sd.initialized = True
 
     mock_sm.data['liveCalibration'] = log.LiveCalibrationData.new_message()
@@ -469,9 +415,9 @@ class TestUpdateEvents:
 
     assert EventName.calibrationIncomplete in sd.events.names
 
-  def test_update_events_calibration_recalibrating(self):
+  def test_update_events_calibration_recalibrating(self, mocker):
     """Test that calibrationRecalibrating event is added when recalibrating."""
-    sd, mock_sm = self._create_selfdrived(brand='toyota')
+    sd, mock_sm = self._create_selfdrived(mocker, brand='toyota')
     sd.initialized = True
 
     mock_sm.data['liveCalibration'] = log.LiveCalibrationData.new_message()
@@ -479,14 +425,14 @@ class TestUpdateEvents:
 
     CS = make_car_state(can_valid=True)
 
-    with patch('openpilot.selfdrive.selfdrived.selfdrived.set_offroad_alert'):
-      sd.update_events(CS)
+    mocker.patch('openpilot.selfdrive.selfdrived.selfdrived.set_offroad_alert')
+    sd.update_events(CS)
 
     assert EventName.calibrationRecalibrating in sd.events.names
 
-  def test_update_events_lane_departure_warning(self):
+  def test_update_events_lane_departure_warning(self, mocker):
     """Test that ldw event is added on lane departure."""
-    sd, mock_sm = self._create_selfdrived(brand='toyota')
+    sd, mock_sm = self._create_selfdrived(mocker, brand='toyota')
     sd.initialized = True
     sd.is_ldw_enabled = True
 
@@ -499,9 +445,9 @@ class TestUpdateEvents:
 
     assert EventName.ldw in sd.events.names
 
-  def test_update_events_no_ldw_when_disabled(self):
+  def test_update_events_no_ldw_when_disabled(self, mocker):
     """Test that ldw event is not added when LDW is disabled."""
-    sd, mock_sm = self._create_selfdrived(brand='toyota')
+    sd, mock_sm = self._create_selfdrived(mocker, brand='toyota')
     sd.initialized = True
     sd.is_ldw_enabled = False
 
@@ -514,9 +460,9 @@ class TestUpdateEvents:
 
     assert EventName.ldw not in sd.events.names
 
-  def test_update_events_joystick_debug(self):
+  def test_update_events_joystick_debug(self, mocker):
     """Test that joystickDebug event clears startup event."""
-    sd, mock_sm = self._create_selfdrived(brand='toyota')
+    sd, mock_sm = self._create_selfdrived(mocker, brand='toyota')
     sd.initialized = True
 
     # Set controls state to debug mode
@@ -529,9 +475,9 @@ class TestUpdateEvents:
     assert EventName.joystickDebug in sd.events.names
     assert sd.startup_event is None
 
-  def test_update_events_startup_event_added_once(self):
+  def test_update_events_startup_event_added_once(self, mocker):
     """Test that startup event is added only once."""
-    sd, mock_sm = self._create_selfdrived(brand='toyota')
+    sd, mock_sm = self._create_selfdrived(mocker, brand='toyota')
     sd.initialized = True
     sd.startup_event = EventName.startup
 
@@ -549,9 +495,9 @@ class TestUpdateEvents:
     # (the startup_event gets cleared after first use)
     assert sd.startup_event is None
 
-  def test_update_events_passive_mode_limits_events(self):
+  def test_update_events_passive_mode_limits_events(self, mocker):
     """Test that passive mode limits events added."""
-    sd, mock_sm = self._create_selfdrived(brand='toyota', passive=True)
+    sd, mock_sm = self._create_selfdrived(mocker, brand='toyota', passive=True)
     sd.initialized = True
 
     # Set thermal overheat - this should not be added in passive mode
@@ -670,10 +616,7 @@ class TestStateTransitions:
     sm.state = State.disabled
     events = Events()
 
-    EVENTS[EventName.preEnableStandstill] = {
-      ET.ENABLE: NormalPermanentAlert("Engaged"),
-      ET.PRE_ENABLE: NormalPermanentAlert("Release Brake")
-    }
+    EVENTS[EventName.preEnableStandstill] = {ET.ENABLE: NormalPermanentAlert("Engaged"), ET.PRE_ENABLE: NormalPermanentAlert("Release Brake")}
     events.add(EventName.preEnableStandstill)
 
     enabled, active = sm.update(events)
@@ -688,10 +631,7 @@ class TestStateTransitions:
     sm.state = State.disabled
     events = Events()
 
-    EVENTS[EventName.steerOverride] = {
-      ET.ENABLE: NormalPermanentAlert("Engaged"),
-      ET.OVERRIDE_LATERAL: NormalPermanentAlert("Override")
-    }
+    EVENTS[EventName.steerOverride] = {ET.ENABLE: NormalPermanentAlert("Engaged"), ET.OVERRIDE_LATERAL: NormalPermanentAlert("Override")}
     events.add(EventName.steerOverride)
 
     enabled, active = sm.update(events)
@@ -704,43 +644,24 @@ class TestStateTransitions:
 class TestAlertHandling:
   """Tests for alert handling in SelfdriveD."""
 
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.CarSpecificEvents')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.Params')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.get_build_metadata')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.PubMaster')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.SubMaster')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.sub_sock')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.HARDWARE')
-  def _create_selfdrived(self, mock_hw, mock_sub_sock, mock_sm_cls, mock_pm_cls, mock_build_meta, mock_params, mock_car_events, **cp_kwargs):
+  def _create_selfdrived(self, mocker, **cp_kwargs):
     """Helper to create a SelfdriveD instance for testing."""
-    mock_params_instance = MagicMock()
-    mock_params.return_value = mock_params_instance
-    mock_params_instance.get_bool.return_value = False
-    mock_params_instance.get.return_value = None
+    mocks = setup_selfdrived_mocks(mocker)
 
-    mock_build_meta.return_value.openpilot.comma_remote = True
-    mock_build_meta.return_value.tested_channel = True
-
-    mock_hw.get_device_type.return_value = 'tici'
-
-    mock_car_events_instance = MagicMock()
+    mock_car_events = mocker.patch('openpilot.selfdrive.selfdrived.selfdrived.CarSpecificEvents')
+    mock_car_events_instance = mocker.MagicMock()
     mock_car_events.return_value = mock_car_events_instance
     mock_car_events_instance.update.return_value = Events()
 
-    mock_sm = MockSubMaster()
-    mock_sm_cls.return_value = mock_sm
-    mock_pm = MockPubMaster(['selfdriveState', 'onroadEvents'])
-    mock_pm_cls.return_value = mock_pm
-
     CP = make_car_params(**cp_kwargs)
     sd = SelfdriveD(CP=CP)
-    sd.sm = mock_sm
-    sd.pm = mock_pm
-    return sd, mock_sm, mock_pm
+    sd.sm = mocks['sm']
+    sd.pm = mocks['pm']
+    return sd, mocks['sm'], mocks['pm']
 
-  def test_update_alerts_creates_alerts_from_events(self):
+  def test_update_alerts_creates_alerts_from_events(self, mocker):
     """Test that update_alerts creates alerts from current events."""
-    sd, mock_sm, mock_pm = self._create_selfdrived(brand='toyota')
+    sd, mock_sm, mock_pm = self._create_selfdrived(mocker, brand='toyota')
     sd.initialized = True
     sd.enabled = False
     sd.personality = log.LongitudinalPersonality.standard
@@ -754,9 +675,9 @@ class TestAlertHandling:
     # Alert manager should process the event
     assert sd.AM.current_alert is not None
 
-  def test_update_alerts_clears_no_entry_when_enabled(self):
+  def test_update_alerts_clears_no_entry_when_enabled(self, mocker):
     """Test that NO_ENTRY alerts are cleared when enabled."""
-    sd, mock_sm, mock_pm = self._create_selfdrived(brand='toyota')
+    sd, mock_sm, mock_pm = self._create_selfdrived(mocker, brand='toyota')
     sd.initialized = True
     sd.enabled = True
     sd.personality = log.LongitudinalPersonality.standard
@@ -772,43 +693,24 @@ class TestAlertHandling:
 class TestPublishSelfdriveState:
   """Tests for publishing selfdriveState messages."""
 
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.CarSpecificEvents')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.Params')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.get_build_metadata')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.PubMaster')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.SubMaster')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.sub_sock')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.HARDWARE')
-  def _create_selfdrived(self, mock_hw, mock_sub_sock, mock_sm_cls, mock_pm_cls, mock_build_meta, mock_params, mock_car_events, **cp_kwargs):
+  def _create_selfdrived(self, mocker, **cp_kwargs):
     """Helper to create a SelfdriveD instance for testing."""
-    mock_params_instance = MagicMock()
-    mock_params.return_value = mock_params_instance
-    mock_params_instance.get_bool.return_value = False
-    mock_params_instance.get.return_value = None
+    mocks = setup_selfdrived_mocks(mocker)
 
-    mock_build_meta.return_value.openpilot.comma_remote = True
-    mock_build_meta.return_value.tested_channel = True
-
-    mock_hw.get_device_type.return_value = 'tici'
-
-    mock_car_events_instance = MagicMock()
+    mock_car_events = mocker.patch('openpilot.selfdrive.selfdrived.selfdrived.CarSpecificEvents')
+    mock_car_events_instance = mocker.MagicMock()
     mock_car_events.return_value = mock_car_events_instance
     mock_car_events_instance.update.return_value = Events()
 
-    mock_sm = MockSubMaster()
-    mock_sm_cls.return_value = mock_sm
-    mock_pm = MockPubMaster(['selfdriveState', 'onroadEvents'])
-    mock_pm_cls.return_value = mock_pm
-
     CP = make_car_params(**cp_kwargs)
     sd = SelfdriveD(CP=CP)
-    sd.sm = mock_sm
-    sd.pm = mock_pm
-    return sd, mock_sm, mock_pm
+    sd.sm = mocks['sm']
+    sd.pm = mocks['pm']
+    return sd, mocks['sm'], mocks['pm']
 
-  def test_publish_selfdrivestate_sends_message(self):
+  def test_publish_selfdrivestate_sends_message(self, mocker):
     """Test that publish_selfdriveState sends the selfdriveState message."""
-    sd, mock_sm, mock_pm = self._create_selfdrived(brand='toyota')
+    sd, mock_sm, mock_pm = self._create_selfdrived(mocker, brand='toyota')
     sd.initialized = True
     sd.enabled = True
     sd.active = True
@@ -819,9 +721,9 @@ class TestPublishSelfdriveState:
 
     assert 'selfdriveState' in mock_pm.sent_messages
 
-  def test_publish_selfdrivestate_includes_correct_state(self):
+  def test_publish_selfdrivestate_includes_correct_state(self, mocker):
     """Test that published state reflects internal state."""
-    sd, mock_sm, mock_pm = self._create_selfdrived(brand='toyota')
+    sd, mock_sm, mock_pm = self._create_selfdrived(mocker, brand='toyota')
     sd.initialized = True
     sd.enabled = True
     sd.active = True
@@ -839,9 +741,9 @@ class TestPublishSelfdriveState:
     assert ss.state == State.enabled
     assert ss.experimentalMode is True
 
-  def test_publish_onroad_events_on_change(self):
+  def test_publish_onroad_events_on_change(self, mocker):
     """Test that onroadEvents is published when events change."""
-    sd, mock_sm, mock_pm = self._create_selfdrived(brand='toyota')
+    sd, mock_sm, mock_pm = self._create_selfdrived(mocker, brand='toyota')
     sd.initialized = True
     sd.events_prev = []
     sd.personality = log.LongitudinalPersonality.standard
@@ -858,125 +760,73 @@ class TestPublishSelfdriveState:
 class TestDataSample:
   """Tests for the data_sample method."""
 
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.Params')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.get_build_metadata')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.PubMaster')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.SubMaster')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.sub_sock')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.recv_one')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.VisionIpcClient')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.HARDWARE')
-  def test_data_sample_initializes_on_valid_data(self, mock_hw, mock_vipc, mock_recv, mock_sub_sock,
-                                                   mock_sm_cls, mock_pm_cls, mock_build_meta, mock_params):
+  def test_data_sample_initializes_on_valid_data(self, mocker):
     """Test that data_sample initializes when all data is valid."""
-    mock_params_instance = MagicMock()
-    mock_params.return_value = mock_params_instance
-    mock_params_instance.get_bool.return_value = False
-    mock_params_instance.get.return_value = None
+    mocks = setup_selfdrived_mocks(mocker)
 
-    mock_build_meta.return_value.openpilot.comma_remote = True
-    mock_build_meta.return_value.tested_channel = True
-
-    mock_hw.get_device_type.return_value = 'tici'
-
-    mock_sm = MockSubMaster()
-    mock_sm_cls.return_value = mock_sm
-    mock_pm_cls.return_value = MockPubMaster(['selfdriveState', 'onroadEvents'])
+    mock_recv = mocker.patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.recv_one')
+    mock_vipc = mocker.patch('openpilot.selfdrive.selfdrived.selfdrived.VisionIpcClient')
 
     # Mock carState reception
-    mock_car_state_msg = MagicMock()
+    mock_car_state_msg = mocker.MagicMock()
     mock_car_state_msg.carState = make_car_state(can_valid=True)
     mock_recv.return_value = mock_car_state_msg
 
     # Mock VisionIpcClient
     from msgq.visionipc import VisionStreamType
+
     mock_vipc.available_streams.return_value = [VisionStreamType.VISION_STREAM_ROAD, VisionStreamType.VISION_STREAM_WIDE_ROAD]
 
     CP = make_car_params(brand='toyota')
     sd = SelfdriveD(CP=CP)
-    sd.sm = mock_sm
+    sd.sm = mocks['sm']
 
     assert sd.initialized is False
 
-    CS = sd.data_sample()
+    sd.data_sample()
 
     assert sd.initialized is True
 
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.Params')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.get_build_metadata')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.PubMaster')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.SubMaster')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.sub_sock')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.recv_one')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.VisionIpcClient')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.HARDWARE')
-  def test_data_sample_initializes_on_timeout(self, mock_hw, mock_vipc, mock_recv, mock_sub_sock,
-                                                mock_sm_cls, mock_pm_cls, mock_build_meta, mock_params):
+  def test_data_sample_initializes_on_timeout(self, mocker):
     """Test that data_sample initializes after timeout even with invalid data."""
-    mock_params_instance = MagicMock()
-    mock_params.return_value = mock_params_instance
-    mock_params_instance.get_bool.return_value = False
-    mock_params_instance.get.return_value = None
+    mocks = setup_selfdrived_mocks(mocker)
 
-    mock_build_meta.return_value.openpilot.comma_remote = True
-    mock_build_meta.return_value.tested_channel = True
+    mock_recv = mocker.patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.recv_one')
+    mock_vipc = mocker.patch('openpilot.selfdrive.selfdrived.selfdrived.VisionIpcClient')
 
-    mock_hw.get_device_type.return_value = 'tici'
-
-    mock_sm = MockSubMaster()
     # Simulate timeout by setting frame high enough
-    mock_sm.frame = int(7 / DT_CTRL)  # > 6 seconds
-    mock_sm_cls.return_value = mock_sm
-    mock_pm_cls.return_value = MockPubMaster(['selfdriveState', 'onroadEvents'])
+    mocks['sm'].frame = int(7 / DT_CTRL)  # > 6 seconds
 
     # Mock carState reception with invalid CAN
-    mock_car_state_msg = MagicMock()
+    mock_car_state_msg = mocker.MagicMock()
     mock_car_state_msg.carState = make_car_state(can_valid=False)
     mock_recv.return_value = mock_car_state_msg
 
     # Mock VisionIpcClient
     from msgq.visionipc import VisionStreamType
+
     mock_vipc.available_streams.return_value = [VisionStreamType.VISION_STREAM_ROAD]
 
     CP = make_car_params(brand='toyota')
     sd = SelfdriveD(CP=CP)
-    sd.sm = mock_sm
+    sd.sm = mocks['sm']
 
-    CS = sd.data_sample()
+    sd.data_sample()
 
     assert sd.initialized is True
 
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.Params')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.get_build_metadata')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.PubMaster')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.SubMaster')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.sub_sock')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.recv_one')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.HARDWARE')
-  def test_data_sample_mismatch_counter(self, mock_hw, mock_recv, mock_sub_sock,
-                                         mock_sm_cls, mock_pm_cls, mock_build_meta, mock_params):
+  def test_data_sample_mismatch_counter(self, mocker):
     """Test that mismatch counter increments when panda disagrees with enabled state."""
-    mock_params_instance = MagicMock()
-    mock_params.return_value = mock_params_instance
-    mock_params_instance.get_bool.return_value = False
-    mock_params_instance.get.return_value = None
+    mocks = setup_selfdrived_mocks(mocker)
 
-    mock_build_meta.return_value.openpilot.comma_remote = True
-    mock_build_meta.return_value.tested_channel = True
-
-    mock_hw.get_device_type.return_value = 'tici'
-
-    mock_sm = MockSubMaster()
-    mock_sm_cls.return_value = mock_sm
-    mock_pm_cls.return_value = MockPubMaster(['selfdriveState', 'onroadEvents'])
-
-    mock_car_state_msg = MagicMock()
+    mock_recv = mocker.patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.recv_one')
+    mock_car_state_msg = mocker.MagicMock()
     mock_car_state_msg.carState = make_car_state(can_valid=True)
     mock_recv.return_value = mock_car_state_msg
 
     CP = make_car_params(brand='toyota')
     sd = SelfdriveD(CP=CP)
-    sd.sm = mock_sm
+    sd.sm = mocks['sm']
     sd.initialized = True
     sd.enabled = True
 
@@ -984,43 +834,24 @@ class TestDataSample:
     panda_state = log.PandaState.new_message()
     panda_state.controlsAllowed = False
     panda_state.safetyModel = SafetyModel.toyota
-    mock_sm.data['pandaStates'] = [panda_state]
+    mocks['sm'].data['pandaStates'] = [panda_state]
 
     sd.data_sample()
 
     assert sd.mismatch_counter == 1
 
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.Params')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.get_build_metadata')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.PubMaster')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.SubMaster')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.sub_sock')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.recv_one')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.HARDWARE')
-  def test_data_sample_mismatch_counter_resets_when_disabled(self, mock_hw, mock_recv, mock_sub_sock,
-                                                              mock_sm_cls, mock_pm_cls, mock_build_meta, mock_params):
+  def test_data_sample_mismatch_counter_resets_when_disabled(self, mocker):
     """Test that mismatch counter resets when disabled."""
-    mock_params_instance = MagicMock()
-    mock_params.return_value = mock_params_instance
-    mock_params_instance.get_bool.return_value = False
-    mock_params_instance.get.return_value = None
+    mocks = setup_selfdrived_mocks(mocker)
 
-    mock_build_meta.return_value.openpilot.comma_remote = True
-    mock_build_meta.return_value.tested_channel = True
-
-    mock_hw.get_device_type.return_value = 'tici'
-
-    mock_sm = MockSubMaster()
-    mock_sm_cls.return_value = mock_sm
-    mock_pm_cls.return_value = MockPubMaster(['selfdriveState', 'onroadEvents'])
-
-    mock_car_state_msg = MagicMock()
+    mock_recv = mocker.patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.recv_one')
+    mock_car_state_msg = mocker.MagicMock()
     mock_car_state_msg.carState = make_car_state(can_valid=True)
     mock_recv.return_value = mock_car_state_msg
 
     CP = make_car_params(brand='toyota')
     sd = SelfdriveD(CP=CP)
-    sd.sm = mock_sm
+    sd.sm = mocks['sm']
     sd.initialized = True
     sd.enabled = False
     sd.mismatch_counter = 10
@@ -1033,50 +864,33 @@ class TestDataSample:
 class TestStep:
   """Tests for the step method which runs one iteration of the main loop."""
 
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.CarSpecificEvents')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.Params')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.get_build_metadata')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.PubMaster')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.SubMaster')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.sub_sock')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.recv_one')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.VisionIpcClient')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.HARDWARE')
-  def test_step_updates_cs_prev(self, mock_hw, mock_vipc, mock_recv, mock_sub_sock,
-                                 mock_sm_cls, mock_pm_cls, mock_build_meta, mock_params, mock_car_events):
+  def test_step_updates_cs_prev(self, mocker):
     """Test that step updates CS_prev with current CarState."""
-    mock_params_instance = MagicMock()
-    mock_params.return_value = mock_params_instance
-    mock_params_instance.get_bool.return_value = False
-    mock_params_instance.get.return_value = log.LongitudinalPersonality.standard
+    mocks = setup_selfdrived_mocks(mocker)
+    mocks['params_instance'].get.return_value = log.LongitudinalPersonality.standard
 
-    mock_build_meta.return_value.openpilot.comma_remote = True
-    mock_build_meta.return_value.tested_channel = True
-
-    mock_hw.get_device_type.return_value = 'tici'
-
-    mock_car_events_instance = MagicMock()
+    mock_car_events = mocker.patch('openpilot.selfdrive.selfdrived.selfdrived.CarSpecificEvents')
+    mock_car_events_instance = mocker.MagicMock()
     mock_car_events.return_value = mock_car_events_instance
     mock_car_events_instance.update.return_value = Events()
 
-    mock_sm = MockSubMaster()
-    mock_sm_cls.return_value = mock_sm
-    mock_pm = MockPubMaster(['selfdriveState', 'onroadEvents'])
-    mock_pm_cls.return_value = mock_pm
+    mock_recv = mocker.patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.recv_one')
+    mock_vipc = mocker.patch('openpilot.selfdrive.selfdrived.selfdrived.VisionIpcClient')
 
     # Create CarState with specific velocity
     cs = make_car_state(can_valid=True, v_ego=15.0)
-    mock_car_state_msg = MagicMock()
+    mock_car_state_msg = mocker.MagicMock()
     mock_car_state_msg.carState = cs
     mock_recv.return_value = mock_car_state_msg
 
     from msgq.visionipc import VisionStreamType
+
     mock_vipc.available_streams.return_value = [VisionStreamType.VISION_STREAM_ROAD]
 
     CP = make_car_params(brand='toyota', passive=True)  # passive to avoid state machine update
     sd = SelfdriveD(CP=CP)
-    sd.sm = mock_sm
-    sd.pm = mock_pm
+    sd.sm = mocks['sm']
+    sd.pm = mocks['pm']
 
     sd.step()
 
@@ -1086,36 +900,22 @@ class TestStep:
 class TestParamsThread:
   """Tests for the params thread functionality."""
 
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.Params')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.get_build_metadata')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.PubMaster')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.SubMaster')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.sub_sock')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.HARDWARE')
-  def test_params_thread_reads_params(self, mock_hw, mock_sub_sock, mock_sm_cls, mock_pm_cls, mock_build_meta, mock_params):
+  def test_params_thread_reads_params(self, mocker):
     """Test that params thread reads and updates parameters."""
-    mock_params_instance = MagicMock()
-    mock_params.return_value = mock_params_instance
-    mock_params_instance.get_bool.side_effect = lambda x: {
+    mocks = setup_selfdrived_mocks(mocker)
+    mocks['params_instance'].get_bool.side_effect = lambda x: {
       'IsMetric': True,
       'IsLdwEnabled': True,
       'DisengageOnAccelerator': False,
-      'ExperimentalMode': True
+      'ExperimentalMode': True,
     }.get(x, False)
-    mock_params_instance.get.return_value = 2  # Personality
-
-    mock_build_meta.return_value.openpilot.comma_remote = True
-    mock_build_meta.return_value.tested_channel = True
-
-    mock_hw.get_device_type.return_value = 'tici'
-
-    mock_sm_cls.return_value = MockSubMaster()
-    mock_pm_cls.return_value = MockPubMaster(['selfdriveState', 'onroadEvents'])
+    mocks['params_instance'].get.return_value = 2  # Personality
 
     CP = make_car_params(brand='toyota', openpilot_long=True)
     sd = SelfdriveD(CP=CP)
 
     import threading
+
     evt = threading.Event()
 
     # Run params thread once
@@ -1132,40 +932,22 @@ class TestParamsThread:
 class TestLaneChangeEvents:
   """Tests for lane change related events."""
 
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.CarSpecificEvents')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.Params')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.get_build_metadata')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.PubMaster')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.SubMaster')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.sub_sock')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.HARDWARE')
-  def _create_selfdrived(self, mock_hw, mock_sub_sock, mock_sm_cls, mock_pm_cls, mock_build_meta, mock_params, mock_car_events, **cp_kwargs):
-    mock_params_instance = MagicMock()
-    mock_params.return_value = mock_params_instance
-    mock_params_instance.get_bool.return_value = False
-    mock_params_instance.get.return_value = None
+  def _create_selfdrived(self, mocker, **cp_kwargs):
+    mocks = setup_selfdrived_mocks(mocker)
 
-    mock_build_meta.return_value.openpilot.comma_remote = True
-    mock_build_meta.return_value.tested_channel = True
-
-    mock_hw.get_device_type.return_value = 'tici'
-
-    mock_car_events_instance = MagicMock()
+    mock_car_events = mocker.patch('openpilot.selfdrive.selfdrived.selfdrived.CarSpecificEvents')
+    mock_car_events_instance = mocker.MagicMock()
     mock_car_events.return_value = mock_car_events_instance
     mock_car_events_instance.update.return_value = Events()
 
-    mock_sm = MockSubMaster()
-    mock_sm_cls.return_value = mock_sm
-    mock_pm_cls.return_value = MockPubMaster(['selfdriveState', 'onroadEvents'])
-
     CP = make_car_params(**cp_kwargs)
     sd = SelfdriveD(CP=CP)
-    sd.sm = mock_sm
-    return sd, mock_sm
+    sd.sm = mocks['sm']
+    return sd, mocks['sm']
 
-  def test_pre_lane_change_left(self):
+  def test_pre_lane_change_left(self, mocker):
     """Test pre lane change left event."""
-    sd, mock_sm = self._create_selfdrived(brand='toyota')
+    sd, mock_sm = self._create_selfdrived(mocker, brand='toyota')
     sd.initialized = True
 
     mock_sm.data['modelV2'] = log.ModelDataV2.new_message()
@@ -1177,9 +959,9 @@ class TestLaneChangeEvents:
 
     assert EventName.preLaneChangeLeft in sd.events.names
 
-  def test_pre_lane_change_right(self):
+  def test_pre_lane_change_right(self, mocker):
     """Test pre lane change right event."""
-    sd, mock_sm = self._create_selfdrived(brand='toyota')
+    sd, mock_sm = self._create_selfdrived(mocker, brand='toyota')
     sd.initialized = True
 
     mock_sm.data['modelV2'] = log.ModelDataV2.new_message()
@@ -1191,9 +973,9 @@ class TestLaneChangeEvents:
 
     assert EventName.preLaneChangeRight in sd.events.names
 
-  def test_lane_change_blocked_left_blindspot(self):
+  def test_lane_change_blocked_left_blindspot(self, mocker):
     """Test lane change blocked due to left blindspot."""
-    sd, mock_sm = self._create_selfdrived(brand='toyota')
+    sd, mock_sm = self._create_selfdrived(mocker, brand='toyota')
     sd.initialized = True
 
     mock_sm.data['modelV2'] = log.ModelDataV2.new_message()
@@ -1205,9 +987,9 @@ class TestLaneChangeEvents:
 
     assert EventName.laneChangeBlocked in sd.events.names
 
-  def test_lane_change_blocked_right_blindspot(self):
+  def test_lane_change_blocked_right_blindspot(self, mocker):
     """Test lane change blocked due to right blindspot."""
-    sd, mock_sm = self._create_selfdrived(brand='toyota')
+    sd, mock_sm = self._create_selfdrived(mocker, brand='toyota')
     sd.initialized = True
 
     mock_sm.data['modelV2'] = log.ModelDataV2.new_message()
@@ -1219,9 +1001,9 @@ class TestLaneChangeEvents:
 
     assert EventName.laneChangeBlocked in sd.events.names
 
-  def test_lane_change_in_progress(self):
+  def test_lane_change_in_progress(self, mocker):
     """Test lane change in progress event."""
-    sd, mock_sm = self._create_selfdrived(brand='toyota')
+    sd, mock_sm = self._create_selfdrived(mocker, brand='toyota')
     sd.initialized = True
 
     mock_sm.data['modelV2'] = log.ModelDataV2.new_message()
@@ -1236,31 +1018,14 @@ class TestLaneChangeEvents:
 class TestPersonalityChange:
   """Tests for longitudinal personality change events."""
 
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.Params')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.get_build_metadata')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.PubMaster')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.SubMaster')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.sub_sock')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.HARDWARE')
-  def test_personality_change_on_button_press(self, mock_hw, mock_sub_sock, mock_sm_cls, mock_pm_cls, mock_build_meta, mock_params):
+  def test_personality_change_on_button_press(self, mocker):
     """Test personality changes when gap adjust button is pressed."""
-    mock_params_instance = MagicMock()
-    mock_params.return_value = mock_params_instance
-    mock_params_instance.get_bool.return_value = False
-    mock_params_instance.get.return_value = 2  # Initial personality
-
-    mock_build_meta.return_value.openpilot.comma_remote = True
-    mock_build_meta.return_value.tested_channel = True
-
-    mock_hw.get_device_type.return_value = 'tici'
-
-    mock_sm = MockSubMaster()
-    mock_sm_cls.return_value = mock_sm
-    mock_pm_cls.return_value = MockPubMaster(['selfdriveState', 'onroadEvents'])
+    mocks = setup_selfdrived_mocks(mocker)
+    mocks['params_instance'].get.return_value = 2  # Initial personality
 
     CP = make_car_params(brand='toyota', openpilot_long=True)
     sd = SelfdriveD(CP=CP)
-    sd.sm = mock_sm
+    sd.sm = mocks['sm']
     sd.initialized = True
     sd.personality = 2
 
@@ -1281,32 +1046,14 @@ class TestPersonalityChange:
 class TestResumeBlocked:
   """Tests for resume blocked event."""
 
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.Params')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.get_build_metadata')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.PubMaster')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.SubMaster')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.sub_sock')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.HARDWARE')
-  def test_resume_blocked_when_cruise_never_set(self, mock_hw, mock_sub_sock, mock_sm_cls, mock_pm_cls, mock_build_meta, mock_params):
+  def test_resume_blocked_when_cruise_never_set(self, mocker):
     """Test resume is blocked when cruise was never previously enabled."""
-    mock_params_instance = MagicMock()
-    mock_params.return_value = mock_params_instance
-    mock_params_instance.get_bool.return_value = False
-    mock_params_instance.get.return_value = None
-
-    mock_build_meta.return_value.openpilot.comma_remote = True
-    mock_build_meta.return_value.tested_channel = True
-
-    mock_hw.get_device_type.return_value = 'tici'
-
-    mock_sm = MockSubMaster()
-    mock_sm_cls.return_value = mock_sm
-    mock_pm_cls.return_value = MockPubMaster(['selfdriveState', 'onroadEvents'])
+    mocks = setup_selfdrived_mocks(mocker)
 
     # pcmCruise must be False for this check
     CP = make_car_params(brand='toyota', pcm_cruise=False)
     sd = SelfdriveD(CP=CP)
-    sd.sm = mock_sm
+    sd.sm = mocks['sm']
     sd.initialized = True
 
     # Create resume button press with high vCruise (indicating never set)
@@ -1325,40 +1072,22 @@ class TestResumeBlocked:
 class TestFCWEvents:
   """Tests for Forward Collision Warning events."""
 
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.CarSpecificEvents')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.Params')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.get_build_metadata')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.PubMaster')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.SubMaster')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.messaging.sub_sock')
-  @patch('openpilot.selfdrive.selfdrived.selfdrived.HARDWARE')
-  def _create_selfdrived(self, mock_hw, mock_sub_sock, mock_sm_cls, mock_pm_cls, mock_build_meta, mock_params, mock_car_events, **cp_kwargs):
-    mock_params_instance = MagicMock()
-    mock_params.return_value = mock_params_instance
-    mock_params_instance.get_bool.return_value = False
-    mock_params_instance.get.return_value = None
+  def _create_selfdrived(self, mocker, **cp_kwargs):
+    mocks = setup_selfdrived_mocks(mocker)
 
-    mock_build_meta.return_value.openpilot.comma_remote = True
-    mock_build_meta.return_value.tested_channel = True
-
-    mock_hw.get_device_type.return_value = 'tici'
-
-    mock_car_events_instance = MagicMock()
+    mock_car_events = mocker.patch('openpilot.selfdrive.selfdrived.selfdrived.CarSpecificEvents')
+    mock_car_events_instance = mocker.MagicMock()
     mock_car_events.return_value = mock_car_events_instance
     mock_car_events_instance.update.return_value = Events()
 
-    mock_sm = MockSubMaster()
-    mock_sm_cls.return_value = mock_sm
-    mock_pm_cls.return_value = MockPubMaster(['selfdriveState', 'onroadEvents'])
-
     CP = make_car_params(**cp_kwargs)
     sd = SelfdriveD(CP=CP)
-    sd.sm = mock_sm
-    return sd, mock_sm
+    sd.sm = mocks['sm']
+    return sd, mocks['sm']
 
-  def test_fcw_from_model(self):
+  def test_fcw_from_model(self, mocker):
     """Test FCW event from model hard brake prediction."""
-    sd, mock_sm = self._create_selfdrived(brand='toyota')
+    sd, mock_sm = self._create_selfdrived(mocker, brand='toyota')
     sd.initialized = True
     sd.enabled = False
 
@@ -1370,9 +1099,9 @@ class TestFCWEvents:
 
     assert EventName.fcw in sd.events.names
 
-  def test_fcw_from_planner(self):
+  def test_fcw_from_planner(self, mocker):
     """Test FCW event from longitudinal planner."""
-    sd, mock_sm = self._create_selfdrived(brand='toyota')
+    sd, mock_sm = self._create_selfdrived(mocker, brand='toyota')
     sd.initialized = True
     sd.enabled = True
 
@@ -1384,9 +1113,9 @@ class TestFCWEvents:
 
     assert EventName.fcw in sd.events.names
 
-  def test_no_fcw_when_brake_pressed(self):
+  def test_no_fcw_when_brake_pressed(self, mocker):
     """Test FCW is suppressed when brake is pressed."""
-    sd, mock_sm = self._create_selfdrived(brand='toyota')
+    sd, mock_sm = self._create_selfdrived(mocker, brand='toyota')
     sd.initialized = True
 
     mock_sm.data['modelV2'] = log.ModelDataV2.new_message()
@@ -1397,9 +1126,9 @@ class TestFCWEvents:
 
     assert EventName.fcw not in sd.events.names
 
-  def test_no_fcw_for_body(self):
+  def test_no_fcw_for_body(self, mocker):
     """Test FCW is not triggered for body (notCar)."""
-    sd, mock_sm = self._create_selfdrived(brand='body', not_car=True)
+    sd, mock_sm = self._create_selfdrived(mocker, brand='body', not_car=True)
     sd.initialized = True
 
     mock_sm.data['modelV2'] = log.ModelDataV2.new_message()
