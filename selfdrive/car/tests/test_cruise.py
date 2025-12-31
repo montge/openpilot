@@ -335,6 +335,162 @@ class TestVCruiseHelperInitialize:
     assert helper.v_cruise_kph == helper.v_cruise_cluster_kph
 
 
+class TestVCruiseHelperSpeedAdjustment:
+  """Test VCruiseHelper speed adjustment from button presses."""
+
+  def test_short_press_accel_increases_speed(self, mocker):
+    """Test short press on accel button increases speed."""
+    CP = create_mock_cp(mocker, pcm_cruise=False)
+    helper = VCruiseHelper(CP)
+    helper.v_cruise_kph = 50
+
+    # First, simulate button press to start timer and store state
+    press_event = create_button_event(mocker, ButtonType.accelCruise, pressed=True)
+    CS = create_mock_cs(mocker, button_events=[press_event])
+    helper.update_button_timers(CS, enabled=True)
+
+    # Then, simulate button release (short press)
+    release_event = create_button_event(mocker, ButtonType.accelCruise, pressed=False)
+    CS = create_mock_cs(mocker, button_events=[release_event])
+    helper.update_v_cruise(CS, enabled=True, is_metric=True)
+
+    assert helper.v_cruise_kph == 51  # +1 kph for metric
+
+  def test_short_press_decel_decreases_speed(self, mocker):
+    """Test short press on decel button decreases speed."""
+    CP = create_mock_cp(mocker, pcm_cruise=False)
+    helper = VCruiseHelper(CP)
+    helper.v_cruise_kph = 50
+
+    # First, simulate button press
+    press_event = create_button_event(mocker, ButtonType.decelCruise, pressed=True)
+    CS = create_mock_cs(mocker, button_events=[press_event])
+    helper.update_button_timers(CS, enabled=True)
+
+    # Then, simulate button release (short press)
+    release_event = create_button_event(mocker, ButtonType.decelCruise, pressed=False)
+    CS = create_mock_cs(mocker, button_events=[release_event])
+    helper.update_v_cruise(CS, enabled=True, is_metric=True)
+
+    assert helper.v_cruise_kph == 49  # -1 kph for metric
+
+  def test_long_press_increases_by_5(self, mocker):
+    """Test long press increases/decreases by 5."""
+    CP = create_mock_cp(mocker, pcm_cruise=False)
+    helper = VCruiseHelper(CP)
+    helper.v_cruise_kph = 50
+
+    # Set up timer at exactly CRUISE_LONG_PRESS
+    helper.button_timers[ButtonType.accelCruise] = CRUISE_LONG_PRESS
+    helper.button_change_states[ButtonType.accelCruise] = {"standstill": False, "enabled": True}
+
+    CS = create_mock_cs(mocker)
+    helper.update_v_cruise(CS, enabled=True, is_metric=True)
+
+    assert helper.v_cruise_kph == 55  # +5 kph for long press
+
+  def test_long_press_release_ends_long_press(self, mocker):
+    """Test releasing button after long press doesn't change speed again."""
+    CP = create_mock_cp(mocker, pcm_cruise=False)
+    helper = VCruiseHelper(CP)
+    helper.v_cruise_kph = 50
+
+    # Simulate timer > CRUISE_LONG_PRESS (long press already processed)
+    helper.button_timers[ButtonType.accelCruise] = CRUISE_LONG_PRESS + 5
+
+    # Release button - should return early without changing speed
+    release_event = create_button_event(mocker, ButtonType.accelCruise, pressed=False)
+    CS = create_mock_cs(mocker, button_events=[release_event])
+    helper.update_v_cruise(CS, enabled=True, is_metric=True)
+
+    assert helper.v_cruise_kph == 50  # No change
+
+  def test_accel_in_standstill_no_change(self, mocker):
+    """Test accel button in standstill doesn't change speed."""
+    CP = create_mock_cp(mocker, pcm_cruise=False)
+    helper = VCruiseHelper(CP)
+    helper.v_cruise_kph = 50
+
+    # Press button while in standstill
+    press_event = create_button_event(mocker, ButtonType.accelCruise, pressed=True)
+    CS = create_mock_cs(mocker, cruise_standstill=True, button_events=[press_event])
+    helper.update_button_timers(CS, enabled=True)
+
+    # Release button
+    release_event = create_button_event(mocker, ButtonType.accelCruise, pressed=False)
+    CS = create_mock_cs(mocker, cruise_standstill=True, button_events=[release_event])
+    helper.update_v_cruise(CS, enabled=True, is_metric=True)
+
+    assert helper.v_cruise_kph == 50  # No change in standstill
+
+  def test_decel_with_gas_pressed_clips_to_vego(self, mocker):
+    """Test decel with gas pressed clips speed to vehicle speed."""
+    CP = create_mock_cp(mocker, pcm_cruise=False)
+    helper = VCruiseHelper(CP)
+    helper.v_cruise_kph = 50
+
+    # Press decel button
+    press_event = create_button_event(mocker, ButtonType.decelCruise, pressed=True)
+    CS = create_mock_cs(mocker, gas_pressed=False, button_events=[press_event])
+    helper.update_button_timers(CS, enabled=True)
+
+    # Release button with gas pressed and high vehicle speed
+    release_event = create_button_event(mocker, ButtonType.decelCruise, pressed=False)
+    CS = create_mock_cs(mocker, v_ego=60.0 * CV.KPH_TO_MS, gas_pressed=True, button_events=[release_event])
+    helper.update_v_cruise(CS, enabled=True, is_metric=True)
+
+    # Speed should be max(49, 60) = 60 due to gas pressed
+    assert helper.v_cruise_kph == 60
+
+  def test_speed_clipped_to_max(self, mocker):
+    """Test speed is clipped to V_CRUISE_MAX."""
+    CP = create_mock_cp(mocker, pcm_cruise=False)
+    helper = VCruiseHelper(CP)
+    helper.v_cruise_kph = V_CRUISE_MAX
+
+    # Set up long press at max speed
+    helper.button_timers[ButtonType.accelCruise] = CRUISE_LONG_PRESS
+    helper.button_change_states[ButtonType.accelCruise] = {"standstill": False, "enabled": True}
+
+    CS = create_mock_cs(mocker)
+    helper.update_v_cruise(CS, enabled=True, is_metric=True)
+
+    assert helper.v_cruise_kph == V_CRUISE_MAX  # Clipped to max
+
+  def test_speed_clipped_to_min(self, mocker):
+    """Test speed is clipped to V_CRUISE_MIN."""
+    CP = create_mock_cp(mocker, pcm_cruise=False)
+    helper = VCruiseHelper(CP)
+    helper.v_cruise_kph = V_CRUISE_MIN
+
+    # Set up long press at min speed
+    helper.button_timers[ButtonType.decelCruise] = CRUISE_LONG_PRESS
+    helper.button_change_states[ButtonType.decelCruise] = {"standstill": False, "enabled": True}
+
+    CS = create_mock_cs(mocker)
+    helper.update_v_cruise(CS, enabled=True, is_metric=True)
+
+    assert helper.v_cruise_kph == V_CRUISE_MIN  # Clipped to min
+
+  def test_enabled_after_button_press_no_change(self, mocker):
+    """Test no speed change if enabled after button was pressed."""
+    CP = create_mock_cp(mocker, pcm_cruise=False)
+    helper = VCruiseHelper(CP)
+    helper.v_cruise_kph = 50
+
+    # Press button while not enabled
+    press_event = create_button_event(mocker, ButtonType.accelCruise, pressed=True)
+    CS = create_mock_cs(mocker, button_events=[press_event])
+    helper.update_button_timers(CS, enabled=False)  # Not enabled when pressed
+
+    # Release button while now enabled
+    release_event = create_button_event(mocker, ButtonType.accelCruise, pressed=False)
+    CS = create_mock_cs(mocker, button_events=[release_event])
+    helper.update_v_cruise(CS, enabled=True, is_metric=True)
+
+    assert helper.v_cruise_kph == 50  # No change
+
+
 class TestVCruiseHelperIntegration:
   """Integration tests for VCruiseHelper."""
 
