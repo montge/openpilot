@@ -460,3 +460,25 @@ class TestSwagLogger:
     assert isinstance(result[0], str)
     assert isinstance(result[1], int)
     assert isinstance(result[2], str)
+
+  def test_find_caller_with_stack_info(self):
+    """Test findCaller with stack_info=True."""
+    logger = SwagLogger()
+    result = logger.findCaller(stack_info=True)
+
+    assert isinstance(result, tuple)
+    assert len(result) == 4
+    # sinfo should contain stack trace string
+    assert result[3] is not None
+    assert "Stack" in result[3]
+
+  def test_local_ctx_creates_new_on_attribute_error(self, mocker):
+    """Test local_ctx creates new dict when thread local has no ctx."""
+    logger = SwagLogger()
+
+    # Delete the ctx attribute to trigger AttributeError path
+    del logger.log_local.ctx
+
+    # Should create new empty dict
+    ctx = logger.local_ctx()
+    assert ctx == {}
