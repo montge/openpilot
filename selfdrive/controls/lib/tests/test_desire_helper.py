@@ -283,6 +283,35 @@ class TestDesireHelperUpdate:
 
     assert helper.keep_pulse_timer > 0.0
 
+  def test_keep_desire_resets_to_none_in_pre_lane_change(self, mocker):
+    """Test keepLeft/keepRight desire resets to none during pre lane change pulse."""
+    helper = DesireHelper()
+    helper.lane_change_state = LaneChangeState.preLaneChange
+    helper.lane_change_direction = LaneChangeDirection.left
+    helper.keep_pulse_timer = 0.5  # Below 1.0 threshold
+    helper.prev_one_blinker = True
+    helper.desire = log.Desire.keepLeft  # Pre-set to keepLeft
+
+    CS = create_mock_carstate(mocker, v_ego=LANE_CHANGE_SPEED_MIN + 1, left_blinker=True)
+    helper.update(CS, lateral_active=True, lane_change_prob=0.5)
+
+    # After the pulse logic, desire should be reset to none (line 119)
+    assert helper.desire == log.Desire.none
+
+  def test_keep_desire_right_resets_to_none(self, mocker):
+    """Test keepRight desire also resets to none."""
+    helper = DesireHelper()
+    helper.lane_change_state = LaneChangeState.preLaneChange
+    helper.lane_change_direction = LaneChangeDirection.right
+    helper.keep_pulse_timer = 0.5
+    helper.prev_one_blinker = True
+    helper.desire = log.Desire.keepRight
+
+    CS = create_mock_carstate(mocker, v_ego=LANE_CHANGE_SPEED_MIN + 1, right_blinker=True)
+    helper.update(CS, lateral_active=True, lane_change_prob=0.5)
+
+    assert helper.desire == log.Desire.none
+
 
 class TestDesireHelperDesire:
   """Test DesireHelper desire output."""
