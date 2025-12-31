@@ -226,6 +226,53 @@ class TestPointBuckets:
     points = test_buckets.get_points()
     assert len(points) == 1
 
+  def test_load_points(self):
+    """Test load_points adds multiple points."""
+
+    class TestBuckets(PointBuckets):
+      def add_point(self, x, y):
+        for bounds in self.x_bounds:
+          if bounds[0] <= x < bounds[1]:
+            self.buckets[bounds].append([x, y])
+            break
+
+    x_bounds = [(0.0, 10.0)]
+    min_points = [1]
+    test_buckets = TestBuckets(x_bounds=x_bounds, min_points=min_points, min_points_total=1, points_per_bucket=10, rowsize=2)
+
+    # Use load_points to add multiple points at once
+    points_to_load = [[1.0, 0.5], [5.0, 1.5], [8.0, 2.5]]
+    test_buckets.load_points(points_to_load)
+
+    points = test_buckets.get_points()
+    assert len(points) == 3
+
+  def test_get_points_with_num_points(self):
+    """Test get_points returns subset when num_points is provided."""
+
+    class TestBuckets(PointBuckets):
+      def add_point(self, x, y):
+        for bounds in self.x_bounds:
+          if bounds[0] <= x < bounds[1]:
+            self.buckets[bounds].append([x, y])
+            break
+
+    x_bounds = [(0.0, 10.0)]
+    min_points = [1]
+    test_buckets = TestBuckets(x_bounds=x_bounds, min_points=min_points, min_points_total=1, points_per_bucket=20, rowsize=2)
+
+    # Add many points
+    for i in range(10):
+      test_buckets.add_point(float(i), float(i) * 2)
+
+    # Get a subset of points
+    subset = test_buckets.get_points(num_points=5)
+    assert len(subset) == 5
+
+    # When num_points > total, return all
+    all_points = test_buckets.get_points(num_points=20)
+    assert len(all_points) == 10
+
 
 class TestMeasurement:
   """Test Measurement class."""
@@ -300,6 +347,33 @@ class TestPose:
     assert pose.velocity == velocity
     assert pose.acceleration == acceleration
     assert pose.angular_velocity == angular_velocity
+
+  def test_from_live_pose(self, mocker):
+    """Test Pose.from_live_pose class method."""
+    # Create mock XYZMeasurement objects
+    def make_mock_xyz(x, y, z, x_std, y_std, z_std):
+      m = mocker.MagicMock()
+      m.x = x
+      m.y = y
+      m.z = z
+      m.xStd = x_std
+      m.yStd = y_std
+      m.zStd = z_std
+      return m
+
+    mock_live_pose = mocker.MagicMock()
+    mock_live_pose.orientationNED = make_mock_xyz(0.1, 0.2, 0.3, 0.01, 0.02, 0.03)
+    mock_live_pose.velocityDevice = make_mock_xyz(10.0, 0.5, 0.1, 0.1, 0.1, 0.1)
+    mock_live_pose.accelerationDevice = make_mock_xyz(0.0, 0.0, 9.8, 0.1, 0.1, 0.1)
+    mock_live_pose.angularVelocityDevice = make_mock_xyz(0.0, 0.0, 0.05, 0.01, 0.01, 0.01)
+
+    pose = Pose.from_live_pose(mock_live_pose)
+
+    assert isinstance(pose, Pose)
+    assert pose.orientation.x == 0.1
+    assert pose.velocity.x == 10.0
+    assert pose.acceleration.z == 9.8
+    assert pose.angular_velocity.z == 0.05
 
 
 class TestPoseCalibrator:
