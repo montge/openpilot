@@ -218,3 +218,31 @@ class TestRunningStatFilterPushAndUpdate:
       filt.push_and_update(v)
     # Filtered stat should have data
     assert filt.filtered_stat.n > 0
+
+
+class TestRunningStatMaxTrackableZero:
+  """Test RunningStat with max_trackable=0 edge case."""
+
+  def test_max_trackable_zero_does_not_increment_n(self):
+    """With max_trackable=0, n should never increment."""
+    stat = RunningStat(max_trackable=0)
+    stat.push_data(10.0)
+    assert stat.n == 0
+
+  def test_max_trackable_zero_initializes_m_last(self):
+    """With max_trackable=0, first push initializes M_last directly."""
+    stat = RunningStat(max_trackable=0)
+    stat.push_data(42.0)
+    assert stat.M_last == 42.0
+    assert stat.M == 42.0
+    assert stat.S_last == 0.0
+
+  def test_max_trackable_zero_multiple_pushes(self):
+    """With max_trackable=0, each push reinitializes M_last."""
+    stat = RunningStat(max_trackable=0)
+    stat.push_data(10.0)
+    assert stat.M == 10.0
+    stat.push_data(20.0)
+    assert stat.M == 20.0
+    stat.push_data(30.0)
+    assert stat.M == 30.0
