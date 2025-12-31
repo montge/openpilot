@@ -1,17 +1,14 @@
 import random
 
-import pytest
-
 from openpilot.selfdrive.selfdrived.events import Alert, EmptyAlert, EVENTS, ET
 from openpilot.selfdrive.selfdrived.alertmanager import AlertManager, AlertEntry, set_offroad_alert, OFFROAD_ALERTS
 from openpilot.common.params import Params
 
 
 class TestAlertManager:
-
   def test_duration(self):
     """
-      Enforce that an alert lasts for max(alert duration, duration the alert is added)
+    Enforce that an alert lasts for max(alert duration, duration the alert is added)
     """
     for duration in range(1, 100):
       alert = None
@@ -32,9 +29,14 @@ class TestAlertManager:
         show_duration = max(duration, add_duration)
 
         AM = AlertManager()
-        for frame in range(duration+10):
+        for frame in range(duration + 10):
           if frame < add_duration:
-            AM.add_many(frame, [alert, ])
+            AM.add_many(
+              frame,
+              [
+                alert,
+              ],
+            )
           AM.process_alerts(frame, set())
 
           shown = AM.current_alert != EmptyAlert
@@ -48,12 +50,22 @@ class TestAlertManager:
         show_duration = duration * 2
         for frame in range(duration * 2 + 10):
           if frame == 0:
-            AM.add_many(frame, [alert, ])
+            AM.add_many(
+              frame,
+              [
+                alert,
+              ],
+            )
 
           if frame == duration:
             # add alert one frame before it ends
             assert AM.current_alert == alert
-            AM.add_many(frame, [alert, ])
+            AM.add_many(
+              frame,
+              [
+                alert,
+              ],
+            )
           AM.process_alerts(frame, set())
 
           shown = AM.current_alert != EmptyAlert
@@ -71,7 +83,7 @@ class TestAlertManagerClearEventTypes:
     # Find an alert with a known event type
     alert = None
     for event in EVENTS.values():
-      for et, a in event.items():
+      for _et, a in event.items():
         if isinstance(a, Alert):
           alert = a
           break
@@ -100,7 +112,7 @@ class TestAlertManagerClearEventTypes:
     # Find an alert
     alert = None
     for event in EVENTS.values():
-      for et, a in event.items():
+      for _et, a in event.items():
         if isinstance(a, Alert):
           alert = a
           break
@@ -120,6 +132,24 @@ class TestAlertManagerClearEventTypes:
 
     # Alert should still be active
     assert AM.current_alert == alert
+
+
+class TestProcessAlertsWithNoneAlert:
+  """Test process_alerts handles AlertEntry with alert=None."""
+
+  def test_process_alerts_skips_entry_with_none_alert(self):
+    """Test process_alerts skips AlertEntry where alert is None."""
+    AM = AlertManager()
+
+    # Manually add an AlertEntry with no alert set
+    AM.alerts['test_type'] = AlertEntry()
+    assert AM.alerts['test_type'].alert is None
+
+    # process_alerts should skip this entry without error
+    AM.process_alerts(0, set())
+
+    # Current alert should be EmptyAlert since there are no valid alerts
+    assert AM.current_alert == EmptyAlert
 
 
 class TestAlertEntry:
@@ -144,7 +174,7 @@ class TestAlertEntry:
     """Test just_added returns True only on the frame after added_frame."""
     entry = AlertEntry(end_frame=10, added_frame=5)
     assert not entry.just_added(5)  # Same frame as added
-    assert entry.just_added(6)      # One frame after added
+    assert entry.just_added(6)  # One frame after added
     assert not entry.just_added(7)  # Two frames after added
 
   def test_alert_entry_just_added_inactive(self):
@@ -195,6 +225,7 @@ class TestSetOffroadAlert:
     # Params.get returns dict directly for msgpack-encoded data
     if isinstance(data, bytes):
       import json
+
       alert_data = json.loads(data)
     else:
       alert_data = data

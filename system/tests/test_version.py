@@ -301,6 +301,24 @@ class TestIsDirty:
     result = is_dirty()
     assert result is True
 
+  def test_is_dirty_skips_git_checks_when_prebuilt(self, mocker):
+    """Test is_dirty skips git checks when is_prebuilt returns True."""
+    is_dirty.cache_clear()
+    mocker.patch('openpilot.system.version.get_origin', return_value='origin')
+    mocker.patch('openpilot.system.version.get_short_branch', return_value='main')
+    mocker.patch('openpilot.system.version.is_prebuilt', return_value=True)
+
+    # These should NOT be called when is_prebuilt is True
+    mock_check_call = mocker.patch('subprocess.check_call')
+    mock_call = mocker.patch('subprocess.call')
+
+    result = is_dirty()
+
+    # Prebuilt should return dirty=False without calling git commands
+    assert result is False
+    mock_check_call.assert_not_called()
+    mock_call.assert_not_called()
+
 
 class TestGetBuildMetadata:
   """Test get_build_metadata function."""
