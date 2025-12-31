@@ -150,6 +150,12 @@ class TestStripDeprecatedKeys:
     result = strip_deprecated_keys(d)
     assert result == {}
 
+  def test_strip_non_string_keys_unchanged(self):
+    """Test non-string keys are preserved (not checked for DEPRECATED)."""
+    d = {1: 'one', 2: 'two', 'str_key': 'value'}
+    result = strip_deprecated_keys(d)
+    assert result == {1: 'one', 2: 'two', 'str_key': 'value'}
+
 
 class TestRunCmd:
   """Test run_cmd function."""
