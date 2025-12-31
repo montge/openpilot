@@ -115,3 +115,80 @@ class TestOpenpilotPrefixCreateDirs:
     # Should not raise
     prefix.create_dirs()
     mock_makedirs.assert_called_once()
+
+
+class TestOpenpilotPrefixContextManager:
+  """Test OpenpilotPrefix context manager behavior."""
+
+  def test_enter_sets_shared_download_cache(self, mocker):
+    """Test __enter__ sets COMMA_CACHE when shared_download_cache=True."""
+    import os
+
+    mocker.patch('openpilot.common.prefix.Paths.shm_path', return_value="/dev/shm")
+    mocker.patch('openpilot.common.prefix.Paths.log_root', return_value="/tmp/log")
+    mocker.patch('openpilot.common.prefix.os.mkdir')
+    mocker.patch('openpilot.common.prefix.os.makedirs')
+
+    # Ensure COMMA_CACHE is not set
+    if "COMMA_CACHE" in os.environ:
+      del os.environ["COMMA_CACHE"]
+
+    prefix = OpenpilotPrefix(prefix="test", create_dirs_on_enter=False, clean_dirs_on_exit=False, shared_download_cache=True)
+    prefix.__enter__()
+
+    try:
+      assert "COMMA_CACHE" in os.environ
+    finally:
+      prefix.__exit__(None, None, None)
+      # Clean up
+      if "COMMA_CACHE" in os.environ:
+        del os.environ["COMMA_CACHE"]
+
+  def test_exit_restores_original_prefix(self, mocker):
+    """Test __exit__ restores original OPENPILOT_PREFIX."""
+    import os
+
+    mocker.patch('openpilot.common.prefix.Paths.shm_path', return_value="/dev/shm")
+    mocker.patch('openpilot.common.prefix.Paths.log_root', return_value="/tmp/log")
+    mocker.patch('openpilot.common.prefix.os.mkdir')
+    mocker.patch('openpilot.common.prefix.os.makedirs')
+    mocker.patch('openpilot.common.prefix.Params')
+    mocker.patch('openpilot.common.prefix.os.path.exists', return_value=False)
+    mocker.patch('openpilot.common.prefix.shutil.rmtree')
+
+    # Save current state
+    saved_prefix = os.environ.get("OPENPILOT_PREFIX")
+
+    # Set original prefix
+    original = "original_prefix_value"
+    os.environ["OPENPILOT_PREFIX"] = original
+
+    try:
+      prefix = OpenpilotPrefix(prefix="test", create_dirs_on_enter=False, clean_dirs_on_exit=False)
+      prefix.__enter__()
+      assert os.environ["OPENPILOT_PREFIX"] == "test"
+
+      prefix.__exit__(None, None, None)
+      assert os.environ["OPENPILOT_PREFIX"] == original
+    finally:
+      # Restore original state
+      if saved_prefix is not None:
+        os.environ["OPENPILOT_PREFIX"] = saved_prefix
+      elif "OPENPILOT_PREFIX" in os.environ:
+        del os.environ["OPENPILOT_PREFIX"]
+
+  def test_enter_skips_create_dirs_when_disabled(self, mocker):
+    """Test __enter__ skips create_dirs when create_dirs_on_enter=False."""
+    mocker.patch('openpilot.common.prefix.Paths.shm_path', return_value="/dev/shm")
+
+    mock_mkdir = mocker.patch('openpilot.common.prefix.os.mkdir')
+    mock_makedirs = mocker.patch('openpilot.common.prefix.os.makedirs')
+
+    prefix = OpenpilotPrefix(prefix="test", create_dirs_on_enter=False, clean_dirs_on_exit=False)
+    prefix.__enter__()
+
+    try:
+      mock_mkdir.assert_not_called()
+      mock_makedirs.assert_not_called()
+    finally:
+      prefix.__exit__(None, None, None)
