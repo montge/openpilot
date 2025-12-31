@@ -12,6 +12,7 @@ from openpilot.system.version import (
   get_version,
   get_release_notes,
   is_prebuilt,
+  is_dirty,
   build_metadata_from_dict,
   get_build_metadata,
   RELEASE_BRANCHES,
@@ -242,6 +243,63 @@ class TestIsPrebuilt:
     # In a dev environment, there should be no 'prebuilt' file
     result = is_prebuilt(BASEDIR)
     assert result is False
+
+
+class TestIsDirty:
+  """Test is_dirty function."""
+
+  def test_is_dirty_returns_bool(self):
+    """Test is_dirty returns boolean."""
+    from openpilot.common.basedir import BASEDIR
+
+    # Clear cache to get fresh result
+    is_dirty.cache_clear()
+    result = is_dirty(BASEDIR)
+    assert isinstance(result, bool)
+
+  def test_is_dirty_true_when_no_origin(self, mocker):
+    """Test is_dirty returns True when no origin."""
+    is_dirty.cache_clear()
+    mocker.patch('openpilot.system.version.get_origin', return_value='')
+    mocker.patch('openpilot.system.version.get_short_branch', return_value='main')
+
+    result = is_dirty()
+    assert result is True
+
+  def test_is_dirty_true_when_no_short_branch(self, mocker):
+    """Test is_dirty returns True when no short branch."""
+    is_dirty.cache_clear()
+    mocker.patch('openpilot.system.version.get_origin', return_value='origin')
+    mocker.patch('openpilot.system.version.get_short_branch', return_value='')
+
+    result = is_dirty()
+    assert result is True
+
+  def test_is_dirty_true_when_no_branch(self, mocker):
+    """Test is_dirty returns True when get_branch returns empty."""
+    is_dirty.cache_clear()
+    mocker.patch('openpilot.system.version.get_origin', return_value='origin')
+    mocker.patch('openpilot.system.version.get_short_branch', return_value='main')
+    mocker.patch('openpilot.system.version.is_prebuilt', return_value=False)
+    mocker.patch('openpilot.system.version.get_branch', return_value='')
+
+    result = is_dirty()
+    assert result is True
+
+  def test_is_dirty_handles_subprocess_error(self, mocker):
+    """Test is_dirty handles subprocess errors gracefully."""
+    import subprocess
+
+    is_dirty.cache_clear()
+    mocker.patch('openpilot.system.version.get_origin', return_value='origin')
+    mocker.patch('openpilot.system.version.get_short_branch', return_value='main')
+    mocker.patch('openpilot.system.version.is_prebuilt', return_value=False)
+    mocker.patch('openpilot.system.version.get_branch', return_value='main')
+    mocker.patch('subprocess.check_call')  # Mock update-index
+    mocker.patch('subprocess.call', side_effect=subprocess.CalledProcessError(1, 'git'))
+
+    result = is_dirty()
+    assert result is True
 
 
 class TestGetBuildMetadata:
