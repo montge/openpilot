@@ -146,6 +146,23 @@ class TestUnixDomainSocketHandler:
     mock_sock.setsockopt.assert_called()
     mock_sock.connect.assert_called()
 
+  def test_emit_handles_zmq_again_error(self, mocker):
+    """Test emit drops message silently on zmq.error.Again."""
+    import zmq
+
+    formatter = mocker.MagicMock()
+    formatter.format.return_value = "test message"
+
+    handler = UnixDomainSocketHandler(formatter)
+    handler.pid = os.getpid()
+    handler.sock = mocker.MagicMock()
+    handler.sock.send.side_effect = zmq.error.Again()
+
+    record = logging.LogRecord(name="test", level=logging.INFO, pathname="test.py", lineno=1, msg="test", args=(), exc_info=None)
+
+    # Should not raise - message dropped silently
+    handler.emit(record)
+
 
 class TestForwardingHandler:
   """Test ForwardingHandler class."""
