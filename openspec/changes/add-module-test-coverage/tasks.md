@@ -13,11 +13,11 @@
 - [ ] 1.1.8 Add tests for vidindex.py (requires video files)
 - [ ] 1.1.9 Verify 90% coverage achieved
 
-### 1.2 system.athena (58% → 90%)
-- [ ] 1.2.1 Identify uncovered files in system/athena/
+### 1.2 system.athena (58% → 61%)
+- [x] 1.2.1 Identify uncovered files in system/athena/
 - [ ] 1.2.2 Add tests for athenad.py API handlers
-- [ ] 1.2.3 Add tests for registration.py
-- [ ] 1.2.4 Add tests for manage_athenad.py
+- [x] 1.2.3 Add tests for registration.py (76% → 80%)
+- [x] 1.2.4 Add tests for manage_athenad.py (0% → 92%)
 - [ ] 1.2.5 Verify 90% coverage achieved
 
 ### 1.3 system.manager (63% → 90%)
@@ -80,3 +80,12 @@
 - **selfdrive.monitoring**: helpers.py: 67% → 98% (+31%)
   - Added 38 tests covering _set_timers, _get_distracted_types, _update_states, run_step
 - **New tests added**: 74
+
+### Session 3 (Athena Coverage)
+- **system.athena**: manage_athenad.py: 0% → 92% (+92%)
+  - Added 3 tests for main function and constants
+- **system.athena**: registration.py: 76% → 80% (+4%)
+  - Added 4 tests for is_registered_device and edge cases
+- **selfdrive.controls.lib**: Already at 95%+ for most files
+  - MPC libraries (lat_mpc.py, long_mpc.py) require acados solver
+- **New tests added**: 7

@@ -3,13 +3,37 @@ from Crypto.PublicKey import RSA
 from pathlib import Path
 
 from openpilot.common.params import Params
-from openpilot.system.athena.registration import register, UNREGISTERED_DONGLE_ID
+from openpilot.system.athena.registration import register, is_registered_device, UNREGISTERED_DONGLE_ID
 from openpilot.system.athena.tests.helpers import MockResponse
 from openpilot.system.hardware.hw import Paths
 
 
-class TestRegistration:
+class TestIsRegisteredDevice:
+  """Test is_registered_device function."""
 
+  def test_registered_device(self, mocker):
+    """Test returns True when device is registered."""
+    mock_params = mocker.patch('openpilot.system.athena.registration.Params')
+    mock_params.return_value.get.return_value = "DONGLE_ID_123"
+
+    assert is_registered_device() is True
+
+  def test_unregistered_device_none(self, mocker):
+    """Test returns False when dongle ID is None."""
+    mock_params = mocker.patch('openpilot.system.athena.registration.Params')
+    mock_params.return_value.get.return_value = None
+
+    assert is_registered_device() is False
+
+  def test_unregistered_device_unregistered_id(self, mocker):
+    """Test returns False when dongle ID is UNREGISTERED_DONGLE_ID."""
+    mock_params = mocker.patch('openpilot.system.athena.registration.Params')
+    mock_params.return_value.get.return_value = UNREGISTERED_DONGLE_ID
+
+    assert is_registered_device() is False
+
+
+class TestRegistration:
   def setup_method(self):
     # clear params and setup key paths
     self.params = Params()
@@ -74,3 +98,12 @@ class TestRegistration:
     assert m.call_count == 1
     assert dongle == UNREGISTERED_DONGLE_ID
     assert self.params.get("DongleId") == dongle
+
+  def test_unregistered_403(self, mocker):
+    # keys exist, but forbidden (403)
+    self._generate_keys()
+    m = mocker.patch("openpilot.system.athena.registration.api_get", autospec=True)
+    m.return_value = MockResponse(None, 403)
+    dongle = register()
+    assert m.call_count == 1
+    assert dongle == UNREGISTERED_DONGLE_ID
