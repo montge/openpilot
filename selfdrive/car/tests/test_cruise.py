@@ -491,6 +491,46 @@ class TestVCruiseHelperSpeedAdjustment:
     assert helper.v_cruise_kph == 50  # No change
 
 
+class TestVCruiseHelperUnknownButtons:
+  """Test VCruiseHelper with unrecognized button types."""
+
+  def test_update_v_cruise_ignores_unknown_button(self, mocker):
+    """Test update_v_cruise ignores unrecognized button types."""
+    CP = create_mock_cp(mocker, pcm_cruise=False)
+    helper = VCruiseHelper(CP)
+    helper.v_cruise_kph = 50
+
+    # Create button event with unknown type (high number not in button_timers)
+    unknown_button = mocker.MagicMock()
+    unknown_button.type = mocker.MagicMock()
+    unknown_button.type.raw = 999  # Unrecognized type
+    unknown_button.pressed = False
+
+    CS = create_mock_cs(mocker, button_events=[unknown_button])
+    helper.update_v_cruise(CS, enabled=True, is_metric=True)
+
+    # Speed should remain unchanged
+    assert helper.v_cruise_kph == 50
+
+  def test_update_button_timers_ignores_unknown_button(self, mocker):
+    """Test update_button_timers ignores unrecognized button types."""
+    CP = create_mock_cp(mocker, pcm_cruise=False)
+    helper = VCruiseHelper(CP)
+    initial_timers = dict(helper.button_timers)
+
+    # Create button event with unknown type
+    unknown_button = mocker.MagicMock()
+    unknown_button.type = mocker.MagicMock()
+    unknown_button.type.raw = 999  # Unrecognized type
+    unknown_button.pressed = True
+
+    CS = create_mock_cs(mocker, button_events=[unknown_button])
+    helper.update_button_timers(CS, enabled=True)
+
+    # Timers should remain unchanged
+    assert helper.button_timers == initial_timers
+
+
 class TestVCruiseHelperIntegration:
   """Integration tests for VCruiseHelper."""
 
