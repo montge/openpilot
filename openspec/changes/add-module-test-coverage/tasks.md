@@ -92,10 +92,12 @@
   - get_directory_sort, listdir_by_creation, clear_locks, FakeRequest/Response
 - **New tests added**: 21
 
-### Session 4 (Selfdrived Coverage)
+### Session 4 (Selfdrived & Locationd Coverage)
 - **selfdrive.selfdrived**: events.py: 85% → 91% (+6%)
   - Added 13 tests for mici device paths, callbacks, and edge cases
   - Tests: create_alerts with callback_args=None, NoEntryAlert/StartupAlert on mici
   - Tests: soft_disable_alert, user_soft_disable_alert callbacks
   - Tests: startup_master_alert with REPLAY env var
-- **New tests added**: 13
+- **selfdrive.locationd**: torqued.py: 57% → 61% (+4%)
+  - Added 7 tests for LinAlgError handling, torque tuning, get_msg options
+- **New tests added**: 20
