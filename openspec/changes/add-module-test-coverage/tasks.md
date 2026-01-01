@@ -50,11 +50,11 @@
 - [ ] 3.1.3 Add tests for selfdrived.py state transitions
 - [ ] 3.1.4 Verify 90% coverage achieved
 
-### 3.2 system.loggerd (82% → 90%)
-- [ ] 3.2.1 Identify uncovered files in system/loggerd/
-- [ ] 3.2.2 Add tests for uploader.py
-- [ ] 3.2.3 Add tests for deleter.py
-- [ ] 3.2.4 Verify 90% coverage achieved
+### 3.2 system.loggerd (82% → 82%)
+- [x] 3.2.1 Identify uncovered files in system/loggerd/
+- [x] 3.2.2 Add tests for uploader.py helper functions (new file)
+- [x] 3.2.3 deleter.py already at 99%
+- [ ] 3.2.4 Verify 90% coverage achieved (uploader.py has network code)
 
 ## 4. Validation
 - [ ] 4.1 Run full coverage report for all target modules
@@ -88,4 +88,6 @@
   - Added 4 tests for is_registered_device and edge cases
 - **selfdrive.controls.lib**: Already at 95%+ for most files
   - MPC libraries (lat_mpc.py, long_mpc.py) require acados solver
-- **New tests added**: 7
+- **system.loggerd**: Added uploader helper tests
+  - get_directory_sort, listdir_by_creation, clear_locks, FakeRequest/Response
+- **New tests added**: 21
