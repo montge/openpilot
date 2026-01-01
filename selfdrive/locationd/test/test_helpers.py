@@ -195,6 +195,55 @@ class TestPointBuckets:
       buckets.add_point(0.5, 0.5)
 
 
+class TestPointBucketsGetPoints:
+  """Test PointBuckets get_points and load_points methods."""
+
+  def _create_concrete_buckets(self):
+    """Create a concrete PointBuckets subclass for testing."""
+
+    class TestBuckets(PointBuckets):
+      def add_point(self, x, y):
+        for bound_min, bound_max in self.x_bounds:
+          if bound_min <= x < bound_max:
+            self.buckets[(bound_min, bound_max)].append([x, y])
+            break
+
+    x_bounds = [(-1.0, 0.0), (0.0, 1.0)]
+    min_points = [2, 2]
+    return TestBuckets(x_bounds=x_bounds, min_points=min_points, min_points_total=3, points_per_bucket=10, rowsize=2)
+
+  def test_get_points_returns_all(self):
+    """Test get_points returns all points when num_points is None."""
+    buckets = self._create_concrete_buckets()
+    buckets.add_point(-0.5, 1.0)
+    buckets.add_point(-0.3, 2.0)
+    buckets.add_point(0.5, 3.0)
+
+    points = buckets.get_points()
+
+    assert points.shape[0] == 3
+    assert points.shape[1] == 2
+
+  def test_get_points_with_limit(self):
+    """Test get_points with num_points limit."""
+    buckets = self._create_concrete_buckets()
+    for i in range(5):
+      buckets.add_point(-0.5, float(i))
+
+    points = buckets.get_points(num_points=3)
+
+    assert points.shape[0] == 3
+
+  def test_load_points(self):
+    """Test load_points loads multiple points."""
+    buckets = self._create_concrete_buckets()
+    points = [[-0.5, 1.0], [-0.3, 2.0], [0.5, 3.0]]
+
+    buckets.load_points(points)
+
+    assert len(buckets) == 3
+
+
 class TestMeasurement:
   """Test Measurement class."""
 
@@ -227,6 +276,21 @@ class TestMeasurement:
     assert m.pitch == m.y
     assert m.yaw == m.z
 
+  def test_from_measurement_xyz(self, mocker):
+    """Test from_measurement_xyz class method."""
+    mock_measurement = mocker.MagicMock()
+    mock_measurement.x = 1.0
+    mock_measurement.y = 2.0
+    mock_measurement.z = 3.0
+    mock_measurement.xStd = 0.1
+    mock_measurement.yStd = 0.2
+    mock_measurement.zStd = 0.3
+
+    result = Measurement.from_measurement_xyz(mock_measurement)
+
+    np.testing.assert_array_almost_equal(result.xyz, [1.0, 2.0, 3.0])
+    np.testing.assert_array_almost_equal(result.xyz_std, [0.1, 0.2, 0.3])
+
 
 class TestPose:
   """Test Pose class."""
@@ -244,6 +308,30 @@ class TestPose:
     assert pose.velocity is velocity
     assert pose.acceleration is acceleration
     assert pose.angular_velocity is angular_velocity
+
+  def test_from_live_pose(self, mocker):
+    """Test from_live_pose class method."""
+
+    # Create mock XYZMeasurement
+    def mock_xyz(x, y, z, xstd, ystd, zstd):
+      m = mocker.MagicMock()
+      m.x, m.y, m.z = x, y, z
+      m.xStd, m.yStd, m.zStd = xstd, ystd, zstd
+      return m
+
+    mock_live_pose = mocker.MagicMock()
+    mock_live_pose.orientationNED = mock_xyz(0.1, 0.2, 0.3, 0.01, 0.02, 0.03)
+    mock_live_pose.velocityDevice = mock_xyz(10.0, 0.0, 0.0, 0.1, 0.1, 0.1)
+    mock_live_pose.accelerationDevice = mock_xyz(1.0, 0.0, 0.0, 0.1, 0.1, 0.1)
+    mock_live_pose.angularVelocityDevice = mock_xyz(0.0, 0.0, 0.1, 0.01, 0.01, 0.01)
+
+    result = Pose.from_live_pose(mock_live_pose)
+
+    assert isinstance(result, Pose)
+    np.testing.assert_array_almost_equal(result.orientation.xyz, [0.1, 0.2, 0.3])
+    np.testing.assert_array_almost_equal(result.velocity.xyz, [10.0, 0.0, 0.0])
+    np.testing.assert_array_almost_equal(result.acceleration.xyz, [1.0, 0.0, 0.0])
+    np.testing.assert_array_almost_equal(result.angular_velocity.xyz, [0.0, 0.0, 0.1])
 
 
 class TestPoseCalibrator:
