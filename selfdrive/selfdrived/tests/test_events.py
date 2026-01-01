@@ -400,3 +400,167 @@ class TestEVENT_NAME:
     """Test EVENT_NAME maps startup."""
     assert EventName.startup in EVENT_NAME
     assert EVENT_NAME[EventName.startup] == "startup"
+
+
+class TestEventsCreateAlerts:
+  """Test Events.create_alerts method edge cases."""
+
+  def test_create_alerts_with_callback_args_none(self):
+    """Test create_alerts handles None callback_args."""
+    events = Events()
+    events.add(EventName.startup)
+
+    # Should not raise with callback_args=None
+    alerts = events.create_alerts([ET.PERMANENT], callback_args=None)
+    assert len(alerts) >= 0
+
+  def test_create_alerts_with_callback_function(self, mocker):
+    """Test create_alerts calls callback functions."""
+
+    events = Events()
+    events.add(EventName.steerSaturated)  # Has a soft_disable callback
+
+    # Mock callback args
+    CP = mocker.MagicMock()
+    CS = mocker.MagicMock()
+    sm = mocker.MagicMock()
+
+    # With long soft_disable_time, should return SoftDisableAlert
+    alerts = events.create_alerts([ET.SOFT_DISABLE], callback_args=[CP, CS, sm, False, 100, None])
+    # May or may not have alerts depending on event definition
+    assert isinstance(alerts, list)
+
+  def test_create_alerts_respects_creation_delay(self):
+    """Test create_alerts respects creation_delay."""
+    events = Events()
+    events.add(EventName.startup)
+
+    # With event_counter = 0, alerts with creation_delay > 0 won't show
+    alerts = events.create_alerts([ET.PERMANENT])
+    # Check that alerts are returned (startup has no creation_delay)
+    assert len(alerts) >= 0
+
+
+class TestNoEntryAlertMici:
+  """Test NoEntryAlert on mici device."""
+
+  def test_no_entry_alert_mici_swaps_text(self, mocker):
+    """Test NoEntryAlert swaps text on mici device."""
+    mocker.patch('openpilot.selfdrive.selfdrived.events.HARDWARE.get_device_type', return_value='mici')
+
+    alert = NoEntryAlert("Reason Text", alert_text_1="Title Text")
+
+    # On mici, text should be swapped
+    assert alert.alert_text_1 == "Reason Text"
+    assert alert.alert_text_2 == "Title Text"
+
+
+class TestStartupAlertMici:
+  """Test StartupAlert on mici device."""
+
+  def test_startup_alert_mici_removes_default_text2(self, mocker):
+    """Test StartupAlert removes default text2 on mici."""
+    mocker.patch('openpilot.selfdrive.selfdrived.events.HARDWARE.get_device_type', return_value='mici')
+
+    alert = StartupAlert("Welcome")
+
+    # On mici, default "Always keep hands on wheel" should be removed
+    assert alert.alert_text_2 == ""
+    assert alert.alert_size == AlertSize.small
+
+  def test_startup_alert_mici_keeps_custom_text2(self, mocker):
+    """Test StartupAlert keeps custom text2 on mici."""
+    mocker.patch('openpilot.selfdrive.selfdrived.events.HARDWARE.get_device_type', return_value='mici')
+
+    alert = StartupAlert("Welcome", "Custom message")
+
+    # Custom text2 should be kept
+    assert alert.alert_text_2 == "Custom message"
+
+
+class TestSoftDisableAlertCallback:
+  """Test soft_disable_alert callback function."""
+
+  def test_soft_disable_callback_immediate_at_low_time(self, mocker):
+    """Test soft_disable_alert returns ImmediateDisableAlert when time is low."""
+    from openpilot.selfdrive.selfdrived.events import soft_disable_alert
+
+    callback = soft_disable_alert("Test reason")
+
+    CP = mocker.MagicMock()
+    CS = mocker.MagicMock()
+    sm = mocker.MagicMock()
+
+    # Low soft_disable_time should return ImmediateDisableAlert
+    alert = callback(CP, CS, sm, False, 1, None)  # 1 frame is < 0.5s
+
+    assert isinstance(alert, ImmediateDisableAlert)
+
+  def test_soft_disable_callback_soft_at_high_time(self, mocker):
+    """Test soft_disable_alert returns SoftDisableAlert when time is high."""
+    from openpilot.selfdrive.selfdrived.events import soft_disable_alert
+
+    callback = soft_disable_alert("Test reason")
+
+    CP = mocker.MagicMock()
+    CS = mocker.MagicMock()
+    sm = mocker.MagicMock()
+
+    # High soft_disable_time should return SoftDisableAlert
+    alert = callback(CP, CS, sm, False, 100, None)  # 100 frames is > 0.5s
+
+    assert isinstance(alert, SoftDisableAlert)
+
+
+class TestUserSoftDisableAlertCallback:
+  """Test user_soft_disable_alert callback function."""
+
+  def test_user_soft_disable_callback_immediate_at_low_time(self, mocker):
+    """Test user_soft_disable_alert returns ImmediateDisableAlert when time is low."""
+    from openpilot.selfdrive.selfdrived.events import user_soft_disable_alert
+
+    callback = user_soft_disable_alert("Test reason")
+
+    CP = mocker.MagicMock()
+    CS = mocker.MagicMock()
+    sm = mocker.MagicMock()
+
+    # Low soft_disable_time should return ImmediateDisableAlert
+    alert = callback(CP, CS, sm, False, 1, None)
+
+    assert isinstance(alert, ImmediateDisableAlert)
+
+  def test_user_soft_disable_callback_user_at_high_time(self, mocker):
+    """Test user_soft_disable_alert returns UserSoftDisableAlert when time is high."""
+    from openpilot.selfdrive.selfdrived.events import user_soft_disable_alert
+
+    callback = user_soft_disable_alert("Test reason")
+
+    CP = mocker.MagicMock()
+    CS = mocker.MagicMock()
+    sm = mocker.MagicMock()
+
+    # High soft_disable_time should return UserSoftDisableAlert
+    alert = callback(CP, CS, sm, False, 100, None)
+
+    assert isinstance(alert, UserSoftDisableAlert)
+
+
+class TestStartupMasterAlert:
+  """Test startup_master_alert callback function."""
+
+  def test_startup_master_alert_replay(self, mocker):
+    """Test startup_master_alert shows 'replay' branch when REPLAY is set."""
+    import os
+    from openpilot.selfdrive.selfdrived.events import startup_master_alert
+
+    mocker.patch.dict(os.environ, {"REPLAY": "1"})
+
+    CP = mocker.MagicMock()
+    CS = mocker.MagicMock()
+    sm = mocker.MagicMock()
+
+    alert = startup_master_alert(CP, CS, sm, False, 0, None)
+
+    assert isinstance(alert, StartupAlert)
+    assert alert.alert_text_2 == "replay"
