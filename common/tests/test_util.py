@@ -242,6 +242,55 @@ class TestSudoWrite:
       with open(path) as f:
         assert f.read() == "content"
 
+  def test_sudo_write_chmod_on_permission_error(self, mocker):
+    """Test sudo_write calls chmod on PermissionError then succeeds."""
+    mock_system = mocker.patch('openpilot.common.util.os.system')
+
+    # Mock open to fail first, then succeed
+    call_count = [0]
+    real_open = open
+
+    def mock_open_fn(path, mode='r', *args, **kwargs):
+      if mode == 'w' and call_count[0] == 0:
+        call_count[0] += 1
+        raise PermissionError("Permission denied")
+      return real_open(path, mode, *args, **kwargs)
+
+    mocker.patch('builtins.open', mock_open_fn)
+    from openpilot.common.util import sudo_write
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+      path = os.path.join(tmpdir, "test.txt")
+      # Create the file first so second open succeeds
+      with real_open(path, 'w') as f:
+        f.write("")
+
+      sudo_write("content", path)
+
+      # Should have called chmod
+      mock_system.assert_called_once()
+      assert "chmod" in mock_system.call_args[0][0]
+
+  def test_sudo_write_fallback_on_double_permission_error(self, mocker):
+    """Test sudo_write uses echo fallback on double PermissionError."""
+    mock_system = mocker.patch('openpilot.common.util.os.system')
+
+    # Mock open to always fail with PermissionError
+    def mock_open_fn(path, mode='r', *args, **kwargs):
+      if mode == 'w':
+        raise PermissionError("Permission denied")
+      return open.__class__(path, mode, *args, **kwargs)
+
+    mocker.patch('builtins.open', mock_open_fn)
+    from openpilot.common.util import sudo_write
+
+    sudo_write("testval", "/some/path")
+
+    # Should have called chmod first, then echo fallback
+    assert mock_system.call_count == 2
+    assert "chmod" in mock_system.call_args_list[0][0][0]
+    assert "echo testval" in mock_system.call_args_list[1][0][0]
+
 
 class TestSudoRead:
   """Test sudo_read function."""
