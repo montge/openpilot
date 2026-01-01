@@ -214,3 +214,24 @@ class TestPathsShmPath:
     result = Paths.shm_path()
 
     assert result == "/dev/shm"
+
+
+class TestPcHardware:
+  """Test Pc hardware class."""
+
+  def test_get_device_type(self):
+    """Test Pc.get_device_type returns 'pc'."""
+    from openpilot.system.hardware.pc.hardware import Pc
+
+    pc = Pc()
+    assert pc.get_device_type() == "pc"
+
+  def test_get_network_type(self):
+    """Test Pc.get_network_type returns wifi."""
+    from cereal import log
+    from openpilot.system.hardware.pc.hardware import Pc
+
+    pc = Pc()
+    result = pc.get_network_type()
+
+    assert result == log.DeviceState.NetworkType.wifi
