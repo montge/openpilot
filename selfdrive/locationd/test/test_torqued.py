@@ -271,6 +271,91 @@ class TestConstants:
     assert FRICTION_SANITY < 1
 
 
+class TestTorqueEstimatorEstimateParams:
+  """Test TorqueEstimator.estimate_params method."""
+
+  def test_estimate_params_handles_linalg_error(self, mocker):
+    """Test estimate_params handles LinAlgError gracefully."""
+    mocker.patch('openpilot.selfdrive.locationd.torqued.Params').return_value.get.return_value = None
+    cp = car.CarParams()
+    est = TorqueEstimator(cp)
+
+    # Mock SVD to raise LinAlgError
+    mocker.patch('numpy.linalg.svd', side_effect=np.linalg.LinAlgError("SVD failed"))
+
+    # Mock get_points to return valid shape
+    mocker.patch.object(est.filtered_points, 'get_points', return_value=np.zeros((10, 3)))
+
+    slope, offset, friction = est.estimate_params()
+
+    assert np.isnan(slope)
+    assert np.isnan(offset)
+    assert np.isnan(friction)
+
+
+class TestTorqueEstimatorWithTorqueTuning:
+  """Test TorqueEstimator with torque tuning cars."""
+
+  def test_init_with_torque_tuning_car(self, mocker):
+    """Test init with a car that has torque lateral tuning."""
+    mocker.patch('openpilot.selfdrive.locationd.torqued.Params').return_value.get.return_value = None
+
+    # Create CarParams with torque tuning
+    cp = car.CarParams()
+    cp.brand = "toyota"
+    cp.lateralTuning.init('torque')
+    cp.lateralTuning.torque.friction = 0.1
+    cp.lateralTuning.torque.latAccelFactor = 2.5
+
+    est = TorqueEstimator(cp)
+
+    assert est.use_params is True
+    assert abs(est.offline_friction - 0.1) < 0.001
+    assert abs(est.offline_latAccelFactor - 2.5) < 0.001
+
+  def test_get_restore_key_with_torque_tuning(self):
+    """Test get_restore_key includes torque params."""
+    cp = car.CarParams()
+    cp.lateralTuning.init('torque')
+    cp.lateralTuning.torque.friction = 0.15
+    cp.lateralTuning.torque.latAccelFactor = 2.3
+
+    key = TorqueEstimator.get_restore_key(cp, VERSION)
+
+    assert abs(key[2] - 0.15) < 0.001  # friction
+    assert abs(key[3] - 2.3) < 0.001  # latAccelFactor
+
+
+class TestTorqueEstimatorGetMsgAdvanced:
+  """Test TorqueEstimator.get_msg advanced features."""
+
+  def test_get_msg_with_points(self, mocker):
+    """Test get_msg with with_points=True."""
+    mocker.patch('openpilot.selfdrive.locationd.torqued.Params').return_value.get.return_value = None
+    cp = car.CarParams()
+    est = TorqueEstimator(cp)
+
+    # Add some points
+    for i in range(10):
+      est.filtered_points.add_point(0.05, 0.1 * i)
+
+    msg = est.get_msg(with_points=True)
+
+    # Points should be included when with_points=True
+    assert msg.liveTorqueParameters.points is not None
+
+  def test_get_msg_use_params_false_for_non_allowed_car(self, mocker):
+    """Test useParams is False for non-allowed car."""
+    mocker.patch('openpilot.selfdrive.locationd.torqued.Params').return_value.get.return_value = None
+    cp = car.CarParams()
+    cp.brand = "unknown_brand"
+
+    est = TorqueEstimator(cp)
+    msg = est.get_msg()
+
+    assert msg.liveTorqueParameters.useParams is False
+
+
 def test_cal_percent():
   est = TorqueEstimator(car.CarParams())
   msg = est.get_msg()
