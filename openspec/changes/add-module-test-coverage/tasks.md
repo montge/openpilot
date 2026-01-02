@@ -144,4 +144,7 @@
 - **selfdrive.selfdrived.events**: 97% → 99% (+2%)
   - Added 5 tests for invalid_lkas_setting_alert and personality_changed_alert
   - Tests: invalid_lkas for tesla/mazda/nissan/default, personality_changed_format
-- **New tests added**: 10
+- **tools.lib.logreader**: 96% → 97% (+1%)
+  - Added 4 tests for parse_indirect URL handling and edge cases
+  - Tests: useradmin_url_basic, useradmin_url_with_pipe, useradmin_url_encoded_pipe, corrupted_events_warns
+- **New tests added**: 14
