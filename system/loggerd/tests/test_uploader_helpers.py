@@ -165,3 +165,48 @@ class TestConstants:
     assert "qcam" in MAX_UPLOAD_SIZES
     assert MAX_UPLOAD_SIZES["qlog"] == 25 * 1e6
     assert MAX_UPLOAD_SIZES["qcam"] == 5 * 1e6
+
+
+class TestListdirByCreationOSError:
+  """Test listdir_by_creation OSError handling."""
+
+  def test_listdir_oserror_returns_empty(self, mocker):
+    """Test listdir_by_creation returns empty on OSError in listdir."""
+    mocker.patch('os.path.isdir', return_value=True)
+    mocker.patch('os.listdir', side_effect=OSError("Permission denied"))
+    mocker.patch('openpilot.system.loggerd.uploader.cloudlog')
+
+    result = listdir_by_creation("/some/path")
+
+    assert result == []
+
+
+class TestClearLocksOSError:
+  """Test clear_locks OSError handling."""
+
+  def test_clear_locks_handles_oserror(self, mocker):
+    """Test clear_locks logs exception on OSError."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+      logdir = os.path.join(tmpdir, "2024-01-15--12-30-00--0")
+      os.makedirs(logdir)
+
+      # Create a lock file
+      lock_file = os.path.join(logdir, "qlog.lock")
+      with open(lock_file, "w") as f:
+        f.write("")
+
+      # Mock os.listdir to succeed first time (for root), then fail
+      original_listdir = os.listdir
+
+      def mock_listdir(path):
+        if path == tmpdir:
+          return original_listdir(path)
+        raise OSError("Permission denied")
+
+      mocker.patch('os.listdir', side_effect=mock_listdir)
+      mock_cloudlog = mocker.patch('openpilot.system.loggerd.uploader.cloudlog')
+
+      # Should not raise, just log exception
+      clear_locks(tmpdir)
+
+      mock_cloudlog.exception.assert_called_once()

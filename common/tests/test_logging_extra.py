@@ -482,3 +482,79 @@ class TestSwagLogger:
     # Should create new empty dict
     ctx = logger.local_ctx()
     assert ctx == {}
+
+  def test_find_caller_with_stacklevel(self):
+    """Test findCaller with stacklevel > 1 traverses frames."""
+    logger = SwagLogger()
+
+    def inner_func():
+      return logger.findCaller(stacklevel=2)
+
+    def outer_func():
+      return inner_func()
+
+    result = outer_func()
+
+    assert isinstance(result, tuple)
+    assert len(result) == 4
+    # Should return caller info from higher up the stack
+    assert isinstance(result[0], str)
+    assert isinstance(result[1], int)
+
+
+class TestSwagFormatterMessageException:
+  """Test SwagFormatter getMessage exception handling."""
+
+  def test_format_dict_with_message_exception_uses_list_args(self, mocker):
+    """Test format_dict fallback when getMessage raises ValueError with list args."""
+    logger = mocker.MagicMock()
+    logger.get_ctx.return_value = {}
+    formatter = SwagFormatter(logger)
+
+    # Create a record with list args (not tuple) to test the fallback path
+    record = logging.LogRecord(name="test", level=logging.INFO, pathname="test.py", lineno=1, msg="test %s", args=(), exc_info=None)
+    # Manually set args to a list to work with the fallback code
+    record.args = []
+    mocker.patch.object(record, 'getMessage', side_effect=ValueError("format error"))
+
+    result = formatter.format_dict(record)
+
+    # Should fallback to [msg, *args] format
+    assert result['msg'] == ["test %s"]
+
+  def test_format_dict_with_type_error_uses_list_args(self, mocker):
+    """Test format_dict fallback when getMessage raises TypeError with list args."""
+    logger = mocker.MagicMock()
+    logger.get_ctx.return_value = {}
+    formatter = SwagFormatter(logger)
+
+    record = logging.LogRecord(name="test", level=logging.INFO, pathname="test.py", lineno=1, msg="test %d", args=("not_a_number",), exc_info=None)
+    # Manually set args to a list to work with the fallback code
+    record.args = ["not_a_number"]
+    mocker.patch.object(record, 'getMessage', side_effect=TypeError("format error"))
+
+    result = formatter.format_dict(record)
+
+    # Should fallback to [msg, *args] format
+    assert result['msg'] == ["test %d", "not_a_number"]
+
+
+class TestSrcfileHelper:
+  """Test _srcfile helper function."""
+
+  def test_srcfile_returns_normalized_path(self):
+    """Test _srcfile returns normalized module path."""
+    from openpilot.common.logging_extra import _srcfile
+
+    result = _srcfile()
+
+    assert isinstance(result, str)
+    # Should be a normalized path to logging_extra.py
+    assert "logging_extra" in result
+
+  def test_tmpfunc_returns_zero(self):
+    """Test _tmpfunc returns 0."""
+    from openpilot.common.logging_extra import _tmpfunc
+
+    result = _tmpfunc()
+    assert result == 0
