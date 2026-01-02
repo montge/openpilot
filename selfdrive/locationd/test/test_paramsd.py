@@ -319,6 +319,135 @@ class TestVehicleParamsLearnerHandleLog:
     # The yaw rate should have been processed
     assert isinstance(learner.observed_yaw_rate, float)
 
+  def test_handle_live_pose_invalid_yaw_rate(self, mocker):
+    """Test handle_log with invalid yaw rate uses default values."""
+    learner = self._create_learner()
+    msg = mocker.MagicMock()
+    # Set up angular velocity as invalid (high std)
+    msg.angularVelocityDevice.valid = False
+    msg.angularVelocityDevice.x = 0.0
+    msg.angularVelocityDevice.y = 0.0
+    msg.angularVelocityDevice.z = 0.1
+    msg.angularVelocityDevice.xStd = 100.0
+    msg.angularVelocityDevice.yStd = 100.0
+    msg.angularVelocityDevice.zStd = 100.0  # Very high std
+    msg.velocityDevice.valid = True
+    msg.velocityDevice.x = 10.0
+    msg.velocityDevice.y = 0.0
+    msg.velocityDevice.z = 0.0
+    msg.velocityDevice.xStd = 0.1
+    msg.velocityDevice.yStd = 0.1
+    msg.velocityDevice.zStd = 0.1
+    msg.accelerationDevice.valid = True
+    msg.accelerationDevice.x = 0.0
+    msg.accelerationDevice.y = 0.0
+    msg.accelerationDevice.z = 9.8
+    msg.accelerationDevice.xStd = 0.1
+    msg.accelerationDevice.yStd = 0.1
+    msg.accelerationDevice.zStd = 0.1
+    msg.orientationNED.valid = True
+    msg.orientationNED.x = 0.0
+    msg.orientationNED.y = 0.0
+    msg.orientationNED.z = 0.0
+    msg.orientationNED.xStd = 0.01
+    msg.orientationNED.yStd = 0.01
+    msg.orientationNED.zStd = 0.01
+    msg.posenetOK = True
+    msg.sensorsOK = True
+
+    learner.handle_log(1.0, 'livePose', msg)
+
+    # With invalid yaw rate, observed_yaw_rate should be set to 0
+    assert learner.observed_yaw_rate == 0.0
+
+  def test_handle_live_pose_invalid_roll(self, mocker):
+    """Test handle_log with invalid roll uses default values."""
+    learner = self._create_learner()
+    msg = mocker.MagicMock()
+    msg.angularVelocityDevice.valid = True
+    msg.angularVelocityDevice.x = 0.0
+    msg.angularVelocityDevice.y = 0.0
+    msg.angularVelocityDevice.z = 0.1
+    msg.angularVelocityDevice.xStd = 0.01
+    msg.angularVelocityDevice.yStd = 0.01
+    msg.angularVelocityDevice.zStd = 0.01
+    msg.velocityDevice.valid = True
+    msg.velocityDevice.x = 10.0
+    msg.velocityDevice.y = 0.0
+    msg.velocityDevice.z = 0.0
+    msg.velocityDevice.xStd = 0.1
+    msg.velocityDevice.yStd = 0.1
+    msg.velocityDevice.zStd = 0.1
+    msg.accelerationDevice.valid = True
+    msg.accelerationDevice.x = 0.0
+    msg.accelerationDevice.y = 0.0
+    msg.accelerationDevice.z = 9.8
+    msg.accelerationDevice.xStd = 0.1
+    msg.accelerationDevice.yStd = 0.1
+    msg.accelerationDevice.zStd = 0.1
+    # Set orientation as invalid (very high std or outside range)
+    msg.orientationNED.valid = True
+    msg.orientationNED.x = 100.0  # Way outside ROLL_MIN/ROLL_MAX
+    msg.orientationNED.y = 0.0
+    msg.orientationNED.z = 0.0
+    msg.orientationNED.xStd = 100.0  # Very high std
+    msg.orientationNED.yStd = 0.01
+    msg.orientationNED.zStd = 0.01
+    msg.posenetOK = True
+    msg.sensorsOK = False  # sensorsOK = False makes roll invalid
+
+    learner.handle_log(1.0, 'livePose', msg)
+
+    # With invalid roll, observed_roll should be set to 0
+    assert learner.observed_roll == 0.0
+
+  def test_handle_live_pose_active_with_posenet_ok(self, mocker):
+    """Test handle_log with active learner and posenetOK=True updates filter."""
+    learner = self._create_learner()
+
+    # First activate the learner via carState
+    carstate_msg = mocker.MagicMock()
+    carstate_msg.vEgo = MIN_ACTIVE_SPEED + 5.0
+    carstate_msg.steeringAngleDeg = 10.0
+    learner.handle_log(1.0, 'carState', carstate_msg)
+    assert learner.active
+
+    # Now send livePose with posenetOK=True
+    msg = mocker.MagicMock()
+    msg.angularVelocityDevice.valid = True
+    msg.angularVelocityDevice.x = 0.0
+    msg.angularVelocityDevice.y = 0.0
+    msg.angularVelocityDevice.z = 0.05
+    msg.angularVelocityDevice.xStd = 0.001
+    msg.angularVelocityDevice.yStd = 0.001
+    msg.angularVelocityDevice.zStd = 0.001
+    msg.velocityDevice.valid = True
+    msg.velocityDevice.x = 15.0
+    msg.velocityDevice.y = 0.0
+    msg.velocityDevice.z = 0.0
+    msg.velocityDevice.xStd = 0.1
+    msg.velocityDevice.yStd = 0.1
+    msg.velocityDevice.zStd = 0.1
+    msg.accelerationDevice.valid = True
+    msg.accelerationDevice.x = 0.0
+    msg.accelerationDevice.y = 0.0
+    msg.accelerationDevice.z = 9.8
+    msg.accelerationDevice.xStd = 0.1
+    msg.accelerationDevice.yStd = 0.1
+    msg.accelerationDevice.zStd = 0.1
+    msg.orientationNED.valid = True
+    msg.orientationNED.x = 0.02
+    msg.orientationNED.y = 0.0
+    msg.orientationNED.z = 0.0
+    msg.orientationNED.xStd = 0.001
+    msg.orientationNED.yStd = 0.001
+    msg.orientationNED.zStd = 0.001
+    msg.posenetOK = True
+    msg.sensorsOK = True
+
+    # Should not raise - the filter should be updated
+    learner.handle_log(2.0, 'livePose', msg)
+
 
 class TestVehicleParamsLearnerGetMsg:
   """Test VehicleParamsLearner get_msg method."""

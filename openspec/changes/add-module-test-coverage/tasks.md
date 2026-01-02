@@ -123,4 +123,7 @@
   - Tests: get_existing_logfiles with unrelated files, doRollover with backup_count=0, emit reconnects on fork
 - **system.loggerd.uploader**: 75% → 77% (+2%)
   - Added 2 tests for OSError exception paths in listdir_by_creation and clear_locks
-- **New tests added**: 11
+- **selfdrive.locationd.paramsd**: 75% → 81% (+6%)
+  - Added 3 tests for invalid yaw rate/roll handling, active filter updates
+  - Tests: handle_live_pose with invalid yaw_rate, invalid roll, active with posenetOK
+- **New tests added**: 14
