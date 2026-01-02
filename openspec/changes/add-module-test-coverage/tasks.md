@@ -2,16 +2,18 @@
 
 ## 1. Priority 1: Largest Coverage Gaps (50-65%)
 
-### 1.1 tools.lib (50% → 68% achieved, target 90%)
+### 1.1 tools.lib (50% → 71% achieved, target 90%)
 - [x] 1.1.1 Identify uncovered files in tools/lib/
 - [x] 1.1.2 Add tests for route.py edge cases (68% → 98%)
 - [x] 1.1.3 Add tests for github_utils.py (0% → 100%)
 - [x] 1.1.4 Add tests for auth.py (0% → 91%)
 - [x] 1.1.5 Add tests for bootlog.py (0% → 100%)
 - [x] 1.1.6 Add tests for file_sources.py (49% → 100%)
-- [ ] 1.1.7 Add tests for framereader.py (requires video files)
-- [ ] 1.1.8 Add tests for vidindex.py (requires video files)
-- [ ] 1.1.9 Verify 90% coverage achieved
+- [x] 1.1.7 Add tests for filereader.py (68% → 93%)
+- [x] 1.1.8 Add tests for url_file.py (56% → 99%)
+- [ ] 1.1.9 Add tests for framereader.py (requires video files)
+- [ ] 1.1.10 Add tests for vidindex.py (requires video files)
+- [ ] 1.1.11 Verify 90% coverage achieved
 
 ### 1.2 system.athena (58% → 61%)
 - [x] 1.2.1 Identify uncovered files in system/athena/
