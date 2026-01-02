@@ -129,4 +129,7 @@
 - **selfdrive.car.car_specific**: 0% → 78% (+78%)
   - Added 25 tests covering CarSpecificEvents class and create_common_events
   - Tests: init, mock/body brands, Chrysler/Honda/Toyota/GM/VW events, common events
-- **New tests added**: 39
+- **selfdrive.selfdrived.events**: 91% → 97% (+6%)
+  - Added 10 tests for alert callback functions
+  - Tests: paramsd_invalid_alert (4 branches), high_cpu, overheat, low_memory, modeld_lagging, wrong_car_mode (2 brands)
+- **New tests added**: 49

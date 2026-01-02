@@ -564,3 +564,216 @@ class TestStartupMasterAlert:
 
     assert isinstance(alert, StartupAlert)
     assert alert.alert_text_2 == "replay"
+
+
+class TestParamsdInvalidAlert:
+  """Test paramsd_invalid_alert callback function."""
+
+  def test_angle_offset_invalid(self, mocker):
+    """Test alert when angle offset is invalid."""
+    from openpilot.selfdrive.selfdrived.events import paramsd_invalid_alert
+
+    CP = mocker.MagicMock()
+    CS = mocker.MagicMock()
+    sm = mocker.MagicMock()
+    sm.__getitem__ = mocker.MagicMock(
+      return_value=mocker.MagicMock(
+        angleOffsetValid=False,
+        angleOffsetDeg=5.5,
+        steerRatioValid=True,
+        stiffnessFactorValid=True,
+      )
+    )
+
+    alert = paramsd_invalid_alert(CP, CS, sm, False, 0, None)
+
+    assert isinstance(alert, NoEntryAlert)
+    assert "misalignment" in alert.alert_text_1.lower() or "offset" in alert.alert_text_2.lower()
+
+  def test_steer_ratio_invalid(self, mocker):
+    """Test alert when steer ratio is invalid."""
+    from openpilot.selfdrive.selfdrived.events import paramsd_invalid_alert
+
+    CP = mocker.MagicMock()
+    CS = mocker.MagicMock()
+    sm = mocker.MagicMock()
+    sm.__getitem__ = mocker.MagicMock(
+      return_value=mocker.MagicMock(
+        angleOffsetValid=True,
+        steerRatioValid=False,
+        steerRatio=14.5,
+        stiffnessFactorValid=True,
+      )
+    )
+
+    alert = paramsd_invalid_alert(CP, CS, sm, False, 0, None)
+
+    assert isinstance(alert, NoEntryAlert)
+    assert "ratio" in alert.alert_text_1.lower() or "ratio" in alert.alert_text_2.lower()
+
+  def test_stiffness_factor_invalid(self, mocker):
+    """Test alert when stiffness factor is invalid."""
+    from openpilot.selfdrive.selfdrived.events import paramsd_invalid_alert
+
+    CP = mocker.MagicMock()
+    CS = mocker.MagicMock()
+    sm = mocker.MagicMock()
+    sm.__getitem__ = mocker.MagicMock(
+      return_value=mocker.MagicMock(
+        angleOffsetValid=True,
+        steerRatioValid=True,
+        stiffnessFactorValid=False,
+        stiffnessFactor=0.8,
+      )
+    )
+
+    alert = paramsd_invalid_alert(CP, CS, sm, False, 0, None)
+
+    assert isinstance(alert, NoEntryAlert)
+    assert "stiffness" in alert.alert_text_1.lower() or "tire" in alert.alert_text_1.lower()
+
+  def test_all_valid_returns_temporary_error(self, mocker):
+    """Test alert when all params are valid returns temporary error."""
+    from openpilot.selfdrive.selfdrived.events import paramsd_invalid_alert
+
+    CP = mocker.MagicMock()
+    CS = mocker.MagicMock()
+    sm = mocker.MagicMock()
+    sm.__getitem__ = mocker.MagicMock(
+      return_value=mocker.MagicMock(
+        angleOffsetValid=True,
+        steerRatioValid=True,
+        stiffnessFactorValid=True,
+      )
+    )
+
+    alert = paramsd_invalid_alert(CP, CS, sm, False, 0, None)
+
+    assert isinstance(alert, NoEntryAlert)
+    assert "temporary" in alert.alert_text_2.lower()
+
+
+class TestHighCpuUsageAlert:
+  """Test high_cpu_usage_alert callback function."""
+
+  def test_high_cpu_alert_format(self, mocker):
+    """Test high CPU usage alert format."""
+    from openpilot.selfdrive.selfdrived.events import high_cpu_usage_alert
+
+    CP = mocker.MagicMock()
+    CS = mocker.MagicMock()
+    sm = mocker.MagicMock()
+    sm.__getitem__ = mocker.MagicMock(
+      return_value=mocker.MagicMock(
+        cpuUsagePercent=[85.0, 90.0, 75.0],
+      )
+    )
+
+    alert = high_cpu_usage_alert(CP, CS, sm, False, 0, None)
+
+    assert isinstance(alert, NormalPermanentAlert)
+    assert "cpu" in alert.alert_text_1.lower()
+    assert "90" in alert.alert_text_2  # Max of [85, 90, 75]
+
+
+class TestOverheatAlert:
+  """Test overheat_alert callback function."""
+
+  def test_overheat_alert_format(self, mocker):
+    """Test overheat alert shows temperature."""
+    from openpilot.selfdrive.selfdrived.events import overheat_alert
+
+    CP = mocker.MagicMock()
+    CS = mocker.MagicMock()
+    sm = mocker.MagicMock()
+    sm.__getitem__ = mocker.MagicMock(
+      return_value=mocker.MagicMock(
+        cpuTempC=[75.0, 80.0],
+        gpuTempC=[70.0, 72.0],
+        memoryTempC=65.0,
+      )
+    )
+
+    alert = overheat_alert(CP, CS, sm, False, 0, None)
+
+    assert isinstance(alert, NormalPermanentAlert)
+    assert "overheat" in alert.alert_text_1.lower()
+    assert "80" in alert.alert_text_2  # Max temp
+
+
+class TestLowMemoryAlert:
+  """Test low_memory_alert callback function."""
+
+  def test_low_memory_alert_format(self, mocker):
+    """Test low memory alert shows usage."""
+    from openpilot.selfdrive.selfdrived.events import low_memory_alert
+
+    CP = mocker.MagicMock()
+    CS = mocker.MagicMock()
+    sm = mocker.MagicMock()
+    sm.__getitem__ = mocker.MagicMock(
+      return_value=mocker.MagicMock(
+        memoryUsagePercent=92,
+      )
+    )
+
+    alert = low_memory_alert(CP, CS, sm, False, 0, None)
+
+    assert isinstance(alert, NormalPermanentAlert)
+    assert "memory" in alert.alert_text_1.lower()
+    assert "92" in alert.alert_text_2
+
+
+class TestModeldLaggingAlert:
+  """Test modeld_lagging_alert callback function."""
+
+  def test_modeld_lagging_alert_format(self, mocker):
+    """Test modeld lagging alert shows frame drop percent."""
+    from openpilot.selfdrive.selfdrived.events import modeld_lagging_alert
+
+    CP = mocker.MagicMock()
+    CS = mocker.MagicMock()
+    sm = mocker.MagicMock()
+    sm.__getitem__ = mocker.MagicMock(
+      return_value=mocker.MagicMock(
+        frameDropPerc=15.5,
+      )
+    )
+
+    alert = modeld_lagging_alert(CP, CS, sm, False, 0, None)
+
+    assert isinstance(alert, NormalPermanentAlert)
+    assert "lagging" in alert.alert_text_1.lower()
+    assert "15.5" in alert.alert_text_2
+
+
+class TestWrongCarModeAlert:
+  """Test wrong_car_mode_alert callback function."""
+
+  def test_wrong_car_mode_honda(self, mocker):
+    """Test wrong car mode alert for Honda."""
+    from openpilot.selfdrive.selfdrived.events import wrong_car_mode_alert
+
+    CP = mocker.MagicMock()
+    CP.brand = "honda"
+    CS = mocker.MagicMock()
+    sm = mocker.MagicMock()
+
+    alert = wrong_car_mode_alert(CP, CS, sm, False, 0, None)
+
+    assert isinstance(alert, NoEntryAlert)
+    assert "main switch" in alert.alert_text_2.lower()
+
+  def test_wrong_car_mode_other_brand(self, mocker):
+    """Test wrong car mode alert for non-Honda brands."""
+    from openpilot.selfdrive.selfdrived.events import wrong_car_mode_alert
+
+    CP = mocker.MagicMock()
+    CP.brand = "toyota"
+    CS = mocker.MagicMock()
+    sm = mocker.MagicMock()
+
+    alert = wrong_car_mode_alert(CP, CS, sm, False, 0, None)
+
+    assert isinstance(alert, NoEntryAlert)
+    assert "adaptive cruise" in alert.alert_text_2.lower()
