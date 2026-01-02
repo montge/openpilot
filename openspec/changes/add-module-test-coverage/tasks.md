@@ -108,4 +108,6 @@
   - Added 14 tests for resolve_name, file_exists, DiskFile, FileReader, internal_source_available
 - **tools.lib**: url_file.py: 56% → 99% (+43%)
   - Added 12 tests for MaxRetryError, multipart responses, read_aux, get_length caching, read caching
-- **New tests added**: 49
+- **cereal.messaging**: FrequencyTracker: 18% → 35% (+17%)
+  - Added 15 tests for init, record_recv_time, valid property
+- **New tests added**: 64
