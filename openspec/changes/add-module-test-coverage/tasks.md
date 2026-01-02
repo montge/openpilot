@@ -104,4 +104,6 @@
   - Added 3 tests for exception handling and edge cases
 - **tools.lib**: filereader.py: 68% → 93% (+25%)
   - Added 14 tests for resolve_name, file_exists, DiskFile, FileReader, internal_source_available
-- **New tests added**: 37
+- **tools.lib**: url_file.py: 56% → 99% (+43%)
+  - Added 12 tests for MaxRetryError, multipart responses, read_aux, get_length caching, read caching
+- **New tests added**: 49
