@@ -110,4 +110,6 @@
   - Added 12 tests for MaxRetryError, multipart responses, read_aux, get_length caching, read caching
 - **cereal.messaging**: FrequencyTracker: 18% → 35% (+17%)
   - Added 15 tests for init, record_recv_time, valid property
-- **New tests added**: 64
+- **cereal.messaging**: Helper functions: 35% → 43% (+8%)
+  - Added 17 tests for new_message, log_from_bytes, pub_sock, sub_sock
+- **New tests added**: 81
