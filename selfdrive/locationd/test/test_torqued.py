@@ -356,6 +356,145 @@ class TestTorqueEstimatorGetMsgAdvanced:
     assert msg.liveTorqueParameters.useParams is False
 
 
+class TestTorqueEstimatorCacheRestoration:
+  """Test TorqueEstimator cache restoration on init."""
+
+  def test_restore_cache_success(self, mocker):
+    """Test successful cache restoration."""
+    from cereal import log
+
+    # Create cached CarParams
+    cached_cp = car.CarParams()
+    cached_cp.brand = "toyota"
+    cached_cp.carFingerprint = "TOYOTA_CAMRY"
+    cached_cp.lateralTuning.init('torque')
+    cached_cp.lateralTuning.torque.friction = 0.1
+    cached_cp.lateralTuning.torque.latAccelFactor = 2.5
+    cached_cp_bytes = cached_cp.to_bytes()
+
+    # Create cached LiveTorqueParameters
+    cached_event = log.Event.new_message()
+    cached_event.init('liveTorqueParameters')
+    cached_event.liveTorqueParameters.version = VERSION
+    cached_event.liveTorqueParameters.liveValid = True
+    cached_event.liveTorqueParameters.latAccelFactorFiltered = 2.6
+    cached_event.liveTorqueParameters.latAccelOffsetFiltered = 0.05
+    cached_event.liveTorqueParameters.frictionCoefficientFiltered = 0.12
+    cached_event.liveTorqueParameters.decay = 150
+    cached_event.liveTorqueParameters.points = []
+    cached_event_bytes = cached_event.to_bytes()
+
+    # Mock Params
+    mock_params = mocker.MagicMock()
+    mock_params.get.side_effect = lambda key: {
+      'CarParamsPrevRoute': cached_cp_bytes,
+      'LiveTorqueParameters': cached_event_bytes,
+    }.get(key)
+    mocker.patch('openpilot.selfdrive.locationd.torqued.Params', return_value=mock_params)
+
+    # Create new params matching the cached ones
+    cp = car.CarParams()
+    cp.brand = "toyota"
+    cp.carFingerprint = "TOYOTA_CAMRY"
+    cp.lateralTuning.init('torque')
+    cp.lateralTuning.torque.friction = 0.1
+    cp.lateralTuning.torque.latAccelFactor = 2.5
+
+    est = TorqueEstimator(cp)
+
+    # Verify cache was restored
+    assert est.decay == 150
+
+  def test_restore_cache_version_mismatch_ignored(self, mocker):
+    """Test cache is not restored on version mismatch."""
+    from cereal import log
+
+    # Create cached CarParams
+    cached_cp = car.CarParams()
+    cached_cp.brand = "toyota"
+    cached_cp.carFingerprint = "TOYOTA_CAMRY"
+    cached_cp_bytes = cached_cp.to_bytes()
+
+    # Create cached LiveTorqueParameters with different version
+    cached_event = log.Event.new_message()
+    cached_event.init('liveTorqueParameters')
+    cached_event.liveTorqueParameters.version = VERSION + 1  # Wrong version
+    cached_event.liveTorqueParameters.liveValid = True
+    cached_event.liveTorqueParameters.decay = 150
+    cached_event_bytes = cached_event.to_bytes()
+
+    mock_params = mocker.MagicMock()
+    mock_params.get.side_effect = lambda key: {
+      'CarParamsPrevRoute': cached_cp_bytes,
+      'LiveTorqueParameters': cached_event_bytes,
+    }.get(key)
+    mocker.patch('openpilot.selfdrive.locationd.torqued.Params', return_value=mock_params)
+
+    cp = car.CarParams()
+    cp.brand = "toyota"
+    cp.carFingerprint = "TOYOTA_CAMRY"
+
+    est = TorqueEstimator(cp)
+
+    # Decay should be default, not restored
+    assert est.decay == MIN_FILTER_DECAY
+
+  def test_restore_cache_exception_handled(self, mocker):
+    """Test cache restoration handles exceptions gracefully."""
+    mock_params = mocker.MagicMock()
+    # Return invalid bytes that will cause parsing to fail
+    mock_params.get.return_value = b"invalid bytes"
+    mocker.patch('openpilot.selfdrive.locationd.torqued.Params', return_value=mock_params)
+
+    cp = car.CarParams()
+    est = TorqueEstimator(cp)
+
+    # Should succeed despite invalid cache
+    assert est is not None
+    assert est.decay == MIN_FILTER_DECAY
+    # Verify cache was removed
+    mock_params.remove.assert_called_with("LiveTorqueParameters")
+
+  def test_restore_cache_not_live_valid(self, mocker):
+    """Test cache restoration with liveValid=False still restores points."""
+    from cereal import log
+
+    cached_cp = car.CarParams()
+    cached_cp.brand = "toyota"
+    cached_cp.carFingerprint = "TOYOTA_CAMRY"
+    cached_cp.lateralTuning.init('torque')
+    cached_cp.lateralTuning.torque.friction = 0.1
+    cached_cp.lateralTuning.torque.latAccelFactor = 2.5
+    cached_cp_bytes = cached_cp.to_bytes()
+
+    cached_event = log.Event.new_message()
+    cached_event.init('liveTorqueParameters')
+    cached_event.liveTorqueParameters.version = VERSION
+    cached_event.liveTorqueParameters.liveValid = False  # Not live valid
+    cached_event.liveTorqueParameters.decay = 180
+    cached_event.liveTorqueParameters.points = []
+    cached_event_bytes = cached_event.to_bytes()
+
+    mock_params = mocker.MagicMock()
+    mock_params.get.side_effect = lambda key: {
+      'CarParamsPrevRoute': cached_cp_bytes,
+      'LiveTorqueParameters': cached_event_bytes,
+    }.get(key)
+    mocker.patch('openpilot.selfdrive.locationd.torqued.Params', return_value=mock_params)
+
+    cp = car.CarParams()
+    cp.brand = "toyota"
+    cp.carFingerprint = "TOYOTA_CAMRY"
+    cp.lateralTuning.init('torque')
+    cp.lateralTuning.torque.friction = 0.1
+    cp.lateralTuning.torque.latAccelFactor = 2.5
+
+    est = TorqueEstimator(cp)
+
+    # Decay should still be restored
+    assert est.decay == 180
+
+
 def test_cal_percent():
   est = TorqueEstimator(car.CarParams())
   msg = est.get_msg()

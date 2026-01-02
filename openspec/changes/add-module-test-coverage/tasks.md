@@ -133,3 +133,12 @@
   - Added 10 tests for alert callback functions
   - Tests: paramsd_invalid_alert (4 branches), high_cpu, overheat, low_memory, modeld_lagging, wrong_car_mode (2 brands)
 - **New tests added**: 49
+
+### Session 6 (Locationd Coverage)
+- **selfdrive.locationd.torqued**: 61% → 68% (+7%)
+  - Added 4 tests for cache restoration on init
+  - Tests: restore_cache_success, version_mismatch_ignored, exception_handled, not_live_valid
+- **selfdrive.locationd.calibrationd**: 84% → 85% (+1%)
+  - Added 1 test for invalid cached params exception handling
+  - Tests: read_saved_params_invalid_bytes
+- **New tests added**: 5

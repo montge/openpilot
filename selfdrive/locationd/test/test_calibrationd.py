@@ -120,6 +120,22 @@ class TestCalibrationd:
     np.testing.assert_allclose(c.rpy, [0.0, 0.0, MAX_ALLOWED_YAW_SPREAD * 1.1], atol=1e-2)
 
 
+class TestCalibratorEdgeCases:
+  """Test Calibrator edge cases."""
+
+  def test_read_saved_params_invalid_bytes(self):
+    """Test Calibrator handles invalid cached params gracefully."""
+    # Write invalid bytes to CalibrationParams
+    Params().put("CalibrationParams", b"invalid bytes")
+
+    # Should not raise, should use defaults
+    c = Calibrator(param_put=True)
+
+    np.testing.assert_allclose(c.rpy, np.zeros(3))
+    np.testing.assert_allclose(c.height, HEIGHT_INIT)
+    assert c.valid_blocks == 0
+
+
 class TestCalibrationHelpers:
   """Test helper functions in calibrationd."""
 
