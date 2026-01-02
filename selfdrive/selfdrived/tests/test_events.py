@@ -777,3 +777,83 @@ class TestWrongCarModeAlert:
 
     assert isinstance(alert, NoEntryAlert)
     assert "adaptive cruise" in alert.alert_text_2.lower()
+
+
+class TestInvalidLkasSettingAlert:
+  """Test invalid_lkas_setting_alert callback function."""
+
+  def test_invalid_lkas_default_text(self, mocker):
+    """Test invalid LKAS setting alert default text."""
+    from openpilot.selfdrive.selfdrived.events import invalid_lkas_setting_alert
+
+    CP = mocker.MagicMock()
+    CP.brand = "hyundai"
+    CS = mocker.MagicMock()
+    sm = mocker.MagicMock()
+
+    alert = invalid_lkas_setting_alert(CP, CS, sm, False, 0, None)
+
+    assert isinstance(alert, NormalPermanentAlert)
+    assert "toggle stock lkas" in alert.alert_text_2.lower()
+
+  def test_invalid_lkas_tesla(self, mocker):
+    """Test invalid LKAS setting alert for Tesla."""
+    from openpilot.selfdrive.selfdrived.events import invalid_lkas_setting_alert
+
+    CP = mocker.MagicMock()
+    CP.brand = "tesla"
+    CS = mocker.MagicMock()
+    sm = mocker.MagicMock()
+
+    alert = invalid_lkas_setting_alert(CP, CS, sm, False, 0, None)
+
+    assert isinstance(alert, NormalPermanentAlert)
+    assert "traffic-aware cruise control" in alert.alert_text_2.lower()
+
+  def test_invalid_lkas_mazda(self, mocker):
+    """Test invalid LKAS setting alert for Mazda."""
+    from openpilot.selfdrive.selfdrived.events import invalid_lkas_setting_alert
+
+    CP = mocker.MagicMock()
+    CP.brand = "mazda"
+    CS = mocker.MagicMock()
+    sm = mocker.MagicMock()
+
+    alert = invalid_lkas_setting_alert(CP, CS, sm, False, 0, None)
+
+    assert isinstance(alert, NormalPermanentAlert)
+    assert "enable" in alert.alert_text_2.lower()
+    assert "lkas" in alert.alert_text_2.lower()
+
+  def test_invalid_lkas_nissan(self, mocker):
+    """Test invalid LKAS setting alert for Nissan."""
+    from openpilot.selfdrive.selfdrived.events import invalid_lkas_setting_alert
+
+    CP = mocker.MagicMock()
+    CP.brand = "nissan"
+    CS = mocker.MagicMock()
+    sm = mocker.MagicMock()
+
+    alert = invalid_lkas_setting_alert(CP, CS, sm, False, 0, None)
+
+    assert isinstance(alert, NormalPermanentAlert)
+    assert "disable" in alert.alert_text_2.lower()
+    assert "stock lkas" in alert.alert_text_2.lower()
+
+
+class TestPersonalityChangedAlert:
+  """Test personality_changed_alert callback function."""
+
+  def test_personality_changed_format(self, mocker):
+    """Test personality changed alert format."""
+    from openpilot.selfdrive.selfdrived.events import personality_changed_alert
+
+    CP = mocker.MagicMock()
+    CS = mocker.MagicMock()
+    sm = mocker.MagicMock()
+
+    alert = personality_changed_alert(CP, CS, sm, False, 0, "aggressive")
+
+    assert isinstance(alert, NormalPermanentAlert)
+    assert "driving personality" in alert.alert_text_1.lower()
+    assert "Aggressive" in alert.alert_text_1  # Title case
