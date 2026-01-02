@@ -113,3 +113,14 @@
 - **cereal.messaging**: Helper functions: 35% → 43% (+8%)
   - Added 17 tests for new_message, log_from_bytes, pub_sock, sub_sock
 - **New tests added**: 81
+
+### Session 5 (Common Module Coverage)
+- **common.logging_extra**: 92% → 95% (+3%)
+  - Added 5 tests for getMessage exception handling, _srcfile/_tmpfunc, findCaller with stacklevel
+  - Tests: format_dict_with_message_exception, format_dict_with_type_error, findCaller stacklevel traversal
+- **common.swaglog**: 91% → 92% (+1%)
+  - Added 4 tests for edge cases: non-matching files, zero backup_count, fork reconnection
+  - Tests: get_existing_logfiles with unrelated files, doRollover with backup_count=0, emit reconnects on fork
+- **system.loggerd.uploader**: 75% → 77% (+2%)
+  - Added 2 tests for OSError exception paths in listdir_by_creation and clear_locks
+- **New tests added**: 11
