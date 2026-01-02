@@ -126,4 +126,7 @@
 - **selfdrive.locationd.paramsd**: 75% → 81% (+6%)
   - Added 3 tests for invalid yaw rate/roll handling, active filter updates
   - Tests: handle_live_pose with invalid yaw_rate, invalid roll, active with posenetOK
-- **New tests added**: 14
+- **selfdrive.car.car_specific**: 0% → 78% (+78%)
+  - Added 25 tests covering CarSpecificEvents class and create_common_events
+  - Tests: init, mock/body brands, Chrysler/Honda/Toyota/GM/VW events, common events
+- **New tests added**: 39
