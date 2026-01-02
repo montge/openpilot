@@ -102,4 +102,6 @@
   - Added 7 tests for LinAlgError handling, torque tuning, get_msg options
 - **system.hardware**: power_monitoring.py: 90% → 97% (+7%)
   - Added 3 tests for exception handling and edge cases
-- **New tests added**: 23
+- **tools.lib**: filereader.py: 68% → 93% (+25%)
+  - Added 14 tests for resolve_name, file_exists, DiskFile, FileReader, internal_source_available
+- **New tests added**: 37
