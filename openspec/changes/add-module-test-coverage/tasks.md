@@ -100,4 +100,6 @@
   - Tests: startup_master_alert with REPLAY env var
 - **selfdrive.locationd**: torqued.py: 57% → 61% (+4%)
   - Added 7 tests for LinAlgError handling, torque tuning, get_msg options
-- **New tests added**: 20
+- **system.hardware**: power_monitoring.py: 90% → 97% (+7%)
+  - Added 3 tests for exception handling and edge cases
+- **New tests added**: 23
