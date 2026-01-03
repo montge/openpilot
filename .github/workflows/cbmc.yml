@@ -1,0 +1,50 @@
+name: CBMC Safety Verification
+
+on:
+  pull_request:
+    paths:
+      - 'opendbc_repo/opendbc/safety/**'
+      - 'verification/cbmc/**'
+  push:
+    branches:
+      - master
+    paths:
+      - 'opendbc_repo/opendbc/safety/**'
+      - 'verification/cbmc/**'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  cbmc-verification:
+    name: CBMC Safety Properties
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install CBMC
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cbmc
+
+      - name: Verify CBMC installation
+        run: cbmc --version
+
+      - name: Run CBMC verification
+        working-directory: verification/cbmc
+        run: make all
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## CBMC Verification Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| controls_allowed blocks torque | ${{ job.status == 'success' && 'Verified' || 'Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| relay_malfunction blocks TX | ${{ job.status == 'success' && 'Verified' || 'Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| torque bounds enforcement | ${{ job.status == 'success' && 'Verified' || 'Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| longitudinal accel bounds | ${{ job.status == 'success' && 'Verified' || 'Failed' }} |" >> $GITHUB_STEP_SUMMARY
