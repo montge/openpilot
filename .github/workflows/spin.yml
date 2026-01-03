@@ -1,0 +1,174 @@
+# SPIN Protocol Verification Workflow
+#
+# This workflow runs the SPIN model checker to verify the lock-free msgq
+# messaging protocol. SPIN exhaustively explores all thread interleavings
+# to find race conditions, deadlocks, and protocol violations.
+#
+# Triggers:
+#   - Changes to msgq implementation files
+#   - Changes to SPIN verification models
+#   - Manual workflow dispatch
+#
+# Reference: verification/spin/SPIN_VERIFICATION.md
+
+name: SPIN Protocol Verification
+
+on:
+  pull_request:
+    paths:
+      - 'msgq_repo/msgq/msgq.cc'
+      - 'msgq_repo/msgq/msgq.h'
+      - 'verification/spin/**'
+      - '.github/workflows/spin.yml'
+  push:
+    branches:
+      - master
+    paths:
+      - 'msgq_repo/msgq/msgq.cc'
+      - 'msgq_repo/msgq/msgq.h'
+      - 'verification/spin/**'
+  workflow_dispatch:
+    inputs:
+      max_depth:
+        description: 'Maximum search depth (states)'
+        required: false
+        default: '100000'
+      property:
+        description: 'Specific LTL property to verify (empty for all)'
+        required: false
+        default: ''
+
+jobs:
+  spin-verification:
+    name: SPIN Model Checking
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install SPIN model checker
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y spin
+
+      - name: Verify SPIN installation
+        run: |
+          spin -V
+          echo "SPIN model checker installed successfully"
+
+      - name: Generate verifier from Promela model
+        working-directory: verification/spin
+        run: |
+          echo "Generating verifier from msgq_protocol.pml..."
+          spin -a msgq_protocol.pml
+          echo "Generated files:"
+          ls -la pan.*
+
+      - name: Compile verifier
+        working-directory: verification/spin
+        run: |
+          echo "Compiling pan.c verifier..."
+          gcc -O2 -DVECTORSZ=4096 -o pan pan.c
+          echo "Verifier compiled successfully"
+
+      - name: Run safety verification
+        working-directory: verification/spin
+        run: |
+          echo "=========================================="
+          echo "Running safety property verification"
+          echo "=========================================="
+          # Compile safety-only verifier (faster)
+          gcc -O2 -DSAFETY -DVECTORSZ=4096 -o pan_safety pan.c
+          ./pan_safety -m${{ github.event.inputs.max_depth || '100000' }} -w24
+
+      - name: Run full verification (safety + liveness)
+        working-directory: verification/spin
+        run: |
+          echo "=========================================="
+          echo "Running full verification (safety + LTL)"
+          echo "=========================================="
+          MAX_DEPTH="${{ github.event.inputs.max_depth || '100000' }}"
+          PROP="${{ github.event.inputs.property }}"
+
+          if [ -n "$PROP" ]; then
+            echo "Verifying specific property: $PROP"
+            ./pan -a -N "$PROP" -m"$MAX_DEPTH" -w24
+          else
+            echo "Verifying all LTL properties"
+            ./pan -a -m"$MAX_DEPTH" -w24
+          fi
+
+      - name: Check for counterexamples
+        working-directory: verification/spin
+        if: always()
+        run: |
+          if [ -f "msgq_protocol.pml.trail" ]; then
+            echo "=========================================="
+            echo "ERROR: Counterexample found!"
+            echo "=========================================="
+            spin -t -p -l -g msgq_protocol.pml
+            echo ""
+            echo "The SPIN verifier found a protocol violation."
+            echo "Review the counterexample trace above."
+            exit 1
+          else
+            echo "No counterexamples found - verification passed"
+          fi
+
+      - name: Display verification statistics
+        working-directory: verification/spin
+        if: success()
+        run: |
+          echo "=========================================="
+          echo "Verification Statistics"
+          echo "=========================================="
+          ./pan -d || true
+
+      - name: Upload verification artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: spin-verification-results
+          path: |
+            verification/spin/pan
+            verification/spin/*.trail
+            verification/spin/pan.c
+          retention-days: 7
+
+  # Quick simulation check (runs faster than full verification)
+  spin-simulation:
+    name: SPIN Simulation Check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install SPIN
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y spin
+
+      - name: Run random simulations
+        working-directory: verification/spin
+        run: |
+          echo "Running 10 random simulations..."
+          for seed in 1 42 123 256 789 1000 2024 3333 5555 9999; do
+            echo "--- Simulation with seed $seed ---"
+            spin -n$seed -p msgq_protocol.pml 2>&1 | tail -5
+          done
+          echo "All simulations completed"
+
+      - name: Syntax check
+        working-directory: verification/spin
+        run: |
+          echo "Checking Promela syntax..."
+          spin -a msgq_protocol.pml
+          echo "Syntax check passed"
