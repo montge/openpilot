@@ -1,0 +1,123 @@
+# libFuzzer Continuous Fuzzing Workflow
+#
+# Runs libFuzzer-based fuzzing on safety-critical C code.
+# Complements CBMC by testing real execution paths with sanitizers.
+#
+# This workflow:
+#   - Builds fuzz targets with ASAN/UBSAN
+#   - Runs short fuzzing sessions per commit
+#   - Uploads any crash artifacts for analysis
+
+name: Fuzzing
+
+on:
+  pull_request:
+    paths:
+      - 'verification/fuzz/**'
+      - 'opendbc/safety/**'
+      - 'opendbc_repo/opendbc/safety/**'
+      - '.github/workflows/fuzz.yml'
+  push:
+    branches:
+      - master
+      - develop
+    paths:
+      - 'verification/fuzz/**'
+      - 'opendbc/safety/**'
+      - 'opendbc_repo/opendbc/safety/**'
+
+jobs:
+  fuzz:
+    name: libFuzzer Safety Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang llvm
+
+      - name: Build fuzz targets
+        working-directory: verification/fuzz
+        run: |
+          echo "Building fuzz targets with sanitizers..."
+          make all
+          echo ""
+          echo "Built targets:"
+          ls -la fuzz_*
+
+      - name: Run fuzz_safety_tx_hook
+        working-directory: verification/fuzz
+        run: |
+          echo "Fuzzing safety TX hook (30s)..."
+          mkdir -p corpus_tx
+          # Seed corpus with basic test cases
+          echo -n "$(printf '\x00\x02\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00')" > corpus_tx/seed1
+          timeout 30s ./fuzz_safety_tx_hook corpus_tx \
+            -max_total_time=30 \
+            -print_final_stats=1 \
+            2>&1 || true
+          echo "TX hook fuzzing complete"
+
+      - name: Run fuzz_can_rx
+        working-directory: verification/fuzz
+        run: |
+          echo "Fuzzing CAN RX parsing (30s)..."
+          mkdir -p corpus_rx
+          # Seed corpus with basic test cases
+          echo -n "$(printf '\x00\x02\x08\x00\x00\x00\x00\x00\x01\x02\x03\x04\x05\x06\x07\x08')" > corpus_rx/seed1
+          timeout 30s ./fuzz_can_rx corpus_rx \
+            -max_total_time=30 \
+            -print_final_stats=1 \
+            2>&1 || true
+          echo "CAN RX fuzzing complete"
+
+      - name: Check for crashes
+        working-directory: verification/fuzz
+        run: |
+          if ls crash-* 1> /dev/null 2>&1; then
+            echo "::error::Fuzzing found crashes!"
+            ls -la crash-*
+            for f in crash-*; do
+              echo "=== $f ==="
+              xxd "$f" | head -20
+            done
+            exit 1
+          else
+            echo "No crashes found"
+          fi
+
+      - name: Upload crash artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-crashes
+          path: |
+            verification/fuzz/crash-*
+            verification/fuzz/oom-*
+            verification/fuzz/timeout-*
+          retention-days: 30
+
+      - name: Fuzzing Summary
+        if: success()
+        run: |
+          echo ""
+          echo "======================================"
+          echo "Fuzzing PASSED"
+          echo "======================================"
+          echo ""
+          echo "Executed fuzz targets:"
+          echo "  - fuzz_safety_tx_hook: CAN TX validation"
+          echo "  - fuzz_can_rx: CAN RX message parsing"
+          echo ""
+          echo "Sanitizers enabled:"
+          echo "  - AddressSanitizer (ASAN)"
+          echo "  - UndefinedBehaviorSanitizer (UBSAN)"
+          echo ""
+          echo "No crashes or sanitizer violations detected."
