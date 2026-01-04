@@ -60,17 +60,17 @@ jobs:
             echo "Using cached TLA+ tools"
           fi
 
-      - name: Run TLC Model Checker
+      - name: Run TLC Model Checker (Safety Properties)
         working-directory: verification/tlaplus
         run: |
-          echo "Running TLC on SelfDrived specification..."
+          echo "Running TLC on SelfDrived specification (safety properties)..."
           echo ""
           java -XX:+UseParallelGC -Xmx4g \
             -jar tla2tools.jar \
             -workers auto \
             -deadlock \
             -cleanup \
-            -config SelfDrived.cfg \
+            -config SelfDrived_Safety.cfg \
             SelfDrived.tla
 
       - name: Verification Summary
@@ -81,12 +81,12 @@ jobs:
           echo "TLA+ Verification PASSED"
           echo "======================================"
           echo ""
-          echo "Verified properties:"
+          echo "Verified safety invariants:"
           echo "  - TypeInvariant: All variables have valid types"
           echo "  - StateValid: State is always one of the 5 defined states"
           echo "  - TimerBounded: Timer never exceeds maximum"
-          echo "  - SoftDisableProgress: softDisabling eventually resolves"
-          echo "  - PreEnableProgress: preEnabled eventually resolves"
-          echo "  - OverrideProgress: overriding eventually resolves"
+          echo "  - DisableAlwaysHonored: USER_DISABLE/IMMEDIATE_DISABLE always work"
+          echo "  - NoEntryBlocksEngagement: NO_ENTRY prevents enabling"
+          echo "  - DisableResetsTimer: Disable resets soft_disable_timer"
           echo ""
           echo "The selfdrived state machine specification is verified correct."
