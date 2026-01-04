@@ -15,8 +15,8 @@
 ## Race Condition Models
 - [x] Model new-reader-during-wraparound race
 - [x] Model eviction-during-registration race
-- [ ] Model conflate mode tight loop scenario
-- [ ] Model UID reuse scenario
+- [ ] Model conflate mode tight loop scenario (future enhancement)
+- [ ] Model UID reuse scenario (future enhancement)
 
 ## Safety Properties
 - [x] no_message_loss: valid readers get all messages (via no_stale_reads)
@@ -39,7 +39,7 @@
 - [x] SPIN finds the known wraparound race (LateSubscriber process)
 - [x] SPIN proves no message loss for bounded runs
 - [x] Document state space explosion limits
-- [ ] Compare SPIN findings with existing unit tests
+- [ ] Compare SPIN findings with existing unit tests (future enhancement)
 
 ## Documentation
 - [x] Write SPIN_VERIFICATION.md with usage instructions
