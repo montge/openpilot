@@ -85,6 +85,8 @@ jobs:
           echo "  - TypeInvariant: All variables have valid types"
           echo "  - StateValid: State is always one of the 5 defined states"
           echo "  - TimerBounded: Timer never exceeds maximum"
+          echo ""
+          echo "Action properties (verified structurally in TLA+ spec):"
           echo "  - DisableAlwaysHonored: USER_DISABLE/IMMEDIATE_DISABLE always work"
           echo "  - NoEntryBlocksEngagement: NO_ENTRY prevents enabling"
           echo "  - DisableResetsTimer: Disable resets soft_disable_timer"
