@@ -23,14 +23,14 @@ jobs:
         sudo apt-get install -y libyaml-dev
     - name: Wait for green check mark
       if: ${{ github.event_name == 'schedule' }}
-      uses: lewagon/wait-on-check-action@ccfb013c15c8afb7bf2b7c028fb74dc5a068cccc
+      uses: lewagon/wait-on-check-action@8d48c65e9e972715783ef4619b392e1c944b732e
       with:
         ref: master
         wait-interval: 30
         running-workflow-name: 'build master-ci'
         repo-token: ${{ secrets.GITHUB_TOKEN }}
         check-regexp: ^((?!.*(build prebuilt).*).)*$
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         submodules: true
         fetch-depth: 0
