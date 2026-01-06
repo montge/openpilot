@@ -104,7 +104,7 @@ the verification suite.
 
 In addition to formal verification, the project uses:
 
-- **CodeQL**: Semantic code analysis (Python, C/C++)
+- **CodeQL** (GitHub default setup): Semantic code analysis for Python
 - **Dependabot**: Automated dependency updates
 - **SonarCloud**: Code quality and security scanning
 - **MISRA**: C code compliance checking
