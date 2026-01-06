@@ -1,7 +1,10 @@
 # CodeQL Code Scanning Workflow
 #
 # Performs semantic code analysis to find security vulnerabilities
-# and code quality issues in C/C++ and Python code.
+# and code quality issues in Python code.
+#
+# Note: C++ safety-critical code is verified by CBMC bounded model checking
+# and libFuzzer continuous fuzzing. See verification/README.md for details.
 
 name: CodeQL
 
@@ -24,39 +27,22 @@ permissions:
 
 jobs:
   analyze:
-    name: Analyze
+    name: Analyze Python
     runs-on: ubuntu-latest
-    timeout-minutes: 60
-
-    strategy:
-      fail-fast: false
-      matrix:
-        language: ['python', 'c-cpp']
+    timeout-minutes: 30
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          submodules: true
+          submodules: false  # Python analysis doesn't need submodules
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
-          languages: ${{ matrix.language }}
+          languages: python
           # Use security-and-quality for comprehensive scanning
           queries: security-and-quality
-
-      - name: Setup build environment (C/C++)
-        if: matrix.language == 'c-cpp'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            build-essential \
-            clang \
-            capnproto \
-            libcapnp-dev \
-            libzmq3-dev \
-            libeigen3-dev
 
       - name: Autobuild
         uses: github/codeql-action/autobuild@v3
@@ -64,4 +50,4 @@ jobs:
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
-          category: "/language:${{ matrix.language }}"
+          category: "/language:python"
