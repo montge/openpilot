@@ -1,11 +1,11 @@
 ## 1. Core Framework
 
-- [ ] 1.1 Create `selfdrive/controls/lib/tests/algorithm_harness/` directory structure
-- [ ] 1.2 Implement `AlgorithmInterface` protocol and data classes (`interface.py`)
-- [ ] 1.3 Implement `ScenarioRunner` class (`runner.py`)
-- [ ] 1.4 Implement `MetricsCollector` class (`metrics.py`)
-- [ ] 1.5 Create wrapper adapters for existing controllers (LatControlPID, LatControlTorque, LongControl)
-- [ ] 1.6 Add unit tests for harness framework (>90% coverage)
+- [x] 1.1 Create `selfdrive/controls/lib/tests/algorithm_harness/` directory structure
+- [x] 1.2 Implement `AlgorithmInterface` protocol and data classes (`interface.py`)
+- [x] 1.3 Implement `ScenarioRunner` class (`runner.py`)
+- [x] 1.4 Implement `MetricsCollector` class (`metrics.py`)
+- [x] 1.5 Create wrapper adapters for existing controllers (LatControlPID, LatControlTorque, LongControl)
+- [x] 1.6 Add unit tests for harness framework (>90% coverage)
 
 ## 2. Scenario Infrastructure
 
