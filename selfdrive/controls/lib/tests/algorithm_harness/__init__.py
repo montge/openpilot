@@ -46,6 +46,14 @@ from openpilot.selfdrive.controls.lib.tests.algorithm_harness.vehicle_dynamics i
   get_vehicle_config,
   VEHICLE_PRESETS,
 )
+from openpilot.selfdrive.controls.lib.tests.algorithm_harness.deterministic import (
+  FakeTimeSource,
+  DeterministicContext,
+  deterministic_mode,
+  seed_all,
+  DeterministicRandom,
+  ReplayableSequence,
+)
 
 __all__ = [
   # Interface
@@ -78,4 +86,11 @@ __all__ = [
   'get_sports_config',
   'get_vehicle_config',
   'VEHICLE_PRESETS',
+  # Deterministic utilities
+  'FakeTimeSource',
+  'DeterministicContext',
+  'deterministic_mode',
+  'seed_all',
+  'DeterministicRandom',
+  'ReplayableSequence',
 ]

@@ -29,10 +29,11 @@
 
 ## 4. Deterministic Replay
 
-- [ ] 4.1 Add `--deterministic` flag to process_replay
-- [ ] 4.2 Implement fixed random seed injection
-- [ ] 4.3 Implement monotonic fake time source
-- [ ] 4.4 Add regression tests for determinism
+- [x] 4.1 Create `DeterministicContext` for reproducible execution
+- [x] 4.2 Implement fixed random seed injection (`seed_all`, `DeterministicRandom`)
+- [x] 4.3 Implement monotonic fake time source (`FakeTimeSource`)
+- [x] 4.4 Add `ReplayableSequence` for recording/replaying test values
+- [x] 4.5 Add regression tests for determinism
 
 ## 5. CLI and Reporting
 
