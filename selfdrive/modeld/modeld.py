@@ -1,11 +1,26 @@
 #!/usr/bin/env python3
 import os
 from openpilot.system.hardware import TICI
+
+# Device selection priority: QCOM (comma device) > NVIDIA/CUDA > AMD USB > CPU
 os.environ['DEV'] = 'QCOM' if TICI else 'CPU'
+
+# Check for USB GPU (AMD)
 USBGPU = "USBGPU" in os.environ
 if USBGPU:
   os.environ['DEV'] = 'AMD'
   os.environ['AMD_IFACE'] = 'USB'
+
+# Check for NVIDIA GPU (DGX Spark, RTX, etc.)
+NVIDIAGPU = "NVIDIAGPU" in os.environ or "CUDAGPU" in os.environ
+if not TICI and not USBGPU:
+  try:
+    from openpilot.system.hardware import NVIDIA_GPU
+    if NVIDIA_GPU or NVIDIAGPU:
+      os.environ['DEV'] = 'CUDA'
+      NVIDIAGPU = True
+  except ImportError:
+    pass
 from tinygrad.tensor import Tensor
 from tinygrad.dtype import dtypes
 import time
@@ -191,7 +206,7 @@ class ModelState:
 
     imgs_cl = {name: self.frames[name].prepare(bufs[name], transforms[name].flatten()) for name in self.vision_input_names}
 
-    if TICI and not USBGPU:
+    if TICI and not USBGPU and not NVIDIAGPU:
       # The imgs tensors are backed by opencl memory, only need init once
       for key in imgs_cl:
         if key not in self.vision_inputs:
@@ -225,8 +240,8 @@ class ModelState:
 def main(demo=False):
   cloudlog.warning("modeld init")
 
-  if not USBGPU:
-    # USB GPU currently saturates a core so can't do this yet,
+  if not USBGPU and not NVIDIAGPU:
+    # USB/NVIDIA GPU currently saturates a core so can't do this yet,
     # also need to move the aux USB interrupts for good timings
     config_realtime_process(7, 54)
 

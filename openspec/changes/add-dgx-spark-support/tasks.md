@@ -1,20 +1,19 @@
 ## 1. Hardware Abstraction
 
-- [ ] 1.1 Create `system/hardware/dgx_spark/` directory structure
-- [ ] 1.2 Implement `DGXSparkHardware` class extending `HardwareBase`
-- [ ] 1.3 Implement hardware detection (`is_dgx_spark()`)
-- [ ] 1.4 Implement capability queries (GPU memory, compute capability, unified memory)
-- [ ] 1.5 Add DGX Spark to `HARDWARE` singleton selection logic
-- [ ] 1.6 Add unit tests for hardware detection (with mocking)
+- [x] 1.1 Create `system/hardware/nvidia/` directory structure
+- [x] 1.2 Implement `NvidiaPC` class extending `HardwareBase`
+- [x] 1.3 Implement hardware detection (`is_nvidia_available()`, `is_dgx_spark()`)
+- [x] 1.4 Implement capability queries (`GPUInfo` with memory, compute capability, unified memory)
+- [x] 1.5 Add NVIDIA GPU to `HARDWARE` singleton selection logic
+- [x] 1.6 Add unit tests for hardware detection (with mocking)
 
 ## 2. tinygrad CUDA Backend Integration
 
-- [ ] 2.1 Configure tinygrad CUDA backend selection for DGX Spark
-- [ ] 2.2 Test supercombo model loading on CUDA backend
-- [ ] 2.3 Implement unified memory detection and optimization
-- [ ] 2.4 Add FP16 precision mode support
-- [ ] 2.5 Add FP4/NVFP4 precision mode support (experimental)
-- [ ] 2.6 Benchmark inference performance vs comma device baseline
+- [x] 2.1 Configure tinygrad CUDA backend selection for NVIDIA GPUs
+- [x] 2.2 Add `NVIDIAGPU` / `CUDAGPU` environment variable support to modeld
+- [ ] 2.3 Test supercombo model loading on CUDA backend
+- [x] 2.4 Implement precision detection (`supports_fp16`, `supports_bf16`, `supports_fp8`, `supports_nvfp4`)
+- [ ] 2.5 Benchmark inference performance vs comma device baseline
 
 ## 3. Model Loading and Inference
 
@@ -53,22 +52,22 @@
 
 ## 7. Configuration and Feature Flags
 
-- [ ] 7.1 Add `OPENPILOT_DGX_ENABLED` environment variable
-- [ ] 7.2 Add `OPENPILOT_DGX_PRECISION` configuration (fp32/fp16/fp4)
-- [ ] 7.3 Add fallback logic when DGX features unavailable
+- [x] 7.1 Add `NVIDIAGPU` / `CUDAGPU` environment variable support
+- [x] 7.2 Add precision recommendation based on compute capability
+- [x] 7.3 Add fallback logic when NVIDIA features unavailable
 - [ ] 7.4 Document all configuration options
 
 ## 8. Testing
 
-- [ ] 8.1 Add pytest fixtures for DGX Spark testing (with hardware mocking)
+- [x] 8.1 Add pytest fixtures for NVIDIA testing (with hardware mocking)
 - [ ] 8.2 Add integration tests for model inference
 - [ ] 8.3 Add tests for DoRA adapter correctness
-- [ ] 8.4 Add CI job for DGX Spark compatibility (software-only checks)
+- [ ] 8.4 Add CI job for NVIDIA compatibility (software-only checks)
 - [ ] 8.5 Create manual test checklist for hardware validation
 
 ## 9. Documentation
 
-- [ ] 9.1 Add DGX Spark setup guide to tools/dgx/README.md
+- [ ] 9.1 Add NVIDIA/DGX setup guide to tools/dgx/README.md
 - [ ] 9.2 Document DoRA fine-tuning workflow
 - [ ] 9.3 Add troubleshooting guide for common issues
-- [ ] 9.4 Update CLAUDE.md with DGX Spark development notes
+- [ ] 9.4 Update CLAUDE.md with NVIDIA development notes
