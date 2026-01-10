@@ -22,10 +22,10 @@
 
 ## 3. Vehicle Dynamics
 
-- [ ] 3.1 Create `VehicleDynamicsConfig` dataclass
-- [ ] 3.2 Extend `SimulatedCar` with configurable dynamics
-- [ ] 3.3 Add preset configurations (sedan, SUV, truck)
-- [ ] 3.4 Add unit tests for vehicle dynamics model
+- [x] 3.1 Create `VehicleDynamicsConfig` dataclass
+- [x] 3.2 Create `BicycleModel` for vehicle dynamics simulation
+- [x] 3.3 Add preset configurations (sedan, SUV, truck, compact, sports)
+- [x] 3.4 Add unit tests for vehicle dynamics model
 
 ## 4. Deterministic Replay
 

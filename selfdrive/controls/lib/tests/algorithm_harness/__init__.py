@@ -33,6 +33,19 @@ from openpilot.selfdrive.controls.lib.tests.algorithm_harness.runner import (
   ScenarioResult,
   generate_synthetic_scenario,
 )
+from openpilot.selfdrive.controls.lib.tests.algorithm_harness.vehicle_dynamics import (
+  VehicleDynamicsConfig,
+  VehicleType,
+  BicycleModel,
+  BicycleModelState,
+  get_sedan_config,
+  get_suv_config,
+  get_truck_config,
+  get_compact_config,
+  get_sports_config,
+  get_vehicle_config,
+  VEHICLE_PRESETS,
+)
 
 __all__ = [
   # Interface
@@ -53,4 +66,16 @@ __all__ = [
   'ScenarioRunner',
   'ScenarioResult',
   'generate_synthetic_scenario',
+  # Vehicle Dynamics
+  'VehicleDynamicsConfig',
+  'VehicleType',
+  'BicycleModel',
+  'BicycleModelState',
+  'get_sedan_config',
+  'get_suv_config',
+  'get_truck_config',
+  'get_compact_config',
+  'get_sports_config',
+  'get_vehicle_config',
+  'VEHICLE_PRESETS',
 ]
