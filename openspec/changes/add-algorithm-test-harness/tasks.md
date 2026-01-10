@@ -9,16 +9,16 @@
 
 ## 2. Scenario Infrastructure
 
-- [ ] 2.1 Define Parquet schema for scenarios (`scenario_schema.py`)
-- [ ] 2.2 Implement scenario loader and validator (`scenarios.py`)
-- [ ] 2.3 Create `tools/lib/test_scenarios/` directory structure
-- [ ] 2.4 Create 5 seed scenarios:
-  - [ ] 2.4.1 Highway straight driving (baseline)
-  - [ ] 2.4.2 Tight S-curve
-  - [ ] 2.4.3 Highway lane change
-  - [ ] 2.4.4 Low-speed parking maneuver
-  - [ ] 2.4.5 Emergency stop scenario
-- [ ] 2.5 Add scenario generation utilities from route logs
+- [x] 2.1 Define Parquet schema for scenarios (`scenario_schema.py`)
+- [x] 2.2 Implement scenario loader and validator (`scenarios.py`)
+- [x] 2.3 Create `tools/lib/test_scenarios/` directory structure
+- [x] 2.4 Create 5 seed scenarios:
+  - [x] 2.4.1 Highway straight driving (baseline)
+  - [x] 2.4.2 Tight S-curve
+  - [x] 2.4.3 Highway lane change
+  - [x] 2.4.4 Low-speed parking maneuver
+  - [x] 2.4.5 Emergency stop scenario
+- [x] 2.5 Add scenario generation utilities from route logs
 
 ## 3. Vehicle Dynamics
 
@@ -36,11 +36,11 @@
 
 ## 5. CLI and Reporting
 
-- [ ] 5.1 Create `tools/algo_bench.py` CLI entry point
-- [ ] 5.2 Implement `run` subcommand (run algorithm against scenarios)
-- [ ] 5.3 Implement `compare` subcommand (A/B comparison)
+- [x] 5.1 Create `tools/algo_bench.py` CLI entry point
+- [x] 5.2 Implement `run` subcommand (run algorithm against scenarios)
+- [x] 5.3 Implement `compare` subcommand (A/B comparison)
 - [ ] 5.4 Implement `report` subcommand (generate HTML/markdown reports)
-- [ ] 5.5 Add tabular output with metrics summary
+- [x] 5.5 Add tabular output with metrics summary
 - [ ] 5.6 Add optional matplotlib visualization
 
 ## 6. Pytest Integration

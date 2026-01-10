@@ -9,6 +9,7 @@ Key components:
 - ScenarioRunner: Execute algorithms against test scenarios
 - MetricsCollector: Collect and analyze algorithm performance metrics
 - Adapters: Wrap existing openpilot controllers for harness compatibility
+- Scenarios: Load, save, and generate test scenarios
 """
 
 from openpilot.selfdrive.controls.lib.tests.algorithm_harness.interface import (
@@ -23,13 +24,18 @@ from openpilot.selfdrive.controls.lib.tests.algorithm_harness.interface import (
 from openpilot.selfdrive.controls.lib.tests.algorithm_harness.metrics import (
   MetricsCollector,
   AlgorithmMetrics,
+  compare_metrics,
+  format_metrics_table,
 )
 from openpilot.selfdrive.controls.lib.tests.algorithm_harness.runner import (
+  Scenario,
   ScenarioRunner,
   ScenarioResult,
+  generate_synthetic_scenario,
 )
 
 __all__ = [
+  # Interface
   'AlgorithmInterface',
   'AlgorithmState',
   'AlgorithmOutput',
@@ -37,8 +43,14 @@ __all__ = [
   'LateralAlgorithmOutput',
   'LongitudinalAlgorithmState',
   'LongitudinalAlgorithmOutput',
+  # Metrics
   'MetricsCollector',
   'AlgorithmMetrics',
+  'compare_metrics',
+  'format_metrics_table',
+  # Runner
+  'Scenario',
   'ScenarioRunner',
   'ScenarioResult',
+  'generate_synthetic_scenario',
 ]
