@@ -16,6 +16,7 @@ from typing import Optional
 @dataclass
 class GPUInfo:
   """Information about an NVIDIA GPU."""
+
   index: int
   name: str
   uuid: str
@@ -121,10 +122,7 @@ def get_nvidia_gpus() -> list[GPUInfo]:
 
   # Query GPU information
   query = 'index,name,uuid,memory.total,memory.free,driver_version'
-  output = _run_nvidia_smi([
-    f'--query-gpu={query}',
-    '--format=csv,noheader,nounits'
-  ])
+  output = _run_nvidia_smi([f'--query-gpu={query}', '--format=csv,noheader,nounits'])
 
   if output is None:
     return []
@@ -156,18 +154,20 @@ def get_nvidia_gpus() -> list[GPUInfo]:
     # Check for unified memory (Grace Hopper, DGX Spark)
     is_unified = 'GRACE' in name.upper() or is_dgx
 
-    gpus.append(GPUInfo(
-      index=index,
-      name=name,
-      uuid=uuid,
-      memory_total_mb=memory_total,
-      memory_free_mb=memory_free,
-      compute_capability=compute_cap,
-      driver_version=driver_version,
-      cuda_version=cuda_version,
-      is_dgx_spark=is_dgx,
-      is_unified_memory=is_unified,
-    ))
+    gpus.append(
+      GPUInfo(
+        index=index,
+        name=name,
+        uuid=uuid,
+        memory_total_mb=memory_total,
+        memory_free_mb=memory_free,
+        compute_capability=compute_cap,
+        driver_version=driver_version,
+        cuda_version=cuda_version,
+        is_dgx_spark=is_dgx,
+        is_unified_memory=is_unified,
+      )
+    )
 
   return gpus
 
@@ -231,11 +231,14 @@ def get_best_gpu() -> Optional[GPUInfo]:
     return None
 
   # Prefer DGX Spark, then highest compute capability, then most memory
-  return max(gpus, key=lambda g: (
-    g.is_dgx_spark,
-    g.compute_capability,
-    g.memory_total_mb,
-  ))
+  return max(
+    gpus,
+    key=lambda g: (
+      g.is_dgx_spark,
+      g.compute_capability,
+      g.memory_total_mb,
+    ),
+  )
 
 
 def get_recommended_precision(gpu: Optional[GPUInfo] = None) -> str:

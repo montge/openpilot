@@ -23,17 +23,13 @@ from openpilot.selfdrive.controls.lib.tests.algorithm_harness.scenario_schema im
   ScenarioMetadata,
   ScenarioType,
   DifficultyLevel,
-  SCHEMA_VERSION,
-  REQUIRED_COLUMNS,
   OPTIONAL_COLUMN_DEFAULTS,
   validate_schema,
-  get_pyarrow_schema,
 )
 
 
 class ScenarioValidationError(Exception):
   """Raised when scenario validation fails."""
-  pass
 
 
 def load_scenario(path: Union[str, Path], scenario_class: str = "lateral") -> Scenario:
@@ -76,6 +72,7 @@ def load_scenario(path: Union[str, Path], scenario_class: str = "lateral") -> Sc
   # Load metadata from Parquet metadata
   try:
     import pyarrow.parquet as pq
+
     parquet_file = pq.read_table(path)
     metadata_json = parquet_file.schema.metadata.get(b'scenario_metadata', b'{}').decode()
     metadata_dict = json.loads(metadata_json)
@@ -229,23 +226,27 @@ def _states_to_dataframe(states: list):
     }
 
     if isinstance(state, LateralAlgorithmState):
-      row.update({
-        'steering_angle_deg': state.steering_angle_deg,
-        'steering_rate_deg': state.steering_rate_deg,
-        'yaw_rate': state.yaw_rate,
-        'desired_curvature': state.desired_curvature,
-        'roll': state.roll,
-        'steering_pressed': state.steering_pressed,
-        'steer_limited_by_safety': state.steer_limited_by_safety,
-        'curvature_limited': state.curvature_limited,
-      })
+      row.update(
+        {
+          'steering_angle_deg': state.steering_angle_deg,
+          'steering_rate_deg': state.steering_rate_deg,
+          'yaw_rate': state.yaw_rate,
+          'desired_curvature': state.desired_curvature,
+          'roll': state.roll,
+          'steering_pressed': state.steering_pressed,
+          'steer_limited_by_safety': state.steer_limited_by_safety,
+          'curvature_limited': state.curvature_limited,
+        }
+      )
     elif isinstance(state, LongitudinalAlgorithmState):
-      row.update({
-        'a_target': state.a_target,
-        'should_stop': state.should_stop,
-        'brake_pressed': state.brake_pressed,
-        'cruise_standstill': state.cruise_standstill,
-      })
+      row.update(
+        {
+          'a_target': state.a_target,
+          'should_stop': state.should_stop,
+          'brake_pressed': state.brake_pressed,
+          'cruise_standstill': state.cruise_standstill,
+        }
+      )
 
     rows.append(row)
 
@@ -281,8 +282,7 @@ def validate_scenario(scenario: Scenario) -> tuple[bool, list[str]]:
   # Check ground truth length matches states
   if scenario.ground_truth is not None:
     if len(scenario.ground_truth) != len(scenario.states):
-      errors.append(f"Ground truth length ({len(scenario.ground_truth)}) "
-                    f"doesn't match states length ({len(scenario.states)})")
+      errors.append(f"Ground truth length ({len(scenario.ground_truth)}) doesn't match states length ({len(scenario.states)})")
 
   # Check v_ego is reasonable
   v_egos = [s.v_ego for s in scenario.states]
@@ -318,23 +318,28 @@ def list_scenarios(directory: Union[str, Path]) -> list[dict]:
   for path in directory.glob("**/*.parquet"):
     try:
       import pyarrow.parquet as pq
+
       parquet_file = pq.read_table(path)
       metadata_json = parquet_file.schema.metadata.get(b'scenario_metadata', b'{}').decode()
       metadata = json.loads(metadata_json)
 
-      scenarios.append({
-        'path': str(path),
-        'name': metadata.get('name', path.stem),
-        'type': metadata.get('scenario_type', 'unknown'),
-        'difficulty': metadata.get('difficulty', 'unknown'),
-        'duration_s': metadata.get('duration_s', 0),
-        'num_steps': metadata.get('num_steps', 0),
-      })
+      scenarios.append(
+        {
+          'path': str(path),
+          'name': metadata.get('name', path.stem),
+          'type': metadata.get('scenario_type', 'unknown'),
+          'difficulty': metadata.get('difficulty', 'unknown'),
+          'duration_s': metadata.get('duration_s', 0),
+          'num_steps': metadata.get('num_steps', 0),
+        }
+      )
     except Exception as e:
-      scenarios.append({
-        'path': str(path),
-        'name': path.stem,
-        'error': str(e),
-      })
+      scenarios.append(
+        {
+          'path': str(path),
+          'name': path.stem,
+          'error': str(e),
+        }
+      )
 
   return scenarios

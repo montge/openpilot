@@ -5,8 +5,7 @@ These tests use mocking to simulate NVIDIA hardware since
 the actual hardware may not be available in CI.
 """
 
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from openpilot.system.hardware.nvidia.gpu import (
   GPUInfo,
@@ -14,7 +13,6 @@ from openpilot.system.hardware.nvidia.gpu import (
   get_nvidia_gpus,
   get_cuda_version,
   is_dgx_spark,
-  get_best_gpu,
   get_recommended_precision,
   get_tinygrad_device,
   _get_compute_capability,
@@ -58,8 +56,14 @@ class TestGPUInfo:
   def test_compute_capability_str(self):
     """Test compute capability string formatting."""
     gpu = GPUInfo(
-      index=0, name="Test", uuid="", memory_total_mb=0, memory_free_mb=0,
-      compute_capability=(8, 9), driver_version="", cuda_version="",
+      index=0,
+      name="Test",
+      uuid="",
+      memory_total_mb=0,
+      memory_free_mb=0,
+      compute_capability=(8, 9),
+      driver_version="",
+      cuda_version="",
     )
     assert gpu.compute_capability_str == "8.9"
 
@@ -67,15 +71,27 @@ class TestGPUInfo:
     """Test FP16 support detection (Volta 7.0+)."""
     # Volta (7.0) - supports FP16
     gpu_volta = GPUInfo(
-      index=0, name="V100", uuid="", memory_total_mb=0, memory_free_mb=0,
-      compute_capability=(7, 0), driver_version="", cuda_version="",
+      index=0,
+      name="V100",
+      uuid="",
+      memory_total_mb=0,
+      memory_free_mb=0,
+      compute_capability=(7, 0),
+      driver_version="",
+      cuda_version="",
     )
     assert gpu_volta.supports_fp16() is True
 
     # Pascal (6.1) - no FP16 tensor cores
     gpu_pascal = GPUInfo(
-      index=0, name="P100", uuid="", memory_total_mb=0, memory_free_mb=0,
-      compute_capability=(6, 1), driver_version="", cuda_version="",
+      index=0,
+      name="P100",
+      uuid="",
+      memory_total_mb=0,
+      memory_free_mb=0,
+      compute_capability=(6, 1),
+      driver_version="",
+      cuda_version="",
     )
     assert gpu_pascal.supports_fp16() is False
 
@@ -83,15 +99,27 @@ class TestGPUInfo:
     """Test BF16 support detection (Ampere 8.0+)."""
     # Ampere (8.0) - supports BF16
     gpu_ampere = GPUInfo(
-      index=0, name="A100", uuid="", memory_total_mb=0, memory_free_mb=0,
-      compute_capability=(8, 0), driver_version="", cuda_version="",
+      index=0,
+      name="A100",
+      uuid="",
+      memory_total_mb=0,
+      memory_free_mb=0,
+      compute_capability=(8, 0),
+      driver_version="",
+      cuda_version="",
     )
     assert gpu_ampere.supports_bf16() is True
 
     # Turing (7.5) - no BF16
     gpu_turing = GPUInfo(
-      index=0, name="RTX 2080", uuid="", memory_total_mb=0, memory_free_mb=0,
-      compute_capability=(7, 5), driver_version="", cuda_version="",
+      index=0,
+      name="RTX 2080",
+      uuid="",
+      memory_total_mb=0,
+      memory_free_mb=0,
+      compute_capability=(7, 5),
+      driver_version="",
+      cuda_version="",
     )
     assert gpu_turing.supports_bf16() is False
 
@@ -99,15 +127,27 @@ class TestGPUInfo:
     """Test FP8 support detection (Hopper 9.0+)."""
     # Hopper (9.0) - supports FP8
     gpu_hopper = GPUInfo(
-      index=0, name="H100", uuid="", memory_total_mb=0, memory_free_mb=0,
-      compute_capability=(9, 0), driver_version="", cuda_version="",
+      index=0,
+      name="H100",
+      uuid="",
+      memory_total_mb=0,
+      memory_free_mb=0,
+      compute_capability=(9, 0),
+      driver_version="",
+      cuda_version="",
     )
     assert gpu_hopper.supports_fp8() is True
 
     # Ada (8.9) - no FP8
     gpu_ada = GPUInfo(
-      index=0, name="RTX 4090", uuid="", memory_total_mb=0, memory_free_mb=0,
-      compute_capability=(8, 9), driver_version="", cuda_version="",
+      index=0,
+      name="RTX 4090",
+      uuid="",
+      memory_total_mb=0,
+      memory_free_mb=0,
+      compute_capability=(8, 9),
+      driver_version="",
+      cuda_version="",
     )
     assert gpu_ada.supports_fp8() is False
 
@@ -115,16 +155,28 @@ class TestGPUInfo:
     """Test NVFP4 support detection (Blackwell 10.0+)."""
     # Blackwell (10.0) - supports NVFP4
     gpu_blackwell = GPUInfo(
-      index=0, name="GB10", uuid="", memory_total_mb=0, memory_free_mb=0,
-      compute_capability=(10, 0), driver_version="", cuda_version="",
+      index=0,
+      name="GB10",
+      uuid="",
+      memory_total_mb=0,
+      memory_free_mb=0,
+      compute_capability=(10, 0),
+      driver_version="",
+      cuda_version="",
       is_dgx_spark=True,
     )
     assert gpu_blackwell.supports_nvfp4() is True
 
     # Hopper (9.0) - no NVFP4
     gpu_hopper = GPUInfo(
-      index=0, name="H100", uuid="", memory_total_mb=0, memory_free_mb=0,
-      compute_capability=(9, 0), driver_version="", cuda_version="",
+      index=0,
+      name="H100",
+      uuid="",
+      memory_total_mb=0,
+      memory_free_mb=0,
+      compute_capability=(9, 0),
+      driver_version="",
+      cuda_version="",
     )
     assert gpu_hopper.supports_nvfp4() is False
 
@@ -189,8 +241,7 @@ class TestNvidiaDetection:
   def test_is_nvidia_available_with_gpu(self):
     """Test detection when GPU is available."""
     with patch('shutil.which', return_value='/usr/bin/nvidia-smi'):
-      with patch('openpilot.system.hardware.nvidia.gpu._run_nvidia_smi',
-                 return_value="NVIDIA GeForce RTX 3090"):
+      with patch('openpilot.system.hardware.nvidia.gpu._run_nvidia_smi', return_value="NVIDIA GeForce RTX 3090"):
         is_nvidia_available.cache_clear()
         assert is_nvidia_available() is True
 
@@ -219,40 +270,70 @@ class TestGetRecommendedPrecision:
   def test_blackwell_recommends_fp4(self):
     """Test Blackwell recommends FP4."""
     gpu = GPUInfo(
-      index=0, name="GB10", uuid="", memory_total_mb=0, memory_free_mb=0,
-      compute_capability=(10, 0), driver_version="", cuda_version="",
+      index=0,
+      name="GB10",
+      uuid="",
+      memory_total_mb=0,
+      memory_free_mb=0,
+      compute_capability=(10, 0),
+      driver_version="",
+      cuda_version="",
     )
     assert get_recommended_precision(gpu) == 'fp4'
 
   def test_hopper_recommends_fp8(self):
     """Test Hopper recommends FP8."""
     gpu = GPUInfo(
-      index=0, name="H100", uuid="", memory_total_mb=0, memory_free_mb=0,
-      compute_capability=(9, 0), driver_version="", cuda_version="",
+      index=0,
+      name="H100",
+      uuid="",
+      memory_total_mb=0,
+      memory_free_mb=0,
+      compute_capability=(9, 0),
+      driver_version="",
+      cuda_version="",
     )
     assert get_recommended_precision(gpu) == 'fp8'
 
   def test_ampere_recommends_bf16(self):
     """Test Ampere recommends BF16."""
     gpu = GPUInfo(
-      index=0, name="RTX 3090", uuid="", memory_total_mb=0, memory_free_mb=0,
-      compute_capability=(8, 6), driver_version="", cuda_version="",
+      index=0,
+      name="RTX 3090",
+      uuid="",
+      memory_total_mb=0,
+      memory_free_mb=0,
+      compute_capability=(8, 6),
+      driver_version="",
+      cuda_version="",
     )
     assert get_recommended_precision(gpu) == 'bf16'
 
   def test_volta_recommends_fp16(self):
     """Test Volta recommends FP16."""
     gpu = GPUInfo(
-      index=0, name="V100", uuid="", memory_total_mb=0, memory_free_mb=0,
-      compute_capability=(7, 0), driver_version="", cuda_version="",
+      index=0,
+      name="V100",
+      uuid="",
+      memory_total_mb=0,
+      memory_free_mb=0,
+      compute_capability=(7, 0),
+      driver_version="",
+      cuda_version="",
     )
     assert get_recommended_precision(gpu) == 'fp16'
 
   def test_pascal_recommends_fp32(self):
     """Test Pascal recommends FP32."""
     gpu = GPUInfo(
-      index=0, name="P100", uuid="", memory_total_mb=0, memory_free_mb=0,
-      compute_capability=(6, 1), driver_version="", cuda_version="",
+      index=0,
+      name="P100",
+      uuid="",
+      memory_total_mb=0,
+      memory_free_mb=0,
+      compute_capability=(6, 1),
+      driver_version="",
+      cuda_version="",
     )
     assert get_recommended_precision(gpu) == 'fp32'
 
@@ -291,9 +372,14 @@ class TestDGXSparkDetection:
     with patch('openpilot.system.hardware.nvidia.gpu.get_nvidia_gpus') as mock_gpus:
       mock_gpus.return_value = [
         GPUInfo(
-          index=0, name="NVIDIA GB10 Grace Blackwell", uuid="",
-          memory_total_mb=131072, memory_free_mb=130000,
-          compute_capability=(10, 0), driver_version="", cuda_version="",
+          index=0,
+          name="NVIDIA GB10 Grace Blackwell",
+          uuid="",
+          memory_total_mb=131072,
+          memory_free_mb=130000,
+          compute_capability=(10, 0),
+          driver_version="",
+          cuda_version="",
           is_dgx_spark=True,
         )
       ]
@@ -305,9 +391,14 @@ class TestDGXSparkDetection:
     with patch('openpilot.system.hardware.nvidia.gpu.get_nvidia_gpus') as mock_gpus:
       mock_gpus.return_value = [
         GPUInfo(
-          index=0, name="NVIDIA GeForce RTX 3090", uuid="",
-          memory_total_mb=24576, memory_free_mb=20000,
-          compute_capability=(8, 6), driver_version="", cuda_version="",
+          index=0,
+          name="NVIDIA GeForce RTX 3090",
+          uuid="",
+          memory_total_mb=24576,
+          memory_free_mb=20000,
+          compute_capability=(8, 6),
+          driver_version="",
+          cuda_version="",
           is_dgx_spark=False,
         )
       ]

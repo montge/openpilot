@@ -16,6 +16,7 @@ SCHEMA_VERSION = "1.0.0"
 
 class ScenarioType(Enum):
   """Types of driving scenarios."""
+
   HIGHWAY_STRAIGHT = "highway_straight"
   HIGHWAY_CURVE = "highway_curve"
   HIGHWAY_LANE_CHANGE = "highway_lane_change"
@@ -30,6 +31,7 @@ class ScenarioType(Enum):
 
 class DifficultyLevel(Enum):
   """Difficulty levels for scenarios."""
+
   EASY = "easy"
   MEDIUM = "medium"
   HARD = "hard"
@@ -39,6 +41,7 @@ class DifficultyLevel(Enum):
 @dataclass
 class ScenarioMetadata:
   """Metadata for a scenario file."""
+
   name: str
   description: str
   scenario_type: ScenarioType
@@ -107,7 +110,6 @@ SCENARIO_COLUMNS = [
   # Timestamps
   ('timestamp_ns', 'int64', 'Monotonic timestamp in nanoseconds'),
   ('frame_id', 'int64', 'Frame sequence number'),
-
   # Vehicle state
   ('v_ego', 'float64', 'Vehicle speed (m/s)'),
   ('a_ego', 'float64', 'Vehicle acceleration (m/s^2)'),
@@ -115,31 +117,26 @@ SCENARIO_COLUMNS = [
   ('steering_angle_deg', 'float64', 'Current steering angle (degrees)'),
   ('steering_rate_deg', 'float64', 'Steering rate (degrees/s)'),
   ('roll', 'float64', 'Road roll angle (rad)'),
-
   # Control state
   ('active', 'bool', 'Whether control is active'),
   ('steering_pressed', 'bool', 'Driver steering override'),
   ('brake_pressed', 'bool', 'Brake pedal pressed'),
   ('gas_pressed', 'bool', 'Gas pedal pressed'),
-
   # Targets (lateral)
   ('desired_curvature', 'float64', 'Target path curvature (1/m)'),
   ('curvature_rate', 'float64', 'Curvature rate of change (1/m/s)'),
   ('steer_limited_by_safety', 'bool', 'Safety system limiting steer'),
   ('curvature_limited', 'bool', 'Curvature limit active'),
-
   # Targets (longitudinal)
   ('a_target', 'float64', 'Target acceleration (m/s^2)'),
   ('v_target', 'float64', 'Target velocity (m/s)'),
   ('should_stop', 'bool', 'Vehicle should come to stop'),
   ('cruise_standstill', 'bool', 'Cruise in standstill mode'),
-
   # Lead vehicle (if present)
   ('lead_present', 'bool', 'Lead vehicle detected'),
   ('lead_d_rel', 'float64', 'Lead relative distance (m)'),
   ('lead_v_rel', 'float64', 'Lead relative velocity (m/s)'),
   ('lead_a_rel', 'float64', 'Lead relative acceleration (m/s^2)'),
-
   # Ground truth outputs (for validation)
   ('gt_steer_cmd', 'float64', 'Ground truth steering command'),
   ('gt_accel_cmd', 'float64', 'Ground truth acceleration command'),

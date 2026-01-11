@@ -111,7 +111,7 @@ class TestBicycleModelState:
 
   def test_custom_state(self):
     """Test creating state with custom values."""
-    state = BicycleModelState(x=10.0, y=5.0, yaw=math.pi/4, v=20.0)
+    state = BicycleModelState(x=10.0, y=5.0, yaw=math.pi / 4, v=20.0)
     assert state.x == 10.0
     assert state.y == 5.0
     assert state.yaw == math.pi / 4

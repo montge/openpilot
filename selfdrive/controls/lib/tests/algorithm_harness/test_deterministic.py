@@ -444,6 +444,7 @@ class TestReplayableSequence:
   def test_recording(self):
     """Test recording mode captures values."""
     counter = [0]
+
     def gen():
       counter[0] += 1
       return counter[0]
@@ -459,6 +460,7 @@ class TestReplayableSequence:
   def test_replay(self):
     """Test replay mode returns recorded values."""
     counter = [0]
+
     def gen():
       counter[0] += 1
       return counter[0]
@@ -514,6 +516,7 @@ class TestReplayableSequence:
   def test_restart_recording(self):
     """Test restarting recording clears history."""
     counter = [0]
+
     def gen():
       counter[0] += 1
       return counter[0]

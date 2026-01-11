@@ -44,7 +44,9 @@ HARNESS_PATH = "selfdrive/controls/lib/tests/algorithm_harness"
 def run_tests_with_coverage() -> tuple[bool, str]:
   """Run pytest with coverage for algorithm harness."""
   cmd = [
-    sys.executable, "-m", "pytest",
+    sys.executable,
+    "-m",
+    "pytest",
     HARNESS_PATH,
     f"--cov={HARNESS_PATH.replace('/', '.')}",
     "--cov-report=xml:algorithm_harness_coverage.xml",
@@ -91,17 +93,13 @@ def check_thresholds(coverage_data: dict) -> tuple[bool, list[str]]:
   # Check overall threshold
   overall = coverage_data.get("overall", 0)
   if overall < OVERALL_THRESHOLD:
-    failures.append(
-      f"Overall coverage {overall:.1f}% is below threshold {OVERALL_THRESHOLD}%"
-    )
+    failures.append(f"Overall coverage {overall:.1f}% is below threshold {OVERALL_THRESHOLD}%")
 
   # Check per-module thresholds
   for module in ALGORITHM_HARNESS_MODULES:
     module_coverage = coverage_data.get(module, 0)
     if module_coverage < MODULE_THRESHOLD:
-      failures.append(
-        f"Module '{module}' coverage {module_coverage:.1f}% is below threshold {MODULE_THRESHOLD}%"
-      )
+      failures.append(f"Module '{module}' coverage {module_coverage:.1f}% is below threshold {MODULE_THRESHOLD}%")
 
   return len(failures) == 0, failures
 

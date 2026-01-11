@@ -70,11 +70,8 @@ class NvidiaPC(HardwareBase):
     # Try to query GPU utilization via nvidia-smi
     try:
       from openpilot.system.hardware.nvidia.gpu import _run_nvidia_smi
-      output = _run_nvidia_smi([
-        '--query-gpu=utilization.gpu',
-        '--format=csv,noheader,nounits',
-        f'--id={self._gpu_info.index}'
-      ])
+
+      output = _run_nvidia_smi(['--query-gpu=utilization.gpu', '--format=csv,noheader,nounits', f'--id={self._gpu_info.index}'])
       if output:
         return int(output.strip())
     except (ValueError, TypeError):
@@ -88,11 +85,8 @@ class NvidiaPC(HardwareBase):
 
     try:
       from openpilot.system.hardware.nvidia.gpu import _run_nvidia_smi
-      output = _run_nvidia_smi([
-        '--query-gpu=memory.used,memory.total',
-        '--format=csv,noheader,nounits',
-        f'--id={self._gpu_info.index}'
-      ])
+
+      output = _run_nvidia_smi(['--query-gpu=memory.used,memory.total', '--format=csv,noheader,nounits', f'--id={self._gpu_info.index}'])
       if output:
         used, total = map(int, output.strip().split(','))
         return int(100 * used / total) if total > 0 else 0
@@ -119,11 +113,8 @@ class NvidiaPC(HardwareBase):
 
     try:
       from openpilot.system.hardware.nvidia.gpu import _run_nvidia_smi
-      output = _run_nvidia_smi([
-        '--query-gpu=temperature.gpu',
-        '--format=csv,noheader,nounits',
-        f'--id={self._gpu_info.index}'
-      ])
+
+      output = _run_nvidia_smi(['--query-gpu=temperature.gpu', '--format=csv,noheader,nounits', f'--id={self._gpu_info.index}'])
       if output:
         return float(output.strip())
     except (ValueError, TypeError):
@@ -137,11 +128,8 @@ class NvidiaPC(HardwareBase):
 
     try:
       from openpilot.system.hardware.nvidia.gpu import _run_nvidia_smi
-      output = _run_nvidia_smi([
-        '--query-gpu=power.draw',
-        '--format=csv,noheader,nounits',
-        f'--id={self._gpu_info.index}'
-      ])
+
+      output = _run_nvidia_smi(['--query-gpu=power.draw', '--format=csv,noheader,nounits', f'--id={self._gpu_info.index}'])
       if output:
         return float(output.strip())
     except (ValueError, TypeError):
@@ -164,11 +152,8 @@ class NvidiaGPUThermalZone(ThermalZone):
     """Read GPU temperature via nvidia-smi."""
     try:
       from openpilot.system.hardware.nvidia.gpu import _run_nvidia_smi
-      output = _run_nvidia_smi([
-        '--query-gpu=temperature.gpu',
-        '--format=csv,noheader,nounits',
-        f'--id={self.gpu_index}'
-      ])
+
+      output = _run_nvidia_smi(['--query-gpu=temperature.gpu', '--format=csv,noheader,nounits', f'--id={self.gpu_index}'])
       if output:
         return float(output.strip())
     except (ValueError, TypeError):

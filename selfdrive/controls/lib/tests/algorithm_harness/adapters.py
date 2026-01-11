@@ -11,10 +11,8 @@ from typing import Any, Optional
 from unittest.mock import MagicMock
 
 from openpilot.selfdrive.controls.lib.tests.algorithm_harness.interface import (
-  LateralAlgorithmInterface,
   LateralAlgorithmState,
   LateralAlgorithmOutput,
-  LongitudinalAlgorithmInterface,
   LongitudinalAlgorithmState,
   LongitudinalAlgorithmOutput,
 )
@@ -23,6 +21,7 @@ from openpilot.selfdrive.controls.lib.tests.algorithm_harness.interface import (
 @dataclass
 class LateralControlConfig:
   """Configuration for lateral control adapters."""
+
   # PID tuning
   kp_bp: list[float] = field(default_factory=lambda: [0.0])
   kp_v: list[float] = field(default_factory=lambda: [0.5])
@@ -44,6 +43,7 @@ class LateralControlConfig:
 @dataclass
 class LongitudinalControlConfig:
   """Configuration for longitudinal control adapters."""
+
   # PID tuning
   kp_bp: list[float] = field(default_factory=lambda: [0.0])
   kp_v: list[float] = field(default_factory=lambda: [1.0])

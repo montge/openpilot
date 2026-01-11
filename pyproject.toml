@@ -14,7 +14,7 @@ dependencies = [
   "pyserial",     # pigeond + qcomgpsd
   "requests",     # many one-off uses
   "sympy",        # rednose + friends
-  "crcmod",       # cars + qcomgpsd
+  "crcmod-plus",  # cars + qcomgpsd
   "tqdm",         # cars (fw_versions.py) on start + many one-off uses
 
   # hardwared
@@ -88,7 +88,7 @@ testing = [
   "coverage",
   "pytest-cov",
   "hypothesis ==6.47.*",
-  "mypy",
+  "ty",
   "pytest",
   "pytest-cpp",
   "pytest-subtests",
@@ -108,15 +108,13 @@ dev = [
   "av",
   "azure-identity",
   "azure-storage-blob",
-  "dbus-next", # TODO: remove once we moved everything to jeepney
   "dictdiffer",
   "jeepney",
   "matplotlib",
   "opencv-python-headless",
   "parameterized >=0.8, <0.9",
   "pyautogui",
-  "pygame",
-  "pyopencl; platform_machine != 'aarch64'", # broken on arm64
+  "pyopencl",
   "pytools>=2025.1.6; platform_machine != 'aarch64'",
   "pywinctl",
   "pyprof2calltree",
@@ -182,42 +180,6 @@ quiet-level = 3
 ignore-words-list = "bu,ro,te,ue,alo,hda,ois,nam,nams,ned,som,parm,setts,inout,warmup,bumb,nd,sie,preints,whit,indexIn,ws,uint,grey,deque,stdio,amin,BA,LITE,atEnd,UIs,errorString,arange,FocusIn,od,tim,relA,hist,copyable,jupyter,thead,TGE,abl,lite,assertIn,CAS"
 builtin = "clear,rare,informal,code,names,en-GB_to_en-US"
 skip = "./third_party/*, ./tinygrad/*, ./tinygrad_repo/*, ./msgq/*, ./panda/*, ./opendbc/*, ./opendbc_repo/*, ./rednose/*, ./rednose_repo/*, ./teleoprtc/*, ./teleoprtc_repo/*, *.po, uv.lock, *.onnx, ./cereal/gen/*, */c_generated_code/*, docs/assets/*, tools/plotjuggler/layouts/*, selfdrive/assets/offroad/mici_fcc.html"
-
-[tool.mypy]
-python_version = "3.11"
-exclude = [
-  "cereal/",
-  "msgq/",
-  "msgq_repo/",
-  "opendbc/",
-  "opendbc_repo/",
-  "panda/",
-  "rednose/",
-  "rednose_repo/",
-  "tinygrad/",
-  "tinygrad_repo/",
-  "teleoprtc/",
-  "teleoprtc_repo/",
-  "third_party/",
-]
-
-# third-party packages
-ignore_missing_imports=true
-
-# helpful warnings
-warn_redundant_casts=true
-warn_unreachable=true
-warn_unused_ignores=true
-
-# restrict dynamic typing
-warn_return_any=true
-
-# allow implicit optionals for default args
-implicit_optional = true
-
-local_partial_types=true
-explicit_package_bases=true
-disable_error_code = "annotation-unchecked"
 
 # https://beta.ruff.rs/docs/configuration/#using-pyprojecttoml
 [tool.ruff]
@@ -310,3 +272,42 @@ directory = "htmlcov"
 
 [tool.coverage.xml]
 output = "coverage.xml"
+
+[tool.ty.src]
+exclude = [
+  "cereal/",
+  "msgq/",
+  "msgq_repo/",
+  "opendbc/",
+  "opendbc_repo/",
+  "panda/",
+  "rednose/",
+  "rednose_repo/",
+  "tinygrad/",
+  "tinygrad_repo/",
+  "teleoprtc/",
+  "teleoprtc_repo/",
+  "third_party/",
+]
+
+[tool.ty.rules]
+# Ignore unresolved imports for Cython-compiled modules (.pyx)
+unresolved-import = "ignore"
+# Ignore unresolved attributes - many from capnp and Cython modules
+unresolved-attribute = "ignore"
+# Ignore invalid method overrides - signature variance issues
+invalid-method-override = "ignore"
+# Ignore possibly-missing-attribute - too many false positives
+possibly-missing-attribute = "ignore"
+# Ignore invalid assignment - often intentional monkey-patching
+invalid-assignment = "ignore"
+# Ignore no-matching-overload - numpy/ctypes overload matching issues
+no-matching-overload = "ignore"
+# Ignore invalid-argument-type - many false positives from raylib, ctypes, numpy
+invalid-argument-type = "ignore"
+# Ignore call-non-callable - false positives from dynamic types
+call-non-callable = "ignore"
+# Ignore unsupported-operator - false positives from dynamic types
+unsupported-operator = "ignore"
+# Ignore non-subscriptable - false positives from dynamic types
+non-subscriptable = "ignore"

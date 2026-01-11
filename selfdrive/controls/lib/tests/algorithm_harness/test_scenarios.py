@@ -42,6 +42,7 @@ from openpilot.selfdrive.controls.lib.tests.algorithm_harness.scenario_generator
 # Schema Tests
 # ============================================================================
 
+
 class TestScenarioMetadata:
   """Tests for ScenarioMetadata."""
 
@@ -156,6 +157,7 @@ class TestSchemaValidation:
 # ============================================================================
 # Scenario Generation Tests
 # ============================================================================
+
 
 class TestHighwayStraight:
   """Tests for highway straight scenario generation."""
@@ -330,6 +332,7 @@ class TestGenerateAllSeedScenarios:
 # Scenario Validation Tests
 # ============================================================================
 
+
 class TestScenarioValidation:
   """Tests for scenario validation."""
 
@@ -372,10 +375,7 @@ class TestScenarioValidation:
     from openpilot.selfdrive.controls.lib.tests.algorithm_harness.scenarios import validate_scenario
     from openpilot.selfdrive.controls.lib.tests.algorithm_harness.interface import AlgorithmState
 
-    states = [
-      AlgorithmState(timestamp_ns=i * 1000, v_ego=10.0, a_ego=0.0)
-      for i in range(10)
-    ]
+    states = [AlgorithmState(timestamp_ns=i * 1000, v_ego=10.0, a_ego=0.0) for i in range(10)]
     scenario = Scenario(
       name="bad_gt",
       states=states,
@@ -391,6 +391,7 @@ class TestScenarioValidation:
 # Parquet I/O Tests (require pandas/pyarrow)
 # ============================================================================
 
+
 class TestParquetIO:
   """Tests for Parquet save/load functionality."""
 
@@ -405,9 +406,7 @@ class TestParquetIO:
     pytest.importorskip("pandas")
     pytest.importorskip("pyarrow")
 
-    from openpilot.selfdrive.controls.lib.tests.algorithm_harness.scenarios import (
-      save_scenario, load_scenario
-    )
+    from openpilot.selfdrive.controls.lib.tests.algorithm_harness.scenarios import save_scenario, load_scenario
 
     # Generate and save
     original, metadata = generate_highway_straight(duration_s=1.0)
@@ -426,9 +425,7 @@ class TestParquetIO:
     pytest.importorskip("pandas")
     pytest.importorskip("pyarrow")
 
-    from openpilot.selfdrive.controls.lib.tests.algorithm_harness.scenarios import (
-      save_scenario, load_scenario
-    )
+    from openpilot.selfdrive.controls.lib.tests.algorithm_harness.scenarios import save_scenario, load_scenario
 
     original, metadata = generate_emergency_stop(duration_s=2.0)
     file_path = temp_dir / "test_long.parquet"
@@ -443,9 +440,7 @@ class TestParquetIO:
     pytest.importorskip("pandas")
     pytest.importorskip("pyarrow")
 
-    from openpilot.selfdrive.controls.lib.tests.algorithm_harness.scenarios import (
-      save_scenario, load_scenario
-    )
+    from openpilot.selfdrive.controls.lib.tests.algorithm_harness.scenarios import save_scenario, load_scenario
 
     original, metadata = generate_tight_s_curve(duration_s=1.0)
     file_path = temp_dir / "test_gt.parquet"
@@ -460,12 +455,8 @@ class TestParquetIO:
     pytest.importorskip("pandas")
     pytest.importorskip("pyarrow")
 
-    from openpilot.selfdrive.controls.lib.tests.algorithm_harness.scenarios import (
-      save_scenario, list_scenarios
-    )
-    from openpilot.selfdrive.controls.lib.tests.algorithm_harness.scenario_generator import (
-      save_seed_scenarios
-    )
+    from openpilot.selfdrive.controls.lib.tests.algorithm_harness.scenarios import list_scenarios
+    from openpilot.selfdrive.controls.lib.tests.algorithm_harness.scenario_generator import save_seed_scenarios
 
     # Save some scenarios
     save_seed_scenarios(str(temp_dir))
@@ -493,6 +484,7 @@ class TestParquetIO:
 # Integration Tests
 # ============================================================================
 
+
 class TestScenarioRunnerIntegration:
   """Integration tests for scenarios with runner."""
 
@@ -518,9 +510,7 @@ class TestScenarioRunnerIntegration:
 
   def test_compare_on_generated_scenarios(self, scenario_runner):
     """Test comparing algorithms on generated scenarios."""
-    from openpilot.selfdrive.controls.lib.tests.algorithm_harness.adapters import (
-      LatControlPIDAdapter, LatControlTorqueAdapter
-    )
+    from openpilot.selfdrive.controls.lib.tests.algorithm_harness.adapters import LatControlPIDAdapter, LatControlTorqueAdapter
 
     scenarios = [
       generate_highway_straight(duration_s=1.0)[0],

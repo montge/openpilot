@@ -18,10 +18,10 @@ Usage:
 """
 
 import random
-import time
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from typing import Optional, Callable, Any
+from typing import Any
+from collections.abc import Callable
 from unittest.mock import patch
 import numpy as np
 
@@ -39,6 +39,7 @@ class FakeTimeSource:
     dt_ns: Time step in nanoseconds per call
     current_time_ns: Current timestamp (read-only)
   """
+
   start_time_ns: int = 0
   dt_ns: int = 10_000_000  # 10ms = 100Hz default
   _current_time_ns: int = field(init=False, repr=False)
@@ -171,6 +172,7 @@ class DeterministicContext:
       if ctx.fake_time:
         current_time = ctx.time_source.monotonic()
   """
+
   seed: int = 42
   fake_time: bool = False
   start_time_ns: int = 0
@@ -287,7 +289,7 @@ def get_deterministic_hash(data: bytes, seed: int = 0) -> int:
   """
   # Simple FNV-1a hash for determinism
   FNV_PRIME = 0x01000193
-  FNV_OFFSET = 0x811c9dc5
+  FNV_OFFSET = 0x811C9DC5
 
   hash_value = FNV_OFFSET ^ seed
   for byte in data:

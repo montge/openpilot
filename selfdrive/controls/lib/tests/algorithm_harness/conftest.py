@@ -13,10 +13,9 @@ Usage:
 """
 
 import pytest
-from typing import Generator
+from collections.abc import Generator
 
 from openpilot.selfdrive.controls.lib.tests.algorithm_harness.interface import (
-  LateralAlgorithmState,
   LongitudinalAlgorithmState,
 )
 from openpilot.selfdrive.controls.lib.tests.algorithm_harness.runner import (
@@ -32,7 +31,6 @@ from openpilot.selfdrive.controls.lib.tests.algorithm_harness.adapters import (
   LatControlTorqueAdapter,
   LongControlAdapter,
   LateralControlConfig,
-  LongitudinalControlConfig,
 )
 from openpilot.selfdrive.controls.lib.tests.algorithm_harness.scenario_generator import (
   generate_highway_straight,
@@ -45,19 +43,14 @@ from openpilot.selfdrive.controls.lib.tests.algorithm_harness.scenario_generator
 
 def pytest_configure(config):
   """Register custom markers."""
-  config.addinivalue_line(
-    "markers",
-    "algorithm_benchmark: mark test as an algorithm benchmark test"
-  )
-  config.addinivalue_line(
-    "markers",
-    "slow_benchmark: mark test as a slow benchmark (skipped with -m 'not slow_benchmark')"
-  )
+  config.addinivalue_line("markers", "algorithm_benchmark: mark test as an algorithm benchmark test")
+  config.addinivalue_line("markers", "slow_benchmark: mark test as a slow benchmark (skipped with -m 'not slow_benchmark')")
 
 
 # ============================================================================
 # Core Fixtures
 # ============================================================================
+
 
 @pytest.fixture
 def scenario_runner() -> ScenarioRunner:
@@ -74,6 +67,7 @@ def metrics_collector() -> MetricsCollector:
 # ============================================================================
 # Algorithm Fixtures
 # ============================================================================
+
 
 @pytest.fixture
 def lateral_pid_adapter() -> LatControlPIDAdapter:
@@ -114,6 +108,7 @@ def long_control_adapter() -> LongControlAdapter:
 # ============================================================================
 # Scenario Fixtures
 # ============================================================================
+
 
 @pytest.fixture
 def simple_lateral_scenario() -> Scenario:
@@ -267,36 +262,31 @@ def get_scenario():
 # Assertion Helpers
 # ============================================================================
 
+
 class BenchmarkAssertions:
   """Helper class for benchmark assertions."""
 
   @staticmethod
   def assert_tracking_error(result, max_rmse: float = 0.1, max_error: float = 0.5):
     """Assert tracking error is within bounds."""
-    assert result.metrics.tracking_error_rmse <= max_rmse, \
-      f"RMSE {result.metrics.tracking_error_rmse:.4f} > {max_rmse}"
-    assert result.metrics.tracking_error_max <= max_error, \
-      f"Max error {result.metrics.tracking_error_max:.4f} > {max_error}"
+    assert result.metrics.tracking_error_rmse <= max_rmse, f"RMSE {result.metrics.tracking_error_rmse:.4f} > {max_rmse}"
+    assert result.metrics.tracking_error_max <= max_error, f"Max error {result.metrics.tracking_error_max:.4f} > {max_error}"
 
   @staticmethod
   def assert_smoothness(result, max_jerk: float = 0.5):
     """Assert output smoothness is acceptable."""
-    assert result.metrics.output_smoothness <= max_jerk, \
-      f"Smoothness (jerk) {result.metrics.output_smoothness:.4f} > {max_jerk}"
+    assert result.metrics.output_smoothness <= max_jerk, f"Smoothness (jerk) {result.metrics.output_smoothness:.4f} > {max_jerk}"
 
   @staticmethod
   def assert_latency(result, max_mean_ms: float = 10.0, max_p99_ms: float = 50.0):
     """Assert latency is acceptable."""
-    assert result.metrics.latency_mean_ms <= max_mean_ms, \
-      f"Mean latency {result.metrics.latency_mean_ms:.2f}ms > {max_mean_ms}ms"
-    assert result.metrics.latency_p99_ms <= max_p99_ms, \
-      f"P99 latency {result.metrics.latency_p99_ms:.2f}ms > {max_p99_ms}ms"
+    assert result.metrics.latency_mean_ms <= max_mean_ms, f"Mean latency {result.metrics.latency_mean_ms:.2f}ms > {max_mean_ms}ms"
+    assert result.metrics.latency_p99_ms <= max_p99_ms, f"P99 latency {result.metrics.latency_p99_ms:.2f}ms > {max_p99_ms}ms"
 
   @staticmethod
   def assert_safety(result, max_saturation: float = 0.1):
     """Assert safety metrics are acceptable."""
-    assert result.metrics.saturation_ratio <= max_saturation, \
-      f"Saturation ratio {result.metrics.saturation_ratio:.2%} > {max_saturation:.2%}"
+    assert result.metrics.saturation_ratio <= max_saturation, f"Saturation ratio {result.metrics.saturation_ratio:.2%} > {max_saturation:.2%}"
 
 
 @pytest.fixture

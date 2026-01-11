@@ -13,6 +13,7 @@ from typing import Protocol, Any, runtime_checkable
 @dataclass
 class AlgorithmState:
   """Base state provided to algorithms at each timestep."""
+
   timestamp_ns: int  # Monotonic timestamp in nanoseconds
   v_ego: float  # Vehicle speed (m/s)
   a_ego: float  # Vehicle acceleration (m/s^2)
@@ -22,6 +23,7 @@ class AlgorithmState:
 @dataclass
 class AlgorithmOutput:
   """Base output from algorithms at each timestep."""
+
   output: float  # Primary control output
   saturated: bool = False  # Whether output was clipped
   metadata: dict[str, Any] = field(default_factory=dict)  # Algorithm-specific debug info
@@ -30,6 +32,7 @@ class AlgorithmOutput:
 @dataclass
 class LateralAlgorithmState(AlgorithmState):
   """State for lateral (steering) control algorithms."""
+
   steering_angle_deg: float = 0.0  # Current steering angle (degrees)
   steering_rate_deg: float = 0.0  # Steering rate (degrees/s)
   yaw_rate: float = 0.0  # Vehicle yaw rate (rad/s)
@@ -43,6 +46,7 @@ class LateralAlgorithmState(AlgorithmState):
 @dataclass
 class LateralAlgorithmOutput(AlgorithmOutput):
   """Output from lateral control algorithms."""
+
   steering_angle_desired_deg: float = 0.0  # Desired steering angle
   angle_error_deg: float = 0.0  # Steering angle error
 
@@ -50,6 +54,7 @@ class LateralAlgorithmOutput(AlgorithmOutput):
 @dataclass
 class LongitudinalAlgorithmState(AlgorithmState):
   """State for longitudinal (speed) control algorithms."""
+
   a_target: float = 0.0  # Target acceleration (m/s^2)
   should_stop: bool = False  # Vehicle should come to stop
   brake_pressed: bool = False  # Brake pedal pressed
@@ -60,6 +65,7 @@ class LongitudinalAlgorithmState(AlgorithmState):
 @dataclass
 class LongitudinalAlgorithmOutput(AlgorithmOutput):
   """Output from longitudinal control algorithms."""
+
   accel: float = 0.0  # Commanded acceleration (m/s^2)
   control_state: str = "off"  # State machine state
 

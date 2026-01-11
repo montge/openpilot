@@ -6,7 +6,7 @@ performance, including tracking accuracy, smoothness, latency, and safety margin
 """
 
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 import numpy as np
 
@@ -14,6 +14,7 @@ import numpy as np
 @dataclass
 class AlgorithmMetrics:
   """Collected metrics for an algorithm run."""
+
   # Tracking accuracy
   tracking_error_rmse: float = 0.0  # Root mean square error vs target
   tracking_error_max: float = 0.0  # Maximum absolute error
@@ -134,14 +135,14 @@ class MetricsCollector:
     # Tracking accuracy
     if len(self._errors) > 0:
       errors = np.array(self._errors)
-      metrics.tracking_error_rmse = float(np.sqrt(np.mean(errors ** 2)))
+      metrics.tracking_error_rmse = float(np.sqrt(np.mean(errors**2)))
       metrics.tracking_error_max = float(np.max(errors))
       metrics.tracking_error_mean = float(np.mean(errors))
 
     # Output smoothness (RMS of derivative)
     if len(outputs) > 1:
       output_diff = np.diff(outputs)
-      metrics.output_smoothness = float(np.sqrt(np.mean(output_diff ** 2)))
+      metrics.output_smoothness = float(np.sqrt(np.mean(output_diff**2)))
       metrics.output_std = float(np.std(outputs))
 
     # Latency metrics

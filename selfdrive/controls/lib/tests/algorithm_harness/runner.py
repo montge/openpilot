@@ -7,17 +7,13 @@ against test scenarios and collects performance metrics.
 
 import random
 from dataclasses import dataclass, field
-from typing import Optional, Iterator, Any
+from typing import Optional, Any
+from collections.abc import Iterator
 import numpy as np
 
 from openpilot.selfdrive.controls.lib.tests.algorithm_harness.interface import (
   AlgorithmInterface,
   AlgorithmState,
-  AlgorithmOutput,
-  LateralAlgorithmInterface,
-  LateralAlgorithmState,
-  LongitudinalAlgorithmInterface,
-  LongitudinalAlgorithmState,
 )
 from openpilot.selfdrive.controls.lib.tests.algorithm_harness.metrics import (
   MetricsCollector,
@@ -33,6 +29,7 @@ class Scenario:
 
   Scenarios can be loaded from Parquet files or generated synthetically.
   """
+
   name: str
   description: str = ""
   states: list[AlgorithmState] = field(default_factory=list)
@@ -58,6 +55,7 @@ class Scenario:
 @dataclass
 class ScenarioResult:
   """Result of running an algorithm against a scenario."""
+
   scenario_name: str
   algorithm_name: str
   metrics: AlgorithmMetrics
@@ -206,12 +204,14 @@ class ScenarioRunner:
     comparisons = []
     for base_result, cand_result in zip(baseline_results, candidate_results):
       comparison = compare_metrics(base_result.metrics, cand_result.metrics)
-      comparisons.append({
-        'scenario': base_result.scenario_name,
-        'baseline_metrics': base_result.metrics,
-        'candidate_metrics': cand_result.metrics,
-        'comparison': comparison,
-      })
+      comparisons.append(
+        {
+          'scenario': base_result.scenario_name,
+          'baseline_metrics': base_result.metrics,
+          'candidate_metrics': cand_result.metrics,
+          'comparison': comparison,
+        }
+      )
 
     # Aggregate metrics
     aggregate_baseline = self._aggregate_metrics([r.metrics for r in baseline_results])

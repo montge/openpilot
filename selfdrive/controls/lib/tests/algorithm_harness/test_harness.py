@@ -10,7 +10,6 @@ Tests cover:
 
 import time
 import numpy as np
-import pytest
 
 from openpilot.selfdrive.controls.lib.tests.algorithm_harness.interface import (
   AlgorithmInterface,
@@ -30,20 +29,19 @@ from openpilot.selfdrive.controls.lib.tests.algorithm_harness.metrics import (
 from openpilot.selfdrive.controls.lib.tests.algorithm_harness.runner import (
   ScenarioRunner,
   Scenario,
-  ScenarioResult,
   generate_synthetic_scenario,
 )
 from openpilot.selfdrive.controls.lib.tests.algorithm_harness.adapters import (
   LatControlPIDAdapter,
   LongControlAdapter,
   LateralControlConfig,
-  LongitudinalControlConfig,
 )
 
 
 # ============================================================================
 # Test Fixtures
 # ============================================================================
+
 
 class SimpleAlgorithm:
   """Simple algorithm for testing that returns input scaled by factor."""
@@ -84,6 +82,7 @@ class LateralSimpleAlgorithm:
 # ============================================================================
 # Interface Tests
 # ============================================================================
+
 
 class TestAlgorithmState:
   """Tests for AlgorithmState data class."""
@@ -164,6 +163,7 @@ class TestAlgorithmInterface:
 # ============================================================================
 # MetricsCollector Tests
 # ============================================================================
+
 
 class TestMetricsCollector:
   """Tests for MetricsCollector."""
@@ -340,6 +340,7 @@ class TestFormatMetricsTable:
 # ScenarioRunner Tests
 # ============================================================================
 
+
 class TestScenario:
   """Tests for Scenario data class."""
 
@@ -412,10 +413,7 @@ class TestScenarioRunner:
     """Test batch scenario execution."""
     runner = ScenarioRunner()
     algo = SimpleAlgorithm()
-    scenarios = [
-      generate_synthetic_scenario(f"test_{i}", duration_s=0.1, dt=0.01)
-      for i in range(3)
-    ]
+    scenarios = [generate_synthetic_scenario(f"test_{i}", duration_s=0.1, dt=0.01) for i in range(3)]
 
     results = runner.run_batch(algo, scenarios)
 
@@ -521,6 +519,7 @@ class TestGenerateSyntheticScenario:
 # ============================================================================
 # Adapter Tests
 # ============================================================================
+
 
 class TestLatControlPIDAdapter:
   """Tests for LatControlPIDAdapter."""
@@ -629,6 +628,7 @@ class TestLongControlAdapter:
 # ============================================================================
 # Integration Tests
 # ============================================================================
+
 
 class TestIntegration:
   """Integration tests for the full harness."""

@@ -11,13 +11,14 @@ matching openpilot's internal vehicle model.
 """
 
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
 
 
 class VehicleType(Enum):
   """Predefined vehicle types with typical parameters."""
+
   SEDAN = "sedan"
   SUV = "suv"
   TRUCK = "truck"
@@ -51,6 +52,7 @@ class VehicleDynamicsConfig:
     actuator_delay_steer: Steering actuator delay (seconds)
     actuator_delay_accel: Acceleration actuator delay (seconds)
   """
+
   name: str = "Generic Sedan"
   vehicle_type: VehicleType = VehicleType.SEDAN
   wheelbase: float = 2.7  # meters
@@ -81,7 +83,7 @@ class VehicleDynamicsConfig:
     if self.mass <= 0:
       raise ValueError(f"Mass must be positive, got {self.mass}")
     if self.center_to_front < 0 or self.center_to_front > self.wheelbase:
-      raise ValueError(f"Center to front must be between 0 and wheelbase")
+      raise ValueError("Center to front must be between 0 and wheelbase")
 
   @property
   def center_to_rear(self) -> float:
@@ -107,14 +109,14 @@ class VehicleDynamicsConfig:
 
     # Understeer gradient = Wf/Cf - Wr/Cr (radians/m/s^2)
     # Convert to deg/g
-    K = (weight_front / self.tire_stiffness_front -
-         weight_rear / self.tire_stiffness_rear)
+    K = weight_front / self.tire_stiffness_front - weight_rear / self.tire_stiffness_rear
     return math.degrees(K) * 9.81  # deg/g
 
 
 @dataclass
 class BicycleModelState:
   """State representation for bicycle model dynamics."""
+
   x: float = 0.0  # Position in global X (meters)
   y: float = 0.0  # Position in global Y (meters)
   yaw: float = 0.0  # Heading angle (radians)
@@ -237,8 +239,7 @@ class BicycleModel:
     delta = steer_cmd * max_road_angle_rad
 
     # Clamp acceleration
-    accel = max(-self.config.max_longitudinal_decel,
-                min(self.config.max_longitudinal_accel, accel_cmd))
+    accel = max(-self.config.max_longitudinal_decel, min(self.config.max_longitudinal_accel, accel_cmd))
 
     # Update velocity
     v_new = max(0, self.state.v + accel * dt)
@@ -280,6 +281,7 @@ class BicycleModel:
 # ============================================================================
 # Vehicle Presets
 # ============================================================================
+
 
 def get_sedan_config(name: str = "Generic Sedan") -> VehicleDynamicsConfig:
   """Get configuration for a typical sedan (e.g., Honda Civic, Toyota Camry)."""

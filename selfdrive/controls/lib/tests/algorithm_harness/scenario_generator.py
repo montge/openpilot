@@ -7,7 +7,6 @@ or derived from route log data.
 """
 
 import numpy as np
-from typing import Optional
 
 from openpilot.selfdrive.controls.lib.tests.algorithm_harness.interface import (
   LateralAlgorithmState,
@@ -367,7 +366,7 @@ def generate_emergency_stop(
   ground_truth = []
 
   v = initial_v
-  stop_distance = (initial_v ** 2) / (2 * decel_rate)
+  stop_distance = (initial_v**2) / (2 * decel_rate)
 
   for i in range(num_steps):
     t = i * dt_s
