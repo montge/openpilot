@@ -1,0 +1,27 @@
+# Coverage configuration for algorithm test harness
+# Run from algorithm_harness directory:
+#   pytest . --cov=. --cov-config=.coveragerc --cov-report=term-missing
+
+[run]
+# Measure coverage of source files only (not test files)
+source = .
+omit =
+    test_*.py
+    conftest.py
+    check_coverage.py
+    */examples/*
+branch = true
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise NotImplementedError
+    if TYPE_CHECKING:
+    if __name__ == .__main__.:
+show_missing = true
+# Algorithm harness target: 90% coverage
+fail_under = 90
+
+[html]
+directory = htmlcov

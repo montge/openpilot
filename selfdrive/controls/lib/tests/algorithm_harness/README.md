@@ -259,5 +259,48 @@ algorithm_harness/
 ├── conftest.py           # Pytest fixtures and markers
 ├── test_harness.py       # Core framework tests
 ├── test_scenarios.py     # Scenario infrastructure tests
+├── .coveragerc           # Coverage configuration
 └── README.md             # This file
 ```
+
+## Test Coverage
+
+The algorithm harness maintains a **90%+ code coverage** target for source files.
+
+### Running Coverage Locally
+
+```bash
+# Navigate to harness directory
+cd selfdrive/controls/lib/tests/algorithm_harness
+
+# Run tests with coverage (basic - no pandas/pyarrow)
+pytest . -n0 --cov=. --cov-config=.coveragerc --cov-report=term-missing
+
+# Run with HTML report
+pytest . -n0 --cov=. --cov-config=.coveragerc --cov-report=html
+
+# Full coverage (requires pandas and pyarrow for Parquet I/O tests)
+pip install pandas pyarrow
+pytest . -n0 --cov=. --cov-config=.coveragerc --cov-report=term-missing --cov-fail-under=90
+```
+
+### Coverage Requirements
+
+| Module | Target | Notes |
+|--------|--------|-------|
+| `interface.py` | 90%+ | Protocol and data classes |
+| `metrics.py` | 90%+ | Metrics collection and comparison |
+| `runner.py` | 90%+ | Scenario execution |
+| `adapters.py` | 90%+ | Controller wrappers |
+| `scenario_generator.py` | 90%+ | Seed scenario generation |
+| `scenarios.py` | 90%+ | Requires pandas/pyarrow |
+| `scenario_schema.py` | 90%+ | Requires pyarrow |
+| `vehicle_dynamics.py` | 90%+ | Vehicle simulation |
+
+### Contributing Coverage
+
+When adding new features:
+1. Write tests first (TDD encouraged)
+2. Run coverage locally before submitting PR
+3. Ensure no decrease in overall coverage
+4. Document any deliberately excluded code with `# pragma: no cover`

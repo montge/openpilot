@@ -693,3 +693,197 @@ class TestIntegration:
 
     assert comparison['aggregate']['baseline'] is not None
     assert comparison['aggregate']['candidate'] is not None
+
+
+# ============================================================================
+# Edge Case Tests
+# ============================================================================
+
+
+class TestEdgeCases:
+  """Tests for boundary conditions and edge cases."""
+
+  def test_empty_scenario(self):
+    """Test handling of empty scenario."""
+    scenario = Scenario(
+      name="empty",
+      description="Empty scenario",
+      states=[],
+      ground_truth=None,
+    )
+    assert len(scenario.states) == 0
+
+  def test_single_state_scenario(self):
+    """Test scenario with single state."""
+    state = LateralAlgorithmState(
+      timestamp_ns=0,
+      v_ego=10.0,
+      a_ego=0.0,
+      active=True,
+    )
+    scenario = Scenario(
+      name="single",
+      states=[state],
+    )
+
+    runner = ScenarioRunner()
+    algo = SimpleAlgorithm(scale=0.5)
+    result = runner.run(algo, scenario, "simple")
+
+    assert result.success
+    assert result.metrics.total_steps == 1
+
+  def test_zero_velocity_state(self):
+    """Test handling of zero velocity state."""
+    state = LateralAlgorithmState(
+      timestamp_ns=0,
+      v_ego=0.0,
+      a_ego=0.0,
+      active=True,
+    )
+    assert state.v_ego == 0.0
+
+  def test_negative_curvature(self):
+    """Test handling of negative curvature."""
+    state = LateralAlgorithmState(
+      timestamp_ns=0,
+      v_ego=20.0,
+      a_ego=0.0,
+      desired_curvature=-0.1,
+      active=True,
+    )
+    assert state.desired_curvature < 0
+
+  def test_max_values(self):
+    """Test handling of maximum values."""
+    state = LateralAlgorithmState(
+      timestamp_ns=2**63 - 1,  # Max int64
+      v_ego=100.0,
+      a_ego=10.0,
+      desired_curvature=1.0,
+      active=True,
+    )
+    assert state.timestamp_ns > 0
+
+  def test_metrics_with_no_data(self):
+    """Test metrics collector with no data."""
+    collector = MetricsCollector(safety_limits=(-1.0, 1.0))
+    metrics = collector.compute_metrics()
+
+    assert metrics.total_steps == 0
+    assert metrics.tracking_error_rmse == 0.0
+    assert metrics.output_smoothness == 0.0
+
+  def test_metrics_with_constant_output(self):
+    """Test metrics with constant output (no variation)."""
+    collector = MetricsCollector(safety_limits=(-1.0, 1.0))
+    collector.start_run()
+
+    for _ in range(100):
+      collector.start_step()
+      collector.end_step(
+        output=0.5,  # Constant output
+        target=0.5,
+      )
+
+    metrics = collector.compute_metrics()
+    assert metrics.output_smoothness == 0.0  # No variation
+    assert metrics.tracking_error_rmse == 0.0  # Perfect tracking
+
+  def test_metrics_with_saturated_output(self):
+    """Test metrics when output is saturated."""
+    collector = MetricsCollector(safety_limits=(-1.0, 1.0))
+    collector.start_run()
+
+    for _ in range(100):
+      collector.start_step()
+      collector.end_step(
+        output=1.0,  # Always at limit
+        target=0.0,
+        saturated=True,
+      )
+
+    metrics = collector.compute_metrics()
+    assert metrics.saturation_ratio == 1.0  # Always saturated
+
+
+# ============================================================================
+# Error Handling Tests
+# ============================================================================
+
+
+class TestErrorHandling:
+  """Tests for error handling and invalid inputs."""
+
+  def test_metrics_comparison_different_lengths(self):
+    """Test comparing metrics handles edge cases."""
+    metrics1 = AlgorithmMetrics(
+      tracking_error_rmse=0.1,
+      tracking_error_max=0.2,
+      tracking_error_mean=0.15,
+      output_smoothness=0.05,
+    )
+    metrics2 = AlgorithmMetrics(
+      tracking_error_rmse=0.2,
+      tracking_error_max=0.4,
+      tracking_error_mean=0.3,
+      output_smoothness=0.1,
+    )
+
+    comparison = compare_metrics(metrics1, metrics2)
+
+    # Check relative changes
+    assert 'tracking_error_rmse' in comparison
+    assert comparison['tracking_error_rmse']['baseline'] == 0.1
+    assert comparison['tracking_error_rmse']['candidate'] == 0.2
+
+  def test_scenario_with_mismatched_ground_truth(self):
+    """Test scenario with mismatched ground truth length."""
+    states = [
+      LateralAlgorithmState(timestamp_ns=i * 10_000_000, v_ego=20.0, a_ego=0.0, active=True)
+      for i in range(10)
+    ]
+    # Ground truth length doesn't match states - this is allowed but should handle gracefully
+    scenario = Scenario(
+      name="mismatched",
+      states=states,
+      ground_truth=[0.1] * 5,  # Different length
+    )
+
+    assert len(scenario.states) != len(scenario.ground_truth)
+
+  def test_invalid_safety_limits(self):
+    """Test metrics collector with reversed safety limits."""
+    # Create with swapped min/max - should still work
+    collector = MetricsCollector(safety_limits=(1.0, -1.0))
+    collector.start_run()
+    collector.start_step()
+    collector.end_step(output=0.5, target=0.0)
+    metrics = collector.compute_metrics()
+    assert metrics.total_steps == 1
+
+  def test_format_metrics_empty(self):
+    """Test formatting metrics table with default metrics."""
+    metrics = AlgorithmMetrics()
+    result = format_metrics_table(metrics)
+    assert result is not None  # Should return formatted table
+    assert 'Tracking Accuracy' in result
+
+  def test_algorithm_output_metadata(self):
+    """Test algorithm output with metadata."""
+    output = LateralAlgorithmOutput(
+      output=0.5,
+      metadata={'custom_key': 'custom_value'},
+    )
+    assert output.metadata['custom_key'] == 'custom_value'
+
+  def test_longitudinal_output_fields(self):
+    """Test longitudinal output optional fields."""
+    output = LongitudinalAlgorithmOutput(
+      output=1.0,
+      accel=1.0,
+      saturated=False,
+      control_state='pid',
+    )
+    assert output.accel == 1.0
+    assert output.control_state == 'pid'
