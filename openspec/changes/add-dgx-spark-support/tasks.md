@@ -25,7 +25,7 @@
 
 ## 4. DoRA Fine-Tuning Support
 
-- [ ] 4.1 Create `tools/dgx/` directory structure
+- [x] 4.1 Create `tools/dgx/` directory structure
 - [ ] 4.2 Implement `DoRAAdapter` class for weight decomposition
 - [ ] 4.3 Implement `DoRALayer` for low-rank adaptation
 - [ ] 4.4 Create dataset loader for route logs → training data
@@ -44,18 +44,18 @@
 
 ## 6. Development Utilities
 
-- [ ] 6.1 Create `tools/dgx/setup.py` for environment setup
-- [ ] 6.2 Add CUDA toolkit version checking
+- [x] 6.1 Create `tools/dgx/setup.py` for environment setup
+- [x] 6.2 Add CUDA toolkit version checking
 - [ ] 6.3 Create memory profiling utility
 - [ ] 6.4 Add GPU utilization monitoring
-- [ ] 6.5 Create quick-start script for DGX Spark development
+- [x] 6.5 Create quick-start script for DGX Spark development
 
 ## 7. Configuration and Feature Flags
 
 - [x] 7.1 Add `NVIDIAGPU` / `CUDAGPU` environment variable support
 - [x] 7.2 Add precision recommendation based on compute capability
 - [x] 7.3 Add fallback logic when NVIDIA features unavailable
-- [ ] 7.4 Document all configuration options
+- [x] 7.4 Document all configuration options
 
 ## 8. Testing
 
@@ -67,7 +67,7 @@
 
 ## 9. Documentation
 
-- [ ] 9.1 Add NVIDIA/DGX setup guide to tools/dgx/README.md
+- [x] 9.1 Add NVIDIA/DGX setup guide to tools/dgx/README.md
 - [ ] 9.2 Document DoRA fine-tuning workflow
 - [ ] 9.3 Add troubleshooting guide for common issues
 - [ ] 9.4 Update CLAUDE.md with NVIDIA development notes
