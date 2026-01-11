@@ -55,12 +55,12 @@
 
 - [x] 7.1 Add README.md to algorithm_harness directory
 - [x] 7.2 Document scenario format specification
-- [ ] 7.3 Add contributing guidelines for new scenarios
-- [ ] 7.4 Add example notebook for algorithm analysis
+- [x] 7.3 Add contributing guidelines for new scenarios
+- [x] 7.4 Add example notebook for algorithm analysis
 
 ## 8. Coverage Enforcement
 
 - [x] 8.1 Add coverage check script (`check_coverage.py`)
 - [x] 8.2 Add algorithm_benchmark pytest markers to pyproject.toml
 - [x] 8.3 Create OpenSpec for test coverage requirements
-- [ ] 8.4 Add coverage gate to CI workflow for algorithm harness
+- [x] 8.4 Add coverage gate to CI workflow for algorithm harness

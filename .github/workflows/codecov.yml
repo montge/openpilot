@@ -312,6 +312,78 @@ jobs:
           path: coverage-tools.xml
           retention-days: 1
 
+  # Algorithm Harness Coverage Gate (enforces 90% threshold)
+  coverage-algorithm-harness:
+    name: Coverage Gate - Algorithm Harness
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          lfs: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            clang \
+            capnproto \
+            libcapnp-dev \
+            libzmq3-dev \
+            libeigen3-dev
+
+      - name: Install Python dependencies
+        run: |
+          uv sync --frozen --extra testing
+          uv pip install pytest-cov coverage
+
+      - name: Build minimal project
+        run: |
+          source .venv/bin/activate
+          scons -u -j$(nproc) cereal/
+
+      - name: Run algorithm harness coverage check
+        id: coverage
+        run: |
+          source .venv/bin/activate
+          python selfdrive/controls/lib/tests/algorithm_harness/check_coverage.py
+        continue-on-error: true
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-algorithm-harness
+          path: algorithm_harness_coverage.xml
+          retention-days: 7
+
+      - name: Check coverage gate result
+        run: |
+          if [ "${{ steps.coverage.outcome }}" != "success" ]; then
+            echo "::error::Algorithm harness coverage is below 90% threshold"
+            echo "## Algorithm Harness Coverage Gate FAILED" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "The algorithm harness module requires 90%+ test coverage." >> $GITHUB_STEP_SUMMARY
+            echo "Run locally to see detailed report:" >> $GITHUB_STEP_SUMMARY
+            echo '```bash' >> $GITHUB_STEP_SUMMARY
+            echo 'python selfdrive/controls/lib/tests/algorithm_harness/check_coverage.py' >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          echo "## Algorithm Harness Coverage Gate PASSED" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Coverage meets the 90% threshold requirement." >> $GITHUB_STEP_SUMMARY
+
   # Merge and upload all coverage
   coverage-merge:
     name: Merge & Upload Coverage

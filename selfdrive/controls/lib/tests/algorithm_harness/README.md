@@ -136,6 +136,114 @@ pytest selfdrive/controls/lib/tests/algorithm_harness/ \
     --cov-report=html
 ```
 
+## Contributing Scenarios
+
+We welcome contributions of new test scenarios. Follow these guidelines to ensure your scenarios integrate well with the harness.
+
+### Scenario Requirements
+
+1. **Use Parquet format** with the schema defined in `scenario_schema.py`
+2. **Include metadata** with all required fields (name, type, difficulty, duration)
+3. **Provide ground truth** values for tracking error calculation
+4. **Keep scenarios focused** - one driving situation per scenario
+
+### Creating a New Scenario
+
+#### From Synthetic Data
+
+```python
+from openpilot.selfdrive.controls.lib.tests.algorithm_harness.scenario_generator import (
+    create_lateral_scenario,
+)
+from openpilot.selfdrive.controls.lib.tests.algorithm_harness.scenario_schema import (
+    ScenarioType,
+    DifficultyLevel,
+)
+
+# Generate scenario data
+scenario = create_lateral_scenario(
+    name="my_custom_curve",
+    description="Sharp right curve at moderate speed",
+    scenario_type=ScenarioType.HIGHWAY_CURVE,
+    difficulty=DifficultyLevel.MEDIUM,
+    duration_s=15.0,
+    # Add custom parameters...
+)
+```
+
+#### From Route Logs
+
+```python
+from openpilot.selfdrive.controls.lib.tests.algorithm_harness.scenarios import (
+    extract_scenario_from_route,
+)
+
+# Extract from a recorded drive
+scenario = extract_scenario_from_route(
+    route_id="a]abc123def456|2024-01-15--12-30-00",
+    start_s=120.0,
+    end_s=150.0,
+    scenario_type=ScenarioType.HIGHWAY_LANE_CHANGE,
+    difficulty=DifficultyLevel.HARD,
+)
+```
+
+### Scenario Naming Convention
+
+Use descriptive, lowercase names with underscores:
+
+| Pattern | Example | Use For |
+|---------|---------|---------|
+| `{road}_{maneuver}_{variant}` | `highway_curve_tight` | Standard scenarios |
+| `{condition}_{situation}` | `wet_emergency_stop` | Weather/condition tests |
+| `{source}_{segment}` | `route_abc123_lane_change` | Route-extracted scenarios |
+
+### Required Metadata Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | str | Unique identifier (snake_case) |
+| `description` | str | Human-readable description |
+| `scenario_type` | ScenarioType | Category from enum |
+| `difficulty` | DifficultyLevel | easy/medium/hard/extreme |
+| `duration_s` | float | Total duration in seconds |
+| `dt_s` | float | Time step (typically 0.01s) |
+| `source` | str | "synthetic", "route_log", or "simulation" |
+
+### Validation Checklist
+
+Before submitting a scenario:
+
+- [ ] Scenario loads without errors: `load_scenario(path, scenario_class)`
+- [ ] Metadata is complete and accurate
+- [ ] Ground truth values are reasonable (not NaN, within expected ranges)
+- [ ] Duration matches actual data length
+- [ ] At least one existing algorithm runs successfully against it
+- [ ] Scenario name is unique and descriptive
+
+### Testing Your Scenario
+
+```bash
+# Validate scenario file
+python -c "
+from openpilot.selfdrive.controls.lib.tests.algorithm_harness.scenarios import load_scenario
+scenario = load_scenario('path/to/your_scenario.parquet', 'lateral')
+print(f'Loaded: {scenario.name}, {len(scenario)} steps')
+"
+
+# Run benchmark
+python tools/algo_bench.py run \
+    --algorithm lateral_pid \
+    --scenarios path/to/scenarios/
+```
+
+### Submitting Scenarios
+
+1. Place scenario files in `tools/lib/test_scenarios/`
+2. Add an entry to the scenario catalog (if applicable)
+3. Include a test that validates the scenario loads correctly
+4. Document any special characteristics in the PR description
+
 ## Module Structure
 
 ```
