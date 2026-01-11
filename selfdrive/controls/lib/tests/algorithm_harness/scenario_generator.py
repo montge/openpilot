@@ -193,8 +193,6 @@ def generate_highway_lane_change(
   states = []
   ground_truth = []
 
-  lane_width = 3.7  # meters
-
   for i in range(num_steps):
     t = i * dt_s
     timestamp_ns = int(t * 1e9)
@@ -203,17 +201,14 @@ def generate_highway_lane_change(
     if t < lane_change_time:
       # Before lane change - straight
       curvature = 0.0
-      phase = "before"
     elif t < lane_change_time + lane_change_duration:
       # During lane change - sinusoidal curvature
       lc_progress = (t - lane_change_time) / lane_change_duration
       # S-curve shape for smooth lane change
       curvature = 0.005 * np.sin(2 * np.pi * lc_progress)
-      phase = "during"
     else:
       # After lane change - straight
       curvature = 0.0
-      phase = "after"
 
     yaw_rate = v_ego * curvature
 
@@ -366,7 +361,6 @@ def generate_emergency_stop(
   ground_truth = []
 
   v = initial_v
-  stop_distance = (initial_v**2) / (2 * decel_rate)
 
   for i in range(num_steps):
     t = i * dt_s

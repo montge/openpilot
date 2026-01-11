@@ -201,7 +201,7 @@ class TestDeterministicContext:
 
   def test_fake_time_patches(self):
     """Test fake time patches time module."""
-    with DeterministicContext(fake_time=True, dt_ns=100_000_000) as ctx:
+    with DeterministicContext(fake_time=True, dt_ns=100_000_000):
       t1 = time.monotonic()
       t2 = time.monotonic()
       t3 = time.monotonic()
@@ -254,7 +254,7 @@ class TestDeterministicModeFunction:
 
   def test_with_fake_time(self):
     """Test functional style with fake time."""
-    with deterministic_mode(fake_time=True, dt_ns=50_000_000) as ctx:
+    with deterministic_mode(fake_time=True, dt_ns=50_000_000):
       t1 = time.monotonic()
       t2 = time.monotonic()
 

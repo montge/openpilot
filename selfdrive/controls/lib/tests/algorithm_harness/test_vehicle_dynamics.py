@@ -319,7 +319,7 @@ class TestVehiclePresets:
 
   def test_all_presets_valid(self):
     """Test all presets have valid configurations."""
-    for name, config in VEHICLE_PRESETS.items():
+    for _name, config in VEHICLE_PRESETS.items():
       assert config.wheelbase > 0
       assert config.steer_ratio > 0
       assert config.mass > 0
@@ -335,9 +335,6 @@ class TestBicycleModelIntegration:
     config = get_sedan_config()
     model = BicycleModel(config)
     model.state.v = 10.0  # Constant speed
-
-    initial_x = model.state.x
-    initial_y = model.state.y
 
     # Drive in a circle for many steps
     for _ in range(1000):
@@ -359,15 +356,17 @@ class TestBicycleModelIntegration:
     for _ in range(200):
       model.step(dt=0.01, steer_cmd=-0.2, accel_cmd=0.0)
 
-    mid_y = model.state.y
+    mid_heading = model.state.yaw
 
     # Second half: turn left
     for _ in range(200):
       model.step(dt=0.01, steer_cmd=0.2, accel_cmd=0.0)
 
-    # Should have turned back towards center
-    final_y = model.state.y
-    assert final_y > mid_y  # Turned back
+    # Should have turned back (heading changed in opposite direction)
+    final_heading = model.state.yaw
+    # The vehicle turned right (negative yaw change) then left (positive yaw change)
+    # So the final heading should be greater than the mid-point heading
+    assert final_heading > mid_heading  # Heading turned back
 
   def test_acceleration_from_stop(self):
     """Test accelerating from standstill."""

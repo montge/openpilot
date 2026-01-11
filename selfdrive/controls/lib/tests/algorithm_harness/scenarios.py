@@ -49,8 +49,8 @@ def load_scenario(path: Union[str, Path], scenario_class: str = "lateral") -> Sc
   """
   try:
     import pandas as pd
-  except ImportError:
-    raise ImportError("pandas is required for scenario loading. Install with: pip install pandas")
+  except ImportError as err:
+    raise ImportError("pandas is required for scenario loading. Install with: pip install pandas") from err
 
   path = Path(path)
   if not path.exists():
@@ -116,11 +116,10 @@ def save_scenario(
     metadata: Optional metadata for the scenario
   """
   try:
-    import pandas as pd
     import pyarrow as pa
     import pyarrow.parquet as pq
-  except ImportError:
-    raise ImportError("pandas and pyarrow required. Install with: pip install pandas pyarrow")
+  except ImportError as err:
+    raise ImportError("pandas and pyarrow required. Install with: pip install pandas pyarrow") from err
 
   path = Path(path)
   path.parent.mkdir(parents=True, exist_ok=True)
@@ -213,8 +212,8 @@ def _states_to_dataframe(states: list):
   """Convert state objects to DataFrame."""
   try:
     import pandas as pd
-  except ImportError:
-    raise ImportError("pandas required")
+  except ImportError as err:
+    raise ImportError("pandas required") from err
 
   rows = []
   for state in states:

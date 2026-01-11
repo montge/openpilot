@@ -190,8 +190,8 @@ def get_pyarrow_schema():
   """
   try:
     import pyarrow as pa
-  except ImportError:
-    raise ImportError("pyarrow is required for Parquet support. Install with: pip install pyarrow")
+  except ImportError as err:
+    raise ImportError("pyarrow is required for Parquet support. Install with: pip install pyarrow") from err
 
   type_map = {
     'int64': pa.int64(),

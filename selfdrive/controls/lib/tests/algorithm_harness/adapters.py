@@ -8,7 +8,6 @@ LongControl) to implement the AlgorithmInterface protocol for use with the test 
 import math
 from dataclasses import dataclass, field
 from typing import Any, Optional
-from unittest.mock import MagicMock
 
 from openpilot.selfdrive.controls.lib.tests.algorithm_harness.interface import (
   LateralAlgorithmState,
@@ -16,6 +15,30 @@ from openpilot.selfdrive.controls.lib.tests.algorithm_harness.interface import (
   LongitudinalAlgorithmState,
   LongitudinalAlgorithmOutput,
 )
+
+
+class Mock:
+  """Simple mock object that auto-creates nested attributes."""
+
+  def __init__(self, return_value: Any = None):
+    super().__setattr__('_return_value', return_value)
+    super().__setattr__('_children', {})
+
+  def __getattr__(self, name: str) -> Any:
+    if name == 'return_value':
+      return self._return_value
+    if name not in self._children:
+      self._children[name] = Mock()
+    return self._children[name]
+
+  def __setattr__(self, name: str, value: Any) -> None:
+    if name == 'return_value':
+      super().__setattr__('_return_value', value)
+    else:
+      self._children[name] = value
+
+  def __call__(self, *args: Any, **kwargs: Any) -> Any:
+    return self._return_value
 
 
 @dataclass
@@ -75,7 +98,7 @@ def create_mock_lateral_dependencies(
   Returns:
     Tuple of (mock_CP, mock_CI)
   """
-  CP = MagicMock()
+  CP = Mock()
   CP.steerLimitTimer = config.steer_limit_timer
   CP.lateralTuning.pid.kpBP = config.kp_bp
   CP.lateralTuning.pid.kpV = config.kp_v
@@ -90,35 +113,47 @@ def create_mock_lateral_dependencies(
   CP.lateralTuning.torque.friction = 0.0
   CP.lateralTuning.torque.latAccelFactor = 1.0
   CP.lateralTuning.torque.latAccelOffset = 0.0
+  # For LatControlTorque.as_builder() - return self so chained attributes work
+  CP.lateralTuning.torque.as_builder.return_value = CP.lateralTuning.torque
 
-  CI = MagicMock()
-  feedforward_fn = MagicMock(return_value=config.feedforward_value)
+  CI = Mock()
+  feedforward_fn = Mock(return_value=config.feedforward_value)
   CI.get_steer_feedforward_function.return_value = feedforward_fn
+
+  # For LatControlTorque: provide mock torque conversion functions
+  def torque_to_accel(torque: float, _params: Any) -> float:
+    return torque  # Simple 1:1 mapping for testing
+
+  def accel_to_torque(accel: float, _params: Any) -> float:
+    return accel  # Simple 1:1 mapping for testing
+
+  CI.torque_from_lateral_accel.return_value = accel_to_torque
+  CI.lateral_accel_from_torque.return_value = torque_to_accel
 
   return CP, CI
 
 
 def create_mock_car_state(state: LateralAlgorithmState) -> Any:
   """Convert LateralAlgorithmState to mock CarState."""
-  CS = MagicMock()
-  CS.vEgo = state.v_ego
-  CS.aEgo = state.a_ego
-  CS.steeringAngleDeg = state.steering_angle_deg
-  CS.steeringRateDeg = state.steering_rate_deg
-  CS.steeringPressed = state.steering_pressed
+  CS = Mock()
+  CS.vEgo = float(state.v_ego)
+  CS.aEgo = float(state.a_ego)
+  CS.steeringAngleDeg = float(state.steering_angle_deg)
+  CS.steeringRateDeg = float(state.steering_rate_deg)
+  CS.steeringPressed = bool(state.steering_pressed)
   return CS
 
 
 def create_mock_vehicle_model(steer_from_curvature: float = 0.0) -> Any:
   """Create mock VehicleModel."""
-  VM = MagicMock()
+  VM = Mock()
   VM.get_steer_from_curvature.return_value = steer_from_curvature
   return VM
 
 
 def create_mock_params(state: LateralAlgorithmState) -> Any:
   """Create mock calibration params from state."""
-  params = MagicMock()
+  params = Mock()
   params.angleOffsetDeg = 0.0
   params.roll = state.roll
   return params
@@ -255,7 +290,7 @@ class LongControlAdapter:
     """Initialize the underlying controller."""
     from openpilot.selfdrive.controls.lib.longcontrol import LongControl
 
-    CP = MagicMock()
+    CP = Mock()
     CP.longitudinalTuning.kpBP = self.config.kp_bp
     CP.longitudinalTuning.kpV = self.config.kp_v
     CP.longitudinalTuning.kiBP = self.config.ki_bp
@@ -275,11 +310,11 @@ class LongControlAdapter:
 
   def update(self, state: LongitudinalAlgorithmState) -> LongitudinalAlgorithmOutput:
     """Process state and return longitudinal control output."""
-    CS = MagicMock()
-    CS.vEgo = state.v_ego
-    CS.aEgo = state.a_ego
-    CS.brakePressed = state.brake_pressed
-    CS.cruiseState.standstill = state.cruise_standstill
+    CS = Mock()
+    CS.vEgo = float(state.v_ego)
+    CS.aEgo = float(state.a_ego)
+    CS.brakePressed = bool(state.brake_pressed)
+    CS.cruiseState.standstill = bool(state.cruise_standstill)
 
     accel = self._controller.update(
       active=state.active,
@@ -289,8 +324,15 @@ class LongControlAdapter:
       accel_limits=state.accel_limits,
     )
 
-    # Get state name
-    state_name = str(self._controller.long_control_state).split('.')[-1].lower()
+    # Get state name from Cap'n Proto enum integer value
+    from openpilot.selfdrive.controls.lib.longcontrol import LongCtrlState
+    state_map = {
+      LongCtrlState.off: 'off',
+      LongCtrlState.pid: 'pid',
+      LongCtrlState.stopping: 'stopping',
+      LongCtrlState.starting: 'starting',
+    }
+    state_name = state_map.get(self._controller.long_control_state, 'unknown')
 
     return LongitudinalAlgorithmOutput(
       output=accel,

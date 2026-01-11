@@ -48,7 +48,7 @@ class Scenario:
       for state in self.states:
         yield state, None
     else:
-      for state, gt in zip(self.states, self.ground_truth):
+      for state, gt in zip(self.states, self.ground_truth, strict=True):
         yield state, gt
 
 
@@ -202,7 +202,7 @@ class ScenarioRunner:
     candidate_results = self.run_batch(candidate, scenarios, candidate_name)
 
     comparisons = []
-    for base_result, cand_result in zip(baseline_results, candidate_results):
+    for base_result, cand_result in zip(baseline_results, candidate_results, strict=True):
       comparison = compare_metrics(base_result.metrics, cand_result.metrics)
       comparisons.append(
         {

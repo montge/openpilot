@@ -322,7 +322,7 @@ class TestGenerateAllSeedScenarios:
   def test_all_have_metadata(self):
     """Test all scenarios have metadata."""
     scenarios = generate_all_seed_scenarios()
-    for name, (scenario, metadata) in scenarios.items():
+    for _name, (scenario, metadata) in scenarios.items():
       assert scenario is not None
       assert metadata is not None
       assert metadata.name != ""

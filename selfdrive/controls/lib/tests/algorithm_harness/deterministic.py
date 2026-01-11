@@ -22,8 +22,29 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import Any
 from collections.abc import Callable
-from unittest.mock import patch
 import numpy as np
+
+
+class _Patcher:
+  """Simple attribute patcher for replacing module attributes."""
+
+  def __init__(self, target: str, replacement: Any):
+    parts = target.rsplit('.', 1)
+    self._module_name = parts[0]
+    self._attr_name = parts[1]
+    self._replacement = replacement
+    self._original: Any = None
+    self._module: Any = None
+
+  def start(self) -> None:
+    import importlib
+    self._module = importlib.import_module(self._module_name)
+    self._original = getattr(self._module, self._attr_name)
+    setattr(self._module, self._attr_name, self._replacement)
+
+  def stop(self) -> None:
+    if self._module is not None:
+      setattr(self._module, self._attr_name, self._original)
 
 
 @dataclass
@@ -203,10 +224,10 @@ class DeterministicContext:
     # Optionally patch time functions
     if self.fake_time:
       self._patches = [
-        patch('time.monotonic', self.time_source.monotonic),
-        patch('time.monotonic_ns', self.time_source.monotonic_ns),
-        patch('time.time', self.time_source.time),
-        patch('time.time_ns', self.time_source.time_ns),
+        _Patcher('time.monotonic', self.time_source.monotonic),
+        _Patcher('time.monotonic_ns', self.time_source.monotonic_ns),
+        _Patcher('time.time', self.time_source.time),
+        _Patcher('time.time_ns', self.time_source.time_ns),
       ]
       for p in self._patches:
         p.start()

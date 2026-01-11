@@ -59,7 +59,7 @@ class VehicleDynamicsConfig:
   steer_ratio: float = 15.0
   mass: float = 1500.0  # kg
   rotational_inertia: float = 2500.0  # kg*m^2
-  center_to_front: float = 1.35  # meters (typically ~wheelbase/2)
+  center_to_front: float = 1.1  # meters (front-engine sedan: CG closer to front)
   tire_stiffness_front: float = 200000.0  # N/rad
   tire_stiffness_rear: float = 200000.0  # N/rad
   max_steer_angle_deg: float = 540.0  # degrees
