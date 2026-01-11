@@ -40,9 +40,9 @@
 - [x] 5.1 Create `tools/algo_bench.py` CLI entry point
 - [x] 5.2 Implement `run` subcommand (run algorithm against scenarios)
 - [x] 5.3 Implement `compare` subcommand (A/B comparison)
-- [ ] 5.4 Implement `report` subcommand (generate HTML/markdown reports)
+- [x] 5.4 Implement `report` subcommand (generate HTML/markdown reports)
 - [x] 5.5 Add tabular output with metrics summary
-- [ ] 5.6 Add optional matplotlib visualization
+- [x] 5.6 Add optional matplotlib visualization
 
 ## 6. Pytest Integration
 
