@@ -11,17 +11,17 @@
 
 - [x] 2.1 Configure tinygrad CUDA backend selection for NVIDIA GPUs
 - [x] 2.2 Add `NVIDIAGPU` / `CUDAGPU` environment variable support to modeld
-- [ ] 2.3 Test supercombo model loading on CUDA backend
+- [x] 2.3 Test supercombo model loading on CUDA backend (driving_policy, driving_vision, dmonitoring)
 - [x] 2.4 Implement precision detection (`supports_fp16`, `supports_bf16`, `supports_fp8`, `supports_nvfp4`)
-- [ ] 2.5 Benchmark inference performance vs comma device baseline
+- [x] 2.5 Benchmark inference performance vs comma device baseline (GB10: 1.9 FPS vs comma 3X: 20 FPS)
 
 ## 3. Model Loading and Inference
 
 - [ ] 3.1 Extend model runner to support precision selection
 - [ ] 3.2 Implement memory-efficient model loading for unified memory
 - [ ] 3.3 Add model warm-up and performance profiling
-- [ ] 3.4 Create inference benchmark script (`tools/dgx/benchmark_inference.py`)
-- [ ] 3.5 Document performance characteristics
+- [x] 3.4 Create inference benchmark script (`tools/dgx/benchmark_inference.py`)
+- [x] 3.5 Document performance characteristics (see tools/dgx/README.md)
 
 ## 4. DoRA Fine-Tuning Support
 

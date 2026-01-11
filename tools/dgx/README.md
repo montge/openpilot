@@ -117,14 +117,42 @@ sudo apt install nvidia-cuda-toolkit
 This is normal for unified memory architectures like DGX Spark (GB10).
 The CPU and GPU share the same 128GB memory pool.
 
+## Benchmarking
+
+Run the inference benchmark:
+```bash
+python tools/dgx/benchmark_inference.py --runs 20 --warmup 5
+```
+
+Options:
+- `--runs N`: Number of benchmark runs (default: 20)
+- `--warmup N`: Number of warmup runs (default: 5)
+- `--beam N`: BEAM optimization level (default: 0, disabled)
+
+### Benchmark Results (2026-01)
+
+Tested on DGX Spark (GB10, Blackwell, compute 12.1):
+
+| Model | Inference | FPS |
+|-------|-----------|-----|
+| driving_policy | 58ms | 17.2 |
+| driving_vision | 366ms | 2.7 |
+| dmonitoring | 328ms | 3.0 |
+| **Combined Pipeline** | **514ms** | **1.9** |
+
+**Note:** Performance is currently limited by tinygrad CUDA backend optimization
+for Blackwell architecture. The comma 3X (Snapdragon) achieves ~20 FPS.
+Future tinygrad updates may improve GB10 performance significantly.
+
 ## Files
 
 ```
 tools/dgx/
-├── __init__.py      # Package init
-├── setup.py         # Environment setup script
-├── quickstart.sh    # Quick start bash script
-└── README.md        # This file
+├── __init__.py           # Package init
+├── setup.py              # Environment setup script
+├── quickstart.sh         # Quick start bash script
+├── benchmark_inference.py # Model inference benchmark
+└── README.md             # This file
 ```
 
 ## Environment Variables
