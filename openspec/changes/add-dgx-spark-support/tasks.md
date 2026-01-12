@@ -46,8 +46,8 @@
 
 - [x] 6.1 Create `tools/dgx/setup.py` for environment setup
 - [x] 6.2 Add CUDA toolkit version checking
-- [ ] 6.3 Create memory profiling utility
-- [ ] 6.4 Add GPU utilization monitoring
+- [x] 6.3 Create memory profiling utility (`gpu_monitor.py`)
+- [x] 6.4 Add GPU utilization monitoring (`gpu_monitor.py`)
 - [x] 6.5 Create quick-start script for DGX Spark development
 
 ## 7. Configuration and Feature Flags
