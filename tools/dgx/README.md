@@ -378,12 +378,14 @@ python tools/dgx/training/test_dataloader.py --download --read
 
 ```
 tools/dgx/
-├── __init__.py            # Package init
-├── setup.py               # Environment setup script
-├── quickstart.sh          # Quick start bash script
-├── benchmark_inference.py # tinygrad CUDA benchmark
-├── benchmark_tensorrt.py  # TensorRT benchmark (recommended)
-├── README.md              # This file
+├── __init__.py                 # Package init
+├── setup.py                    # Environment setup script
+├── quickstart.sh               # Quick start bash script
+├── gpu_monitor.py              # GPU memory and utilization monitoring
+├── benchmark_inference.py      # tinygrad CUDA benchmark
+├── benchmark_tensorrt.py       # TensorRT benchmark (recommended)
+├── README.md                   # This file
+├── HARDWARE_TEST_CHECKLIST.md  # Manual hardware validation checklist
 └── training/
     ├── __init__.py        # Training module init
     ├── dora.py            # DoRA layer implementations

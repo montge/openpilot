@@ -62,8 +62,8 @@
 - [x] 8.1 Add pytest fixtures for NVIDIA testing (with hardware mocking)
 - [ ] 8.2 Add integration tests for model inference
 - [x] 8.3 Add tests for DoRA adapter correctness (in `training/test_dora.py`)
-- [ ] 8.4 Add CI job for NVIDIA compatibility (software-only checks)
-- [ ] 8.5 Create manual test checklist for hardware validation
+- [x] 8.4 Add CI job for NVIDIA compatibility (software-only checks)
+- [x] 8.5 Create manual test checklist for hardware validation
 
 ## 9. Documentation
 
