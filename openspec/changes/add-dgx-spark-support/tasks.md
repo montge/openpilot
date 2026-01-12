@@ -32,7 +32,7 @@
 - [x] 4.5 Implement fine-tuning entry point (`tools/dgx/training/train.py`)
 - [x] 4.6 Implement adapter checkpoint save/load (in train.py)
 - [x] 4.7 Add adapter merging utility (`DoRALinear.merge_weights()`)
-- [ ] 4.8 Add unit tests for DoRA implementation
+- [x] 4.8 Add unit tests for DoRA implementation (`training/test_dora.py`)
 
 ## 5. Algorithm Harness Integration
 
@@ -61,7 +61,7 @@
 
 - [x] 8.1 Add pytest fixtures for NVIDIA testing (with hardware mocking)
 - [ ] 8.2 Add integration tests for model inference
-- [ ] 8.3 Add tests for DoRA adapter correctness
+- [x] 8.3 Add tests for DoRA adapter correctness (in `training/test_dora.py`)
 - [ ] 8.4 Add CI job for NVIDIA compatibility (software-only checks)
 - [ ] 8.5 Create manual test checklist for hardware validation
 
