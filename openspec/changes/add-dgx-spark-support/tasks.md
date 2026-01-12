@@ -17,9 +17,9 @@
 
 ## 3. Model Loading and Inference
 
-- [ ] 3.1 Extend model runner to support precision selection
-- [ ] 3.2 Implement memory-efficient model loading for unified memory
-- [ ] 3.3 Add model warm-up and performance profiling
+- [x] 3.1 Extend model runner to support precision selection
+- [x] 3.2 Implement memory-efficient model loading for unified memory
+- [x] 3.3 Add model warm-up and performance profiling
 - [x] 3.4 Create inference benchmark script (`tools/dgx/benchmark_inference.py`)
 - [x] 3.5 Document performance characteristics (see tools/dgx/README.md)
 
@@ -36,9 +36,9 @@
 
 ## 5. Algorithm Harness Integration
 
-- [ ] 5.1 Add GPU acceleration option to `ScenarioRunner`
-- [ ] 5.2 Implement batch scenario processing on GPU
-- [ ] 5.3 Add CUDA memory management for large scenario sets
+- [x] 5.1 Add GPU acceleration option to `ScenarioRunner`
+- [x] 5.2 Implement batch scenario processing on GPU
+- [x] 5.3 Add CUDA memory management for large scenario sets
 - [ ] 5.4 Benchmark simulation acceleration vs CPU baseline
 - [ ] 5.5 Update algorithm harness documentation
 
@@ -60,7 +60,7 @@
 ## 8. Testing
 
 - [x] 8.1 Add pytest fixtures for NVIDIA testing (with hardware mocking)
-- [ ] 8.2 Add integration tests for model inference
+- [x] 8.2 Add integration tests for model inference
 - [x] 8.3 Add tests for DoRA adapter correctness (in `training/test_dora.py`)
 - [x] 8.4 Add CI job for NVIDIA compatibility (software-only checks)
 - [x] 8.5 Create manual test checklist for hardware validation

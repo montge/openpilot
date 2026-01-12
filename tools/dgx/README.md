@@ -382,10 +382,16 @@ tools/dgx/
 ├── setup.py                    # Environment setup script
 ├── quickstart.sh               # Quick start bash script
 ├── gpu_monitor.py              # GPU memory and utilization monitoring
+├── model_runner.py             # Precision-aware model runner
+├── memory_utils.py             # Unified memory utilities
+├── algorithm_harness_gpu.py    # GPU-accelerated algorithm harness
 ├── benchmark_inference.py      # tinygrad CUDA benchmark
 ├── benchmark_tensorrt.py       # TensorRT benchmark (recommended)
 ├── README.md                   # This file
 ├── HARDWARE_TEST_CHECKLIST.md  # Manual hardware validation checklist
+├── tests/
+│   ├── __init__.py             # Test package init
+│   └── test_model_inference.py # Integration tests for model inference
 └── training/
     ├── __init__.py        # Training module init
     ├── dora.py            # DoRA layer implementations
