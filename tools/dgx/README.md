@@ -171,6 +171,139 @@ Tested on DGX Spark (GB10, Blackwell, compute 12.1):
 tinygrad's CUDA backend is not yet optimized for Blackwell architecture.
 Use TensorRT for production-level performance.
 
+## DoRA Fine-Tuning
+
+The DGX Spark is ideal for fine-tuning openpilot models using DoRA (Weight-Decomposed Low-Rank Adaptation). DoRA achieves efficient fine-tuning by decomposing pretrained weights into magnitude and direction components, then applying low-rank updates only to the direction.
+
+### Why DoRA?
+
+- **Parameter Efficient**: Only ~2-5% of parameters are trained
+- **Preserves Base Model**: Original weights are frozen, preventing catastrophic forgetting
+- **Fast Training**: With TensorRT teacher, pseudo-label generation runs at 800+ FPS
+- **Easy Deployment**: DoRA weights can be merged back into the base model for inference
+
+### Quick Start Training
+
+```bash
+# Install PyTorch and training dependencies
+pip install torch onnx2pytorch tensorrt
+
+# Run training with dummy data (tests the pipeline)
+python tools/dgx/training/train.py --dry-run --epochs 2
+
+# Train with CI test segments
+python tools/dgx/training/train.py --data ci --epochs 5
+
+# Train with commaCarSegments dataset
+python tools/dgx/training/train.py --data comma_car_segments --epochs 10
+```
+
+### Training Configuration
+
+```bash
+python tools/dgx/training/train.py \
+  --data /path/to/segments \    # Training data path
+  --model selfdrive/modeld/models/driving_policy.onnx \
+  --epochs 10 \                 # Number of training epochs
+  --batch-size 32 \             # Batch size
+  --lr 1e-4 \                   # Learning rate
+  --dora-rank 16 \              # DoRA rank (higher = more capacity)
+  --dora-alpha 1.0 \            # DoRA scaling factor
+  --output checkpoints/         # Checkpoint directory
+```
+
+### Training Pipeline Architecture
+
+```
+Route Logs (rlog.zst)
+        │
+        ▼
+┌─────────────────┐
+│  Data Loader    │  Extracts frames, desire, traffic convention
+│  (dataloader.py)│  from route segments
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐     ┌─────────────────┐
+│  Student Model  │     │  Teacher Model  │
+│  (PyTorch+DoRA) │     │  (TensorRT)     │
+│  ~2-5% trainable│     │  800+ FPS       │
+└────────┬────────┘     └────────┬────────┘
+         │                       │
+         ▼                       ▼
+┌─────────────────────────────────────────┐
+│         Knowledge Distillation          │
+│  - Laplacian NLL (winner-takes-all)     │
+│  - Feature matching                     │
+│  - Path probability alignment           │
+└─────────────────────────────────────────┘
+         │
+         ▼
+   DoRA Checkpoints
+   (adapter weights only)
+```
+
+### DoRA Components
+
+**DoRALinear**: Linear layer with weight decomposition
+```python
+from openpilot.tools.dgx.training import DoRALinear, apply_dora_to_model
+
+# Apply DoRA to an existing model
+model = apply_dora_to_model(
+    model,
+    target_modules=["fc", "proj"],  # Layer name patterns to adapt
+    rank=16,                         # Low-rank dimension
+    alpha=1.0,                       # Scaling factor
+)
+```
+
+**Loss Functions**:
+- `LaplacianNLLLoss`: Robust loss for path predictions (heavier tails than Gaussian)
+- `PathDistillationLoss`: Combined loss for path, lane lines, and road edges
+- `FeatureDistillationLoss`: Matches intermediate representations
+
+### Available Training Data
+
+| Dataset | Size | Description |
+|---------|------|-------------|
+| CI Test Segments | ~20 segments | Quick validation from openpilot CI |
+| commaCarSegments | 188K segments (3,148 hours) | HuggingFace community dataset |
+| comma2k19 | 33 hours (~100GB) | Academic Torrents |
+
+### Merging Weights for Inference
+
+After training, merge DoRA weights back into the base model:
+
+```python
+from openpilot.tools.dgx.training import DoRALinear
+
+# Load trained DoRA model
+checkpoint = torch.load("checkpoints/best_model.pt")
+model.load_state_dict(checkpoint["model_state_dict"])
+
+# Merge weights for each DoRA layer
+for name, module in model.named_modules():
+    if isinstance(module, DoRALinear):
+        merged = module.merge_weights()
+        # Replace DoRA layer with merged Linear
+        parent = get_parent_module(model, name)
+        setattr(parent, name.split(".")[-1], merged)
+
+# Export merged model to ONNX
+torch.onnx.export(model, dummy_input, "fine_tuned_model.onnx")
+```
+
+### Testing DoRA
+
+```bash
+# Run DoRA unit tests (requires PyTorch)
+pytest tools/dgx/training/test_dora.py -v
+
+# Test dataloader with CI segments
+python tools/dgx/training/test_dataloader.py --download --read
+```
+
 ## Files
 
 ```
@@ -180,7 +313,16 @@ tools/dgx/
 ├── quickstart.sh          # Quick start bash script
 ├── benchmark_inference.py # tinygrad CUDA benchmark
 ├── benchmark_tensorrt.py  # TensorRT benchmark (recommended)
-└── README.md              # This file
+├── README.md              # This file
+└── training/
+    ├── __init__.py        # Training module init
+    ├── dora.py            # DoRA layer implementations
+    ├── losses.py          # Training loss functions
+    ├── teacher.py         # TensorRT teacher model
+    ├── dataloader.py      # Route log dataset loader
+    ├── train.py           # Training entry point
+    ├── test_dora.py       # DoRA unit tests
+    └── test_dataloader.py # Dataloader test script
 ```
 
 ## Environment Variables
