@@ -117,6 +117,76 @@ sudo apt install nvidia-cuda-toolkit
 This is normal for unified memory architectures like DGX Spark (GB10).
 The CPU and GPU share the same 128GB memory pool.
 
+### TensorRT installation fails
+```bash
+# Install TensorRT from pip (requires CUDA)
+pip install tensorrt
+
+# If pip install fails, try NVIDIA's package
+# Download from: https://developer.nvidia.com/tensorrt
+```
+
+### Model loading errors (ONNX)
+```bash
+# Ensure models are downloaded (git-lfs required)
+git lfs pull
+
+# Or copy models manually
+scp user@source:/path/to/models/*.onnx selfdrive/modeld/models/
+```
+
+### Out of memory during training
+- Reduce batch size: `--batch-size 16` or `--batch-size 8`
+- Use gradient checkpointing (if implemented)
+- Monitor memory: `python tools/dgx/gpu_monitor.py --monitor`
+
+### PyTorch not found
+Training requires PyTorch:
+```bash
+pip install torch
+# Or with CUDA support:
+pip install torch --index-url https://download.pytorch.org/whl/cu121
+```
+
+### SSH connection to DGX
+```bash
+# Find your SSH key (NVIDIA Sync stores keys here on Windows)
+# /mnt/c/Users/<username>/AppData/Local/NVIDIA Corporation/Sync/config/nvsync.key
+
+# Copy key and connect
+cp /path/to/nvsync.key ~/.ssh/dgx_key
+chmod 600 ~/.ssh/dgx_key
+ssh -i ~/.ssh/dgx_key user@dgx-spark-ip
+```
+
+### Slow tinygrad performance
+tinygrad CUDA is not optimized for Blackwell architecture. Use TensorRT:
+```bash
+# TensorRT: ~800 FPS
+python tools/dgx/benchmark_tensorrt.py
+
+# tinygrad: ~2 FPS (not optimized)
+python tools/dgx/benchmark_inference.py
+```
+
+### Pre-commit hook failures
+```bash
+# Ensure mypy is in PATH
+export PATH="/home/$USER/.venv/bin:$PATH"
+
+# Common fixes:
+# - Add type: ignore comments for torch imports
+# - Remove unused imports
+# - Make scripts executable: chmod +x script.py
+```
+
+### Process killed during training
+Check for OOM (Out of Memory):
+```bash
+dmesg | tail -20  # Check for OOM killer messages
+python tools/dgx/gpu_monitor.py --status  # Check GPU memory
+```
+
 ## Benchmarking
 
 ### TensorRT (Recommended)

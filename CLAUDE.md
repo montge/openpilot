@@ -120,6 +120,55 @@ The safety model is enforced in panda firmware (see `opendbc/safety/`). Never di
 - Driver monitoring in `selfdrive/monitoring/`
 - Actuation limits in `selfdrive/selfdrived/helpers.py`
 
+## NVIDIA / DGX Spark Development
+
+The `tools/dgx/` directory contains utilities for developing on NVIDIA hardware:
+
+### Quick Start
+```bash
+# Run setup and GPU check
+python tools/dgx/setup.py --check
+
+# Benchmark with TensorRT (recommended - 800+ FPS)
+pip install tensorrt
+python tools/dgx/benchmark_tensorrt.py
+
+# Monitor GPU during development
+python tools/dgx/gpu_monitor.py --monitor
+```
+
+### Key Files
+- `tools/dgx/setup.py` - Environment setup and GPU detection
+- `tools/dgx/benchmark_tensorrt.py` - TensorRT performance benchmark
+- `tools/dgx/gpu_monitor.py` - Memory and utilization monitoring
+- `tools/dgx/training/` - DoRA fine-tuning pipeline
+
+### DoRA Fine-Tuning
+For model fine-tuning on DGX Spark:
+```bash
+pip install torch onnx2pytorch tensorrt
+python tools/dgx/training/train.py --data ci --epochs 5
+```
+
+See `tools/dgx/README.md` for complete documentation.
+
+### Hardware Detection
+```python
+from openpilot.system.hardware.nvidia.gpu import (
+    is_nvidia_available, get_best_gpu, get_recommended_precision
+)
+
+if is_nvidia_available():
+    gpu = get_best_gpu()
+    print(f"GPU: {gpu.name}, Precision: {get_recommended_precision(gpu)}")
+```
+
+### Notes
+- TensorRT achieves 620x speedup over tinygrad on Blackwell GPUs
+- tinygrad CUDA backend is not optimized for Blackwell architecture
+- Training code requires PyTorch (not included in base openpilot env)
+- Models are split: `driving_policy.onnx`, `driving_vision.onnx`, `dmonitoring_model.onnx`
+
 <!-- OPENSPEC:START -->
 # OpenSpec Instructions
 

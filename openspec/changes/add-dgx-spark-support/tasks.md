@@ -69,5 +69,5 @@
 
 - [x] 9.1 Add NVIDIA/DGX setup guide to tools/dgx/README.md
 - [x] 9.2 Document DoRA fine-tuning workflow (in tools/dgx/README.md)
-- [ ] 9.3 Add troubleshooting guide for common issues
-- [ ] 9.4 Update CLAUDE.md with NVIDIA development notes
+- [x] 9.3 Add troubleshooting guide for common issues (in tools/dgx/README.md)
+- [x] 9.4 Update CLAUDE.md with NVIDIA development notes
