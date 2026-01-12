@@ -39,8 +39,8 @@
 - [x] 5.1 Add GPU acceleration option to `ScenarioRunner`
 - [x] 5.2 Implement batch scenario processing on GPU
 - [x] 5.3 Add CUDA memory management for large scenario sets
-- [ ] 5.4 Benchmark simulation acceleration vs CPU baseline
-- [ ] 5.5 Update algorithm harness documentation
+- [x] 5.4 Benchmark simulation acceleration vs CPU baseline
+- [x] 5.5 Update algorithm harness documentation
 
 ## 6. Development Utilities
 

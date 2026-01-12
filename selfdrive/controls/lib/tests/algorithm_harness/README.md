@@ -304,3 +304,56 @@ When adding new features:
 2. Run coverage locally before submitting PR
 3. Ensure no decrease in overall coverage
 4. Document any deliberately excluded code with `# pragma: no cover`
+
+## GPU and Parallel Acceleration
+
+For large-scale scenario testing on NVIDIA GPUs (including DGX Spark), use the GPU-accelerated runner:
+
+```python
+from openpilot.tools.dgx.algorithm_harness_gpu import GPUScenarioRunner
+
+# Create parallel runner
+runner = GPUScenarioRunner(max_workers=8)
+
+# Run scenarios in parallel
+results = runner.run_batch_parallel(
+    algorithm_factory=lambda: MyAlgorithm(),
+    scenarios=scenarios,
+)
+
+print(f"Processed {results.num_scenarios} scenarios")
+print(f"Throughput: {results.scenarios_per_second:.1f} scenarios/second")
+```
+
+### When Parallel Execution Helps
+
+Parallel execution provides speedup when:
+- **Many scenarios**: 50+ independent scenarios to run
+- **Complex algorithms**: Per-step computation takes >1ms (Kalman filters, model inference)
+- **Batch experiments**: Running same algorithm with different parameters
+
+For lightweight algorithms (<1ms per step), sequential execution is often faster due to process pool overhead.
+
+### Benchmarking Parallel Performance
+
+```bash
+# Run parallel benchmark
+python tools/dgx/benchmark_parallel.py --scenarios 100 --steps 5000
+
+# With algorithm harness scenarios
+python tools/dgx/algorithm_harness_gpu.py
+```
+
+### GPU Metrics Acceleration
+
+For large datasets, use GPU-accelerated percentile computation:
+
+```python
+from openpilot.tools.dgx.algorithm_harness_gpu import GPUMetricsAccelerator
+
+accelerator = GPUMetricsAccelerator()
+latencies = np.array([...])  # 10000+ samples
+p50, p95, p99 = accelerator.percentiles(latencies, [50, 95, 99])
+```
+
+See `tools/dgx/README.md` for full GPU acceleration documentation.
