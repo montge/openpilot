@@ -28,7 +28,7 @@
 - [x] 4.1 Create `tools/dgx/` directory structure
 - [x] 4.2 Implement `DoRAAdapter` class for weight decomposition (`training/dora.py`)
 - [x] 4.3 Implement `DoRALayer` for low-rank adaptation (`DoRALinear`, `DoRAConv2d`)
-- [ ] 4.4 Create dataset loader for route logs → training data
+- [x] 4.4 Create dataset loader for route logs → training data (`training/dataloader.py`)
 - [x] 4.5 Implement fine-tuning entry point (`tools/dgx/training/train.py`)
 - [x] 4.6 Implement adapter checkpoint save/load (in train.py)
 - [x] 4.7 Add adapter merging utility (`DoRALinear.merge_weights()`)

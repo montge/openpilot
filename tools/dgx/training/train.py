@@ -42,10 +42,7 @@ def load_student_model(onnx_path: str, device: torch.device) -> nn.Module:
 
 
 def create_dummy_dataloader(batch_size: int, num_batches: int = 100):
-  """Create dummy dataloader for testing the training loop.
-
-  TODO: Replace with actual route log dataloader.
-  """
+  """Create dummy dataloader for testing the training loop."""
   from torch.utils.data import Dataset
 
   class DummyDataset(Dataset):
@@ -65,6 +62,53 @@ def create_dummy_dataloader(batch_size: int, num_batches: int = 100):
 
   dataset = DummyDataset(batch_size * num_batches)
   return DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+
+
+def create_route_dataloader(data_path: str, batch_size: int):
+  """Create dataloader from route logs.
+
+  Args:
+    data_path: Path to segment data or comma car segments specification
+    batch_size: Batch size for training
+
+  Returns:
+    PyTorch DataLoader
+  """
+  from openpilot.tools.dgx.training.dataloader import (
+    CITestDataset,
+    CommaCarSegmentsDataset,
+    RouteLogDataset,
+    create_dataloader,
+  )
+
+  # Check if using CI test segments
+  dataset: RouteLogDataset
+  if data_path == "ci":
+    print("Using CI test segments for validation...")
+    dataset = CITestDataset()
+  # Check if using commaCarSegments
+  elif data_path == "comma_car_segments":
+    print("Using commaCarSegments dataset...")
+    dataset = CommaCarSegmentsDataset(max_segments_per_platform=10)
+  # Otherwise treat as local path
+  else:
+    # Parse as list of segment IDs from a file or directory
+    data_path_obj = Path(data_path)
+    if data_path_obj.is_file():
+      # File containing segment IDs, one per line
+      with open(data_path) as f:
+        segments = [line.strip() for line in f if line.strip()]
+    elif data_path_obj.is_dir():
+      # Directory containing route data
+      segments = [str(p) for p in data_path_obj.glob("*rlog*")]
+    else:
+      # Single segment ID
+      segments = [data_path]
+
+    dataset = RouteLogDataset(segments=segments)
+
+  print(f"Dataset size: {len(dataset)} samples")
+  return create_dataloader(dataset, batch_size=batch_size)
 
 
 def train_epoch(
@@ -135,7 +179,7 @@ def train_epoch(
 
 def main():
   parser = argparse.ArgumentParser(description="DoRA fine-tuning for openpilot")
-  parser.add_argument("--data", type=str, default=None, help="Training data directory")
+  parser.add_argument("--data", type=str, default=None, help="Training data: path, 'ci' for CI segments, or 'comma_car_segments'")
   parser.add_argument("--model", type=str, default="selfdrive/modeld/models/driving_policy.onnx")
   parser.add_argument("--epochs", type=int, default=10, help="Number of epochs")
   parser.add_argument("--batch-size", type=int, default=32, help="Batch size")
@@ -202,8 +246,7 @@ def main():
     print("Using dummy data for testing")
     dataloader = create_dummy_dataloader(args.batch_size, num_batches=50)
   else:
-    # TODO: Implement actual route log dataloader
-    raise NotImplementedError("Route log dataloader not yet implemented")
+    dataloader = create_route_dataloader(args.data, args.batch_size)
 
   # Training loop
   print(f"\nStarting training for {args.epochs} epochs...")
