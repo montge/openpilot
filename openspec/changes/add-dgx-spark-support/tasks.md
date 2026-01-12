@@ -26,12 +26,12 @@
 ## 4. DoRA Fine-Tuning Support
 
 - [x] 4.1 Create `tools/dgx/` directory structure
-- [ ] 4.2 Implement `DoRAAdapter` class for weight decomposition
-- [ ] 4.3 Implement `DoRALayer` for low-rank adaptation
+- [x] 4.2 Implement `DoRAAdapter` class for weight decomposition (`training/dora.py`)
+- [x] 4.3 Implement `DoRALayer` for low-rank adaptation (`DoRALinear`, `DoRAConv2d`)
 - [ ] 4.4 Create dataset loader for route logs → training data
-- [ ] 4.5 Implement fine-tuning entry point (`tools/dgx/finetune.py`)
-- [ ] 4.6 Implement adapter checkpoint save/load
-- [ ] 4.7 Add adapter merging utility (merge DoRA weights into base model)
+- [x] 4.5 Implement fine-tuning entry point (`tools/dgx/training/train.py`)
+- [x] 4.6 Implement adapter checkpoint save/load (in train.py)
+- [x] 4.7 Add adapter merging utility (`DoRALinear.merge_weights()`)
 - [ ] 4.8 Add unit tests for DoRA implementation
 
 ## 5. Algorithm Harness Integration
