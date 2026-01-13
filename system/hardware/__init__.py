@@ -38,3 +38,10 @@ elif NVIDIA_GPU:
   HARDWARE = cast(HardwareBase, NvidiaPC())
 else:
   HARDWARE = cast(HardwareBase, Pc())
+
+# Shadow mode detection (for parallel testing devices)
+from openpilot.system.hardware.shadow_mode import (
+  SHADOW_MODE as SHADOW_MODE,
+  is_shadow_mode as is_shadow_mode,
+  panda_connected as panda_connected,
+)

@@ -10,6 +10,7 @@ from cereal import car, log
 from openpilot.common.params import Params
 from openpilot.common.realtime import config_realtime_process, Priority, Ratekeeper
 from openpilot.common.swaglog import cloudlog, ForwardingHandler
+from openpilot.system.hardware import SHADOW_MODE
 
 from opendbc.car import DT_CTRL, structs
 from opendbc.car.can_definitions import CanData, CanRecvCallable, CanSendCallable
@@ -36,6 +37,7 @@ def obd_callback(params: Params) -> ObdCallback:
       params.put_bool("ObdMultiplexingEnabled", obd_multiplexing)
       params.get_bool("ObdMultiplexingChanged", block=True)
       cloudlog.warning("OBD multiplexing set successfully")
+
   return set_obd_multiplexing
 
 
@@ -68,6 +70,14 @@ class Car:
     self.pm = messaging.PubMaster(['sendcan', 'carState', 'carParams', 'carOutput', 'liveTracks'])
 
     self.can_rcv_cum_timeout_counter = 0
+    self._shadow_mode_logged = False  # For one-time shadow mode warning
+
+    # Shadow mode warning at card startup
+    if SHADOW_MODE:
+      cloudlog.warning("=" * 60)
+      cloudlog.warning("SHADOW MODE: card.py will NOT send CAN messages")
+      cloudlog.warning("Defense-in-depth actuator lockout active")
+      cloudlog.warning("=" * 60)
 
     self.CC_prev = car.CarControl.new_message()
     self.CS_prev = car.CarState.new_message()
@@ -195,7 +205,7 @@ class Car:
     """carState and carParams publish loop"""
 
     # carParams - logged every 50 seconds (> 1 per segment)
-    if self.sm.frame % int(50. / DT_CTRL) == 0:
+    if self.sm.frame % int(50.0 / DT_CTRL) == 0:
       cp_send = messaging.new_message('carParams')
       cp_send.valid = True
       cp_send.carParams = self.CP
@@ -212,7 +222,7 @@ class Car:
     cs_send.valid = CS.canValid
     cs_send.carState = CS
     cs_send.carState.canErrorCounter = self.can_rcv_cum_timeout_counter
-    cs_send.carState.cumLagMs = -self.rk.remaining * 1000.
+    cs_send.carState.cumLagMs = -self.rk.remaining * 1000.0
     self.pm.send('carState', cs_send)
 
     if RD is not None:
@@ -235,7 +245,16 @@ class Car:
       # send car controls over can
       now_nanos = self.can_log_mono_time if REPLAY else int(time.monotonic() * 1e9)
       self.last_actuators_output, can_sends = self.CI.apply(CC, now_nanos)
-      self.pm.send('sendcan', can_list_to_can_capnp(can_sends, msgtype='sendcan', valid=CS.canValid))
+
+      # Shadow mode defense-in-depth: never send CAN actuation commands
+      if SHADOW_MODE:
+        # Log but don't send - this is a backup check in case controlsd's
+        # shadow mode check fails or is bypassed
+        if len(can_sends) > 0 and not self._shadow_mode_logged:
+          cloudlog.warning("SHADOW MODE: Blocking %d CAN messages (defense-in-depth)", len(can_sends))
+          self._shadow_mode_logged = True
+      else:
+        self.pm.send('sendcan', can_list_to_can_capnp(can_sends, msgtype='sendcan', valid=CS.canValid))
 
       self.CC_prev = CC
 
@@ -244,8 +263,7 @@ class Car:
 
     self.state_publish(CS, RD)
 
-    initialized = (not any(e.name == EventName.selfdriveInitializing for e in self.sm['onroadEvents']) and
-                   self.sm.seen['onroadEvents'])
+    initialized = not any(e.name == EventName.selfdriveInitializing for e in self.sm['onroadEvents']) and self.sm.seen['onroadEvents']
     if not self.CP.passive and initialized:
       self.controls_update(CS, self.sm['carControl'])
 
@@ -260,7 +278,7 @@ class Car:
 
   def card_thread(self):
     e = threading.Event()
-    t = threading.Thread(target=self.params_thread, args=(e, ))
+    t = threading.Thread(target=self.params_thread, args=(e,))
     try:
       t.start()
       while True:
