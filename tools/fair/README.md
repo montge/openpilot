@@ -6,9 +6,10 @@ This module provides wrappers for Meta FAIR research models and knowledge distil
 
 The FAIR tools module contains:
 
-- **Model Wrappers**: Unified interfaces for FAIR vision models (DINOv2, SAM2, CoTracker, DETR)
+- **Model Wrappers**: Unified interfaces for FAIR vision models (DINOv2, SAM2, CoTracker, DETR, UnSAMFlow)
 - **Knowledge Distillation**: Framework for training efficient student models from large teacher models
 - **Student Models**: Lightweight architectures optimized for real-time inference
+- **Training Utilities**: DoRA adapters, multi-task learning, and dataset loaders
 
 ## Installation
 
@@ -108,6 +109,30 @@ with model:
 
     # Batch detection
     results = model.detect_batch(images)
+```
+
+### UnSAMFlow
+
+Optical flow estimation for motion analysis.
+
+```python
+from openpilot.tools.fair.models import UnSAMFlowWrapper
+from openpilot.tools.fair.models.unsam_flow import UnSAMFlowConfig
+
+config = UnSAMFlowConfig(model_name="unsamflow_base")
+model = UnSAMFlowWrapper(config)
+
+with model:
+    # Estimate optical flow
+    result = model.estimate_flow(frame1, frame2)
+    flow = result.flow  # [H, W, 2]
+    confidence = result.confidence  # [H, W]
+
+    # Estimate ego-motion from flow
+    ego_motion = model.estimate_ego_motion(flow, camera_matrix)
+
+    # Warp frame using flow
+    warped = model.warp_frame(frame1, flow)
 ```
 
 ## Knowledge Distillation
@@ -210,6 +235,74 @@ model = TinyDETR(config)
 model = MobileDetector()
 ```
 
+## Training Utilities
+
+### DoRA Adapters
+
+Weight-Decomposed Low-Rank Adaptation for efficient fine-tuning.
+
+```python
+from openpilot.tools.fair.training.dora import DoRAConfig, apply_dora, get_dora_parameters
+
+# Configure DoRA
+config = DoRAConfig(
+    rank=8,
+    alpha=8.0,
+    dropout=0.1,
+    target_modules=['q_proj', 'v_proj'],
+    use_rslora=True,  # Rank-stabilized LoRA scaling
+)
+
+# Apply DoRA to model
+model = apply_dora(base_model, config)
+
+# Get only trainable parameters
+dora_params = get_dora_parameters(model)
+optimizer = torch.optim.AdamW(dora_params, lr=1e-4)
+```
+
+### Multi-Task Learning
+
+Train models for multiple tasks simultaneously with uncertainty weighting.
+
+```python
+from openpilot.tools.fair.training.multitask import MultiTaskConfig, MultiTaskTrainer
+
+config = MultiTaskConfig(
+    tasks=['depth', 'segmentation', 'detection'],
+    loss_weights={'depth': 1.0, 'segmentation': 1.0, 'detection': 0.5},
+    use_uncertainty_weighting=True,
+)
+
+trainer = MultiTaskTrainer(model, config)
+trainer.fit(train_loader, val_loader)
+```
+
+### Route Datasets
+
+Load training data from openpilot route logs.
+
+```python
+from openpilot.tools.fair.training.dataset import RouteDataset, StreamingRouteDataset
+
+# Indexed dataset for smaller data
+dataset = RouteDataset(
+    route_paths=['/data/routes/route1/', '/data/routes/route2/'],
+    camera='road',
+    image_size=(256, 512),
+    augment=True,
+    load_depth=True,
+    load_segmentation=True,
+)
+
+# Streaming dataset for large-scale training
+streaming = StreamingRouteDataset(
+    route_paths=all_route_paths,
+    shuffle=True,
+    samples_per_route=100,
+)
+```
+
 ## Checking Availability
 
 All model wrappers gracefully handle missing dependencies:
@@ -220,6 +313,7 @@ from openpilot.tools.fair import (
     SAM2_AVAILABLE,
     COTRACKER_AVAILABLE,
     DETR_AVAILABLE,
+    UNSAMFLOW_AVAILABLE,
 )
 
 if DINOV2_AVAILABLE:
