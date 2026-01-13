@@ -279,10 +279,7 @@ class MultiScaleDepthHead(_BaseModule):
     self.max_depth = max_depth
 
     # Project each layer's features
-    self.projections = nn.ModuleList([
-      nn.Conv2d(embed_dim, features, kernel_size=1)
-      for _ in range(num_layers)
-    ])
+    self.projections = nn.ModuleList([nn.Conv2d(embed_dim, features, kernel_size=1) for _ in range(num_layers)])
 
     # Fusion convolution
     self.fusion = nn.Sequential(

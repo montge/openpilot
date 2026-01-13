@@ -3,9 +3,9 @@
 - [x] 1.1 Create `tools/fair/` directory structure
 - [x] 1.2 Add DINOv2 model loading wrapper
 - [x] 1.3 Implement feature extraction pipeline
-- [ ] 1.4 Add depth estimation head (linear probe)
+- [x] 1.4 Add depth estimation head (LinearDepthHead, DPTDepthHead, MultiScaleDepthHead)
 - [ ] 1.5 Benchmark DINOv2 depth vs current openpilot depth
-- [ ] 1.6 Create DINOv2 feature visualization utilities
+- [x] 1.6 Create DINOv2 feature visualization utilities (tools/fair/visualization/)
 - [x] 1.7 Add unit tests for DINOv2 wrapper
 
 ## 2. SAM 2/3 Video Segmentation
@@ -60,7 +60,7 @@
 - [x] 7.1 Design EfficientViT-based student backbone (TinyViT, MobileViT, EfficientStudent)
 - [x] 7.2 Implement multi-head student (TinyDETR, MobileDetector)
 - [ ] 7.3 Add quantization-friendly layers (avoid BatchNorm issues)
-- [ ] 7.4 Implement model profiling utilities
+- [x] 7.4 Implement model profiling utilities (tools/fair/profiling/)
 - [ ] 7.5 Target comma 4 latency constraints (<50ms inference)
 - [x] 7.6 Add unit tests for student models
 
@@ -99,7 +99,7 @@
 
 ## 12. Documentation
 
-- [ ] 12.1 Add README for tools/fair/
+- [x] 12.1 Add README for tools/fair/
 - [ ] 12.2 Document distillation hyperparameters and tuning
 - [ ] 12.3 Create training playbook for DGX Spark
 - [ ] 12.4 Document comma 4 deployment process
