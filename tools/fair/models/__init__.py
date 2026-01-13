@@ -9,6 +9,7 @@ from openpilot.tools.fair.models.dinov2 import DINOV2_AVAILABLE, DINOv2Wrapper
 from openpilot.tools.fair.models.sam2 import SAM2_AVAILABLE, SAM2Wrapper
 from openpilot.tools.fair.models.cotracker import COTRACKER_AVAILABLE, CoTrackerWrapper
 from openpilot.tools.fair.models.detr import DETR_AVAILABLE, DETRWrapper
+from openpilot.tools.fair.models.unsam_flow import UNSAMFLOW_AVAILABLE, UnSAMFlowWrapper
 
 __all__ = [
   "ModelWrapper",
@@ -20,4 +21,6 @@ __all__ = [
   "CoTrackerWrapper",
   "DETR_AVAILABLE",
   "DETRWrapper",
+  "UNSAMFLOW_AVAILABLE",
+  "UnSAMFlowWrapper",
 ]

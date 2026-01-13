@@ -11,6 +11,7 @@ from openpilot.tools.fair.models.dinov2 import DINOv2Config, DINOv2Wrapper
 from openpilot.tools.fair.models.sam2 import SAM2Config, SAM2Wrapper, VideoTrackingState
 from openpilot.tools.fair.models.cotracker import CoTrackerConfig, CoTrackerWrapper, TrackingResult
 from openpilot.tools.fair.models.detr import DETRConfig, DETRWrapper, Detection, DetectionResult
+from openpilot.tools.fair.models.unsam_flow import UnSAMFlowConfig, UnSAMFlowWrapper, FlowResult, UNSAMFLOW_AVAILABLE
 
 
 class TestModelConfig:
@@ -270,3 +271,230 @@ class TestDetectionResult:
     )
     assert len(result.detections) == 0
     assert result.boxes.shape == (0, 4)
+
+
+class TestUnSAMFlowConfig:
+  """Tests for UnSAMFlow configuration."""
+
+  def test_default_config(self):
+    """Test default UnSAMFlow config."""
+    config = UnSAMFlowConfig()
+    assert config.model_name == "unsamflow_base"
+    assert config.num_scales == 4
+    assert config.max_displacement == 256
+
+  def test_custom_config(self):
+    """Test custom UnSAMFlow config."""
+    config = UnSAMFlowConfig(
+      model_name="unsamflow_small",
+      num_scales=3,
+      max_displacement=128,
+    )
+    assert config.model_name == "unsamflow_small"
+    assert config.num_scales == 3
+    assert config.max_displacement == 128
+
+
+class TestUnSAMFlowWrapper:
+  """Tests for UnSAMFlow wrapper."""
+
+  def test_wrapper_initialization(self):
+    """Test wrapper initializes correctly."""
+    wrapper = UnSAMFlowWrapper()
+    assert wrapper.config is not None
+    assert wrapper.loaded is False
+    assert wrapper._model is None
+
+  def test_wrapper_with_config(self):
+    """Test wrapper with custom config."""
+    config = UnSAMFlowConfig(model_name="unsamflow_small")
+    wrapper = UnSAMFlowWrapper(config)
+    assert wrapper.config.model_name == "unsamflow_small"
+
+  def test_load_without_pytorch(self):
+    """Test load fails gracefully without PyTorch."""
+    if UNSAMFLOW_AVAILABLE:
+      pytest.skip("PyTorch is available")
+
+    wrapper = UnSAMFlowWrapper()
+    with pytest.raises(ImportError):
+      wrapper.load()
+
+  @pytest.mark.skipif(not UNSAMFLOW_AVAILABLE, reason="PyTorch not available")
+  def test_estimate_flow_without_load(self):
+    """Test estimate_flow raises without load."""
+    wrapper = UnSAMFlowWrapper()
+    frame1 = np.zeros((256, 512, 3), dtype=np.uint8)
+    frame2 = np.zeros((256, 512, 3), dtype=np.uint8)
+    with pytest.raises(RuntimeError):
+      wrapper.estimate_flow(frame1, frame2)
+
+  @pytest.mark.skipif(not UNSAMFLOW_AVAILABLE, reason="PyTorch not available")
+  def test_estimate_flow(self):
+    """Test flow estimation."""
+    wrapper = UnSAMFlowWrapper()
+    wrapper.load()
+
+    frame1 = np.random.randint(0, 255, (256, 512, 3), dtype=np.uint8)
+    frame2 = np.random.randint(0, 255, (256, 512, 3), dtype=np.uint8)
+
+    result = wrapper.estimate_flow(frame1, frame2)
+    assert isinstance(result, FlowResult)
+    assert result.flow.shape == (256, 512, 2)
+    assert result.confidence is not None
+    assert result.confidence.shape == (256, 512)
+
+    wrapper.unload()
+
+  @pytest.mark.skipif(not UNSAMFLOW_AVAILABLE, reason="PyTorch not available")
+  def test_forward_pass(self):
+    """Test forward pass with stacked frames."""
+    wrapper = UnSAMFlowWrapper()
+    wrapper.load()
+
+    frames = np.random.randint(0, 255, (2, 256, 512, 3), dtype=np.uint8)
+    result = wrapper.forward(frames)
+
+    assert "flow" in result
+    assert "confidence" in result
+    assert result["flow"].shape == (256, 512, 2)
+
+    wrapper.unload()
+
+  @pytest.mark.skipif(not UNSAMFLOW_AVAILABLE, reason="PyTorch not available")
+  def test_forward_invalid_input(self):
+    """Test forward fails with wrong input shape."""
+    wrapper = UnSAMFlowWrapper()
+    wrapper.load()
+
+    frames = np.random.randint(0, 255, (3, 256, 512, 3), dtype=np.uint8)
+    with pytest.raises(ValueError, match="Expected input shape"):
+      wrapper.forward(frames)
+
+    wrapper.unload()
+
+
+class TestFlowResult:
+  """Tests for FlowResult dataclass."""
+
+  def test_flow_result_creation(self):
+    """Test flow result creation."""
+    flow = np.random.randn(256, 512, 2).astype(np.float32)
+    confidence = np.random.rand(256, 512).astype(np.float32)
+
+    result = FlowResult(flow=flow, confidence=confidence)
+    assert result.flow.shape == (256, 512, 2)
+    assert result.confidence.shape == (256, 512)
+    assert result.occlusion is None
+
+  def test_flow_result_with_occlusion(self):
+    """Test flow result with occlusion mask."""
+    flow = np.zeros((128, 256, 2), dtype=np.float32)
+    occlusion = np.zeros((128, 256), dtype=bool)
+
+    result = FlowResult(flow=flow, confidence=None, occlusion=occlusion)
+    assert result.flow.shape == (128, 256, 2)
+    assert result.confidence is None
+    assert result.occlusion is not None
+    assert result.occlusion.shape == (128, 256)
+
+  def test_flow_result_no_optional(self):
+    """Test flow result without optional fields."""
+    flow = np.random.randn(100, 200, 2).astype(np.float32)
+    result = FlowResult(flow=flow)
+
+    assert result.flow.shape == (100, 200, 2)
+    assert result.confidence is None
+    assert result.occlusion is None
+
+
+class TestUnSAMFlowEgoMotion:
+  """Tests for UnSAMFlow ego motion estimation."""
+
+  @pytest.mark.skipif(not UNSAMFLOW_AVAILABLE, reason="PyTorch not available")
+  def test_estimate_ego_motion(self):
+    """Test ego motion estimation from flow."""
+    wrapper = UnSAMFlowWrapper()
+    wrapper.load()
+
+    # Create flow with slight rightward motion
+    flow = np.zeros((256, 512, 2), dtype=np.float32)
+    flow[..., 0] = 2.0  # dx
+    flow[..., 1] = 1.0  # dy
+
+    # Camera matrix (simplified)
+    camera_matrix = np.array(
+      [
+        [500, 0, 256],
+        [0, 500, 128],
+        [0, 0, 1],
+      ],
+      dtype=np.float32,
+    )
+
+    result = wrapper.estimate_ego_motion(flow, camera_matrix)
+
+    assert "rotation" in result
+    assert "translation" in result
+    assert "residual" in result
+    assert result["rotation"].shape == (3,)
+    assert result["translation"].shape == (3,)
+    assert result["residual"].shape == (256, 512, 2)
+
+    wrapper.unload()
+
+  @pytest.mark.skipif(not UNSAMFLOW_AVAILABLE, reason="PyTorch not available")
+  def test_estimate_ego_motion_with_depth(self):
+    """Test ego motion with depth map."""
+    wrapper = UnSAMFlowWrapper()
+    wrapper.load()
+
+    flow = np.ones((128, 256, 2), dtype=np.float32)
+    camera_matrix = np.eye(3, dtype=np.float32)
+    camera_matrix[0, 0] = 500
+    camera_matrix[1, 1] = 500
+    depth = np.full((128, 256), 10.0, dtype=np.float32)
+
+    result = wrapper.estimate_ego_motion(flow, camera_matrix, depth=depth)
+
+    assert result["translation"][2] != 0  # Should have z motion estimate
+
+    wrapper.unload()
+
+
+class TestUnSAMFlowWarpFrame:
+  """Tests for UnSAMFlow frame warping."""
+
+  @pytest.mark.skipif(not UNSAMFLOW_AVAILABLE, reason="PyTorch not available")
+  def test_warp_frame(self):
+    """Test frame warping with flow."""
+    wrapper = UnSAMFlowWrapper()
+
+    # Create test frame
+    frame = np.random.randint(0, 255, (256, 512, 3), dtype=np.uint8)
+
+    # Create flow (zero flow = no warping)
+    flow = np.zeros((256, 512, 2), dtype=np.float32)
+
+    warped = wrapper.warp_frame(frame, flow)
+
+    assert warped.shape == frame.shape
+    # With zero flow, warped should be similar to original
+    np.testing.assert_array_almost_equal(warped, frame)
+
+  @pytest.mark.skipif(not UNSAMFLOW_AVAILABLE, reason="PyTorch not available")
+  def test_warp_frame_with_motion(self):
+    """Test frame warping with non-zero flow."""
+    wrapper = UnSAMFlowWrapper()
+
+    frame = np.zeros((100, 100, 3), dtype=np.uint8)
+    frame[40:60, 40:60] = 255  # White square
+
+    # Flow moving right
+    flow = np.zeros((100, 100, 2), dtype=np.float32)
+    flow[..., 0] = 10.0  # dx = 10
+
+    warped = wrapper.warp_frame(frame, flow)
+
+    assert warped.shape == frame.shape
+    # The white square should have moved
