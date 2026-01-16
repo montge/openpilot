@@ -15,3 +15,8 @@ The develop branch SHALL be kept reasonably synchronized with upstream/master to
 - **WHEN** an upstream sync is completed
 - **THEN** all existing custom code and openspec changes remain functional
 
+#### Scenario: Post-sync validation
+- **WHEN** an upstream sync merge is completed
+- **THEN** formal verification checks (CBMC, SPIN, TLA+, libfuzzer) SHALL be run
+- **AND** build verification SHALL succeed
+- **AND** lint checks SHALL pass
