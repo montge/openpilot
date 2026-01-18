@@ -89,5 +89,41 @@
 - [x] 6.4 Test VisionIPC server/client communication
   - [x] Server creates buffers successfully
   - [x] Client connects and receives stream info
-  - [ ] Full modeld integration (requires OpenCL for frame transforms)
 - [x] 6.5 Document build process for msgq in proot
+
+## 7. OpenCL / GPU Access Investigation
+
+- [x] 7.1 Check OpenCL library availability in proot
+  - [x] libOpenCL.so.1 exists in /usr/lib/aarch64-linux-gnu/
+  - [x] No ICD vendors configured (/etc/OpenCL/vendors/ empty)
+- [x] 7.2 Check Android GPU driver availability
+  - [x] Adreno OpenCL driver at /vendor/lib64/libOpenCL.so
+  - [x] GPU model: Adreno630v2
+- [x] 7.3 Investigate device access restrictions
+  - [x] /dev/kgsl* not exposed (kernel device nodes)
+  - [x] /dev/dri/ permission denied
+  - [x] Root required for GPU device access
+- [x] 7.4 Document findings and options
+  - [x] Updated design.md with Decision 4
+  - [x] OpenCL blocked without root (hard limitation)
+
+## 8. Full modeld Integration (BLOCKED - requires root or alternative)
+
+**Status**: Blocked by OpenCL/GPU access. Options:
+1. Root the device to enable /dev/kgsl access
+2. Implement remote inference server (desktop GPU)
+3. Accept partial pipeline (VisionIPC works, modeld doesn't)
+
+- [ ] 8.1 (Option A) Root device and test OpenCL
+  - [ ] Flash Magisk or similar root solution
+  - [ ] Verify /dev/kgsl* accessible
+  - [ ] Test OpenCL with clinfo
+  - [ ] Run modeld with GPU acceleration
+- [ ] 8.2 (Option B) Remote inference server
+  - [ ] Create frame streaming protocol
+  - [ ] Implement server-side modeld wrapper
+  - [ ] Send inference results back to device
+- [ ] 8.3 (Option C) CPU-only inference (experimental)
+  - [ ] Investigate tinygrad CPU backend
+  - [ ] Benchmark inference speed
+  - [ ] Evaluate viability for shadow mode

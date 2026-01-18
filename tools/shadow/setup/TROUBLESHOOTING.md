@@ -202,6 +202,61 @@ Android OOM killer terminating Termux.
 2. In Termux notification, tap "Acquire wakelock"
 3. Disable battery optimization for Termux in Android settings
 
+## OpenCL / GPU Issues
+
+### "No OpenCL devices found" or clinfo shows empty
+
+This is a **known limitation** of the proot environment. OpenCL requires direct access to GPU device nodes, which are not available without root.
+
+**What's happening:**
+- The OpenCL library exists: `/usr/lib/aarch64-linux-gnu/libOpenCL.so.1`
+- The GPU exists: Adreno630v2
+- But device nodes (`/dev/kgsl*`, `/dev/dri/`) are not accessible
+
+**This is NOT fixable without rooting the device.**
+
+**Options:**
+1. **Accept partial pipeline** - VisionIPC works, just modeld doesn't
+2. **Root the device** - Enables GPU access, but voids any remaining warranty
+3. **Remote inference** - Send frames to desktop/server with GPU for inference
+
+### modeld fails with GPU errors
+
+modeld requires OpenCL for frame transforms. Without GPU access, it cannot run.
+
+**Check OpenCL status:**
+```bash
+# In Ubuntu proot
+apt install -y clinfo
+clinfo
+# Will show "Number of platforms: 0" without root
+```
+
+**Workaround for testing VisionIPC without modeld:**
+```bash
+# Terminal 1: Start camera server
+python3 tools/shadow/setup/termux_camera_server.py --port 8080
+
+# Terminal 2: Start camera bridge (publishes to VisionIPC)
+python3 tools/shadow/setup/camera_bridge.py --url http://localhost:8080
+
+# Terminal 3: Test VisionIPC consumer
+python3 tools/shadow/setup/test_visionipc_consumer.py
+```
+
+This verifies the frame pipeline works, even without GPU inference.
+
+### VisionIPC works but no inference results
+
+**This is expected without OpenCL.** The camera → VisionIPC → consumer pipeline works, but modeld cannot process frames without GPU access.
+
+**Current working state:**
+- Camera capture: Works
+- NV12 conversion: Works
+- VisionIPC publishing: Works
+- VisionIPC consuming: Works
+- modeld inference: Blocked (requires OpenCL)
+
 ## Getting Help
 
 If issues persist:

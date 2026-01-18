@@ -116,7 +116,50 @@ def is_oneplus6():
 - Requires running separate camera app
 - Network stack overhead (localhost)
 
-### Decision 4: SSH-based development workflow
+### Decision 4: OpenCL not available without root
+
+**What**: GPU compute (OpenCL) is blocked by device access restrictions in the proot environment
+
+**Why this matters**:
+- modeld uses OpenCL for frame transforms (resizing, color space conversion)
+- Without OpenCL, the full perception pipeline cannot run
+- VisionIPC works fine, but modeld cannot consume frames for inference
+
+**Investigation findings**:
+```
+# OpenCL library exists in proot
+/usr/lib/aarch64-linux-gnu/libOpenCL.so.1 → /usr/lib/aarch64-linux-gnu/libOpenCL.so.1.0.0
+
+# But no ICD (Installable Client Driver) vendors configured
+/etc/OpenCL/vendors/ is empty
+
+# Android has Adreno OpenCL driver
+/vendor/lib64/libOpenCL.so (Adreno GPU)
+
+# GPU hardware is present
+GPU: Adreno630v2 (via /sys/class/kgsl/kgsl-3d0/gpu_model)
+
+# BUT device nodes are inaccessible without root
+/dev/kgsl* - No such file or directory (not exposed to proot)
+/dev/dri/ - Permission denied (even if it existed)
+```
+
+**Root cause**: Android restricts GPU device access to system apps and processes with appropriate SELinux contexts. The proot environment runs as a regular user without these privileges.
+
+**Options for full modeld**:
+| Option | Effort | Viable? |
+|--------|--------|---------|
+| Root the device | Low | Yes - enables /dev/kgsl access |
+| CPU-only modeld fallback | High | Maybe - modeld is GPU-dependent |
+| Remote inference server | Medium | Yes - send frames to desktop GPU |
+| Accept partial pipeline | None | Yes - VisionIPC works, just no modeld |
+
+**Recommendation**: For shadow mode development:
+1. Use VisionIPC for frame distribution testing (works now)
+2. Use remote inference if full modeld is needed
+3. Defer rooting decision to user preference
+
+### Decision 5: SSH-based development workflow
 
 **What**: Configure SSH server in Termux for remote development
 
@@ -139,6 +182,8 @@ def is_oneplus6():
 | Camera latency | Document limitations; use for validation not real-time |
 | LineageOS updates break setup | Pin tested version; document recovery |
 | Termux app killed by Android | Use wakelock; document battery optimization |
+| **OpenCL not available** | Root device, use remote inference, or accept partial pipeline |
+| GPU device access denied | Root required; fundamental Android security restriction |
 
 ## Migration Plan
 
@@ -146,7 +191,8 @@ Not applicable - this is new functionality for shadow device support.
 
 ## Open Questions
 
-1. **Best camera streaming app?** - Spydroid is too old; need modern alternative
-2. **VisionIPC integration** - How to publish frames from Python bridge?
-3. **Performance benchmarks** - What FPS/latency is achievable?
-4. **Driver camera support** - Can front camera be used for driver monitoring?
+1. ~~**Best camera streaming app?**~~ **RESOLVED**: IP Webcam recommended (15-30 FPS). Created termux_camera_server.py as fallback (0.4 FPS, pipeline testing only).
+2. ~~**VisionIPC integration**~~ **RESOLVED**: camera_bridge.py publishes NV12 frames to VisionIPC. Server/client communication verified working.
+3. ~~**Performance benchmarks**~~ **RESOLVED**: termux-api ~0.4 FPS, IP Webcam 15-30 FPS. Documented in CAMERA.md.
+4. **Driver camera support** - Can front camera be used for driver monitoring? (Future work)
+5. **OpenCL access** - How to enable GPU without rooting? **BLOCKED**: Not possible. Root or alternative approach required.
