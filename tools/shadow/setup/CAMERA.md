@@ -219,9 +219,36 @@ adb shell pm grant com.termux.api android.permission.CAMERA
 1. **Quick test**: termux-api camera server (~0.4 FPS)
 2. **Single frames**: termux-camera-photo for snapshots
 
-### Next steps for full integration:
-1. Build msgq/VisionIPC module in proot environment
-2. Run camera_bridge.py with VisionIPC publishing
-3. Test modeld consumption of frames
+### Building VisionIPC (msgq module)
+
+To enable full VisionIPC publishing, build the msgq module:
+
+```bash
+# In proot Ubuntu
+source ~/openpilot/.venv/bin/activate
+
+# Install system dependencies
+apt-get install -y libzmq3-dev ocl-icd-opencl-dev opencl-headers
+
+# Install Python build dependencies
+pip install Cython scons setuptools
+
+# Download catch2 headers (for tests)
+cd ~/openpilot/msgq_repo
+mkdir -p msgq/catch2
+curl -sL https://raw.githubusercontent.com/catchorg/Catch2/v2.13.9/single_include/catch2/catch.hpp \
+  -o msgq/catch2/catch.hpp
+
+# Build msgq
+scons -j2
+
+# Verify import
+python3 -c "from msgq.visionipc import VisionIpcServer; print('VisionIPC OK')"
+```
+
+### Next steps for full pipeline:
+1. ✅ Build msgq/VisionIPC module in proot environment
+2. ✅ Run camera_bridge.py with VisionIPC publishing
+3. Test modeld consumption of frames (requires building modeld)
 
 **Note**: Shadow mode doesn't require real-time performance since no vehicle control is involved. However, 10-15 FPS minimum is needed for meaningful data collection and model behavior testing. The termux-api approach (0.4 FPS) is only useful for verifying the pipeline works.

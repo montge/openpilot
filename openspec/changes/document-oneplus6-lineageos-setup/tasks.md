@@ -77,10 +77,14 @@
 - [ ] 5.4 Run full openpilot pipeline in shadow mode
 - [x] 5.5 Measure camera latency and frame rate (0.4 FPS termux-api, 15-30 FPS IP Webcam)
 
-## 6. Next Steps (VisionIPC Integration)
+## 6. VisionIPC Integration
 
-- [ ] 6.1 Build msgq module in proot environment
-- [ ] 6.2 Test VisionIPC server creation
-- [ ] 6.3 Run camera_bridge.py with VisionIPC publishing
+- [x] 6.1 Build msgq module in proot environment
+  - [x] Install system deps: libzmq3-dev, ocl-icd-opencl-dev, opencl-headers
+  - [x] Install Python deps: Cython, scons, setuptools
+  - [x] Download catch2 headers for tests
+  - [x] Run scons in msgq_repo directory
+- [x] 6.2 Test VisionIPC server creation
+- [x] 6.3 Run camera_bridge.py with VisionIPC publishing
 - [ ] 6.4 Test modeld consumption of published frames
-- [ ] 6.5 Document build process for msgq in proot
+- [x] 6.5 Document build process for msgq in proot
