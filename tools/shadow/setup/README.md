@@ -173,17 +173,56 @@ See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for common issues.
 - Activate venv: `source ~/.venv/bin/activate`
 - Install missing packages: `pip install <package>`
 
+## Optional: Rooting for GPU/OpenCL Access
+
+By default, the proot environment cannot access the GPU (`/dev/kgsl*`). This means:
+- VisionIPC works (camera frames can be published and consumed)
+- modeld does NOT work (requires OpenCL for frame transforms)
+
+**If you want to run full model inference on the device**, you need to root it.
+
+See [ROOTING.md](ROOTING.md) for instructions on rooting with Magisk.
+
+After rooting:
+```bash
+# In Termux, verify root works
+su
+# Should get root prompt
+
+# Start proot with GPU access
+proot-distro login ubuntu --bind /dev/kgsl-3d0:/dev/kgsl-3d0
+
+# Test OpenCL
+apt install -y clinfo
+clinfo
+# Should show Adreno GPU
+```
+
+## Camera Integration
+
+For camera access and VisionIPC publishing, see [CAMERA.md](CAMERA.md).
+
+**Quick summary:**
+- IP Webcam app: 15-30 FPS (recommended for shadow mode)
+- termux-api: ~0.4 FPS (pipeline testing only)
+- camera_bridge.py: Captures frames and publishes to VisionIPC
+
 ## File Structure
 
 ```
 tools/shadow/setup/
-├── README.md           # This file
-├── FLASHING.md         # LineageOS flashing guide
-├── TROUBLESHOOTING.md  # Common issues and solutions
-├── termux-setup.sh     # Termux + proot-distro setup
-├── ubuntu-setup.sh     # Ubuntu build dependencies
-├── clone-openpilot.sh  # Clone and configure openpilot
-└── setup-ssh.sh        # SSH server for remote dev
+├── README.md              # This file
+├── FLASHING.md            # LineageOS flashing guide
+├── ROOTING.md             # Magisk rooting for OpenCL
+├── CAMERA.md              # Camera integration options
+├── TROUBLESHOOTING.md     # Common issues and solutions
+├── termux-setup.sh        # Termux + proot-distro setup
+├── ubuntu-setup.sh        # Ubuntu build dependencies
+├── clone-openpilot.sh     # Clone and configure openpilot
+├── setup-ssh.sh           # SSH server for remote dev
+├── camera_bridge.py       # HTTP MJPEG → VisionIPC bridge
+├── termux_camera_server.py # termux-api camera HTTP server
+└── test_visionipc_consumer.py # VisionIPC test consumer
 ```
 
 ## Tested Configuration

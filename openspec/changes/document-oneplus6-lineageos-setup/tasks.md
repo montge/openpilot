@@ -107,23 +107,38 @@
   - [x] Updated design.md with Decision 4
   - [x] OpenCL blocked without root (hard limitation)
 
-## 8. Full modeld Integration (BLOCKED - requires root or alternative)
+## 8. Rooting for OpenCL Access (IN PROGRESS)
 
-**Status**: Blocked by OpenCL/GPU access. Options:
-1. Root the device to enable /dev/kgsl access
-2. Implement remote inference server (desktop GPU)
-3. Accept partial pipeline (VisionIPC works, modeld doesn't)
+**Status**: Pursuing Option A - root device with Magisk
 
-- [ ] 8.1 (Option A) Root device and test OpenCL
-  - [ ] Flash Magisk or similar root solution
-  - [ ] Verify /dev/kgsl* accessible
-  - [ ] Test OpenCL with clinfo
-  - [ ] Run modeld with GPU acceleration
-- [ ] 8.2 (Option B) Remote inference server
+- [x] 8.1 Create ROOTING.md documentation
+  - [x] Document Magisk installation process
+  - [x] Document boot.img patching steps
+  - [x] Document proot device binding for /dev/kgsl
+  - [x] Add troubleshooting section
+- [ ] 8.2 Root the device
+  - [ ] Download Magisk APK
+  - [ ] Get current boot.img matching LineageOS version
+  - [ ] Patch boot.img with Magisk app
+  - [ ] Flash patched boot.img via fastboot
+  - [ ] Verify root works (`su` in Termux)
+- [ ] 8.3 Test OpenCL after rooting
+  - [ ] Verify /dev/kgsl-3d0 accessible
+  - [ ] Install clinfo and test OpenCL platforms
+  - [ ] Test proot with --bind /dev/kgsl-3d0
+  - [ ] Verify OpenCL works in proot environment
+- [ ] 8.4 Test modeld with GPU
+  - [ ] Build modeld in proot environment
+  - [ ] Run inference with VisionIPC frames
+  - [ ] Measure FPS and performance
+
+## 9. Alternative Approaches (if rooting fails)
+
+- [ ] 9.1 Remote inference server
   - [ ] Create frame streaming protocol
   - [ ] Implement server-side modeld wrapper
   - [ ] Send inference results back to device
-- [ ] 8.3 (Option C) CPU-only inference (experimental)
+- [ ] 9.2 CPU-only inference (experimental)
   - [ ] Investigate tinygrad CPU backend
   - [ ] Benchmark inference speed
   - [ ] Evaluate viability for shadow mode
