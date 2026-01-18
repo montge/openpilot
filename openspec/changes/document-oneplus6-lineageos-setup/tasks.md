@@ -86,5 +86,8 @@
   - [x] Run scons in msgq_repo directory
 - [x] 6.2 Test VisionIPC server creation
 - [x] 6.3 Run camera_bridge.py with VisionIPC publishing
-- [ ] 6.4 Test modeld consumption of published frames
+- [x] 6.4 Test VisionIPC server/client communication
+  - [x] Server creates buffers successfully
+  - [x] Client connects and receives stream info
+  - [ ] Full modeld integration (requires OpenCL for frame transforms)
 - [x] 6.5 Document build process for msgq in proot
