@@ -103,15 +103,15 @@ ssh u0_a191@<phone-ip> -p 8022
 
 Run commands in Ubuntu via SSH:
 ```bash
-ssh u0_a191@<phone-ip> -p 8022 "proot-distro login ubuntu -- bash -c 'cd ~/openpilot && source .venv/bin/activate && python3 -c \"from openpilot.system.hardware.shadow_mode import is_shadow_mode; print(is_shadow_mode())\"'"
+ssh u0_a191@<phone-ip> -p 8022 "proot-distro login ubuntu -- bash -c 'source ~/.venv/bin/activate && cd ~/openpilot && python3 -c \"from openpilot.system.hardware.shadow_mode import is_shadow_mode; print(is_shadow_mode())\"'"
 ```
 
 ## Verifying Shadow Mode
 
 Inside Ubuntu proot:
 ```bash
+source ~/.venv/bin/activate
 cd ~/openpilot
-source .venv/bin/activate
 
 python3 -c "
 from openpilot.system.hardware.shadow_mode import is_shadow_mode, is_oneplus6
@@ -170,7 +170,7 @@ See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for common issues.
 - Check for typos in environment variables
 
 **Import errors in Python**
-- Activate venv: `source ~/openpilot/.venv/bin/activate`
+- Activate venv: `source ~/.venv/bin/activate`
 - Install missing packages: `pip install <package>`
 
 ## File Structure

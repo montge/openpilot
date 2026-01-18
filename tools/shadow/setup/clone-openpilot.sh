@@ -29,9 +29,15 @@ cd openpilot
 echo "[2/4] Initializing submodules..."
 git submodule update --init --depth 1
 
-echo "[3/4] Creating Python virtual environment..."
-python3 -m venv .venv
-source .venv/bin/activate
+echo "[3/4] Setting up Python virtual environment..."
+# Use user's global venv at ~/.venv (preferred for dev workflow)
+if [ ! -d "$HOME/.venv" ]; then
+    echo "Creating ~/.venv..."
+    python3 -m venv "$HOME/.venv"
+fi
+# Create symlink for convenience
+ln -sf "$HOME/.venv" .venv
+source "$HOME/.venv/bin/activate"
 
 echo "[4/4] Installing base Python packages..."
 pip install --upgrade pip wheel
@@ -43,7 +49,7 @@ echo ""
 echo "Openpilot is installed at: ~/openpilot"
 echo ""
 echo "To activate the environment:"
-echo "  cd ~/openpilot && source .venv/bin/activate"
+echo "  source ~/.venv/bin/activate && cd ~/openpilot"
 echo ""
 echo "To test shadow mode detection:"
 echo "  python3 -c \"from openpilot.system.hardware.shadow_mode import is_shadow_mode; print(f'Shadow mode: {is_shadow_mode()}')\""

@@ -151,8 +151,8 @@ Missing Python dependencies.
 
 **Solution:**
 ```bash
+source ~/.venv/bin/activate
 cd ~/openpilot
-source .venv/bin/activate
 pip install pycapnp numpy
 ```
 
