@@ -18,9 +18,16 @@ For production use, consider RTSP streaming for lower latency.
 """
 
 import argparse
+import os
 import time
 import sys
 from typing import Optional
+
+# Ensure openpilot root is in path for msgq/cereal imports
+_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+_OPENPILOT_ROOT = os.path.abspath(os.path.join(_SCRIPT_DIR, "..", "..", ".."))
+if _OPENPILOT_ROOT not in sys.path:
+    sys.path.insert(0, _OPENPILOT_ROOT)
 
 try:
     import cv2
