@@ -116,21 +116,23 @@
   - [x] Document boot.img patching steps
   - [x] Document proot device binding for /dev/kgsl
   - [x] Add troubleshooting section
-- [ ] 8.2 Root the device
-  - [ ] Download Magisk APK
-  - [ ] Get current boot.img matching LineageOS version
-  - [ ] Patch boot.img with Magisk app
-  - [ ] Flash patched boot.img via fastboot
-  - [ ] Verify root works (`su` in Termux)
-- [ ] 8.3 Test OpenCL after rooting
-  - [ ] Verify /dev/kgsl-3d0 accessible
-  - [ ] Install clinfo and test OpenCL platforms
-  - [ ] Test proot with --bind /dev/kgsl-3d0
-  - [ ] Verify OpenCL works in proot environment
-- [ ] 8.4 Test modeld with GPU
-  - [ ] Build modeld in proot environment
-  - [ ] Run inference with VisionIPC frames
-  - [ ] Measure FPS and performance
+- [x] 8.2 Root the device
+  - [x] Download Magisk APK (v30.6)
+  - [x] Get current boot.img matching LineageOS version
+  - [x] Patch boot.img with Magisk app
+  - [x] Flash patched boot.img via fastboot
+  - [x] Verify root works (`su` in Termux)
+- [x] 8.3 Test OpenCL after rooting
+  - [x] Verify /dev/kgsl-3d0 accessible (works with root)
+  - [x] Install clinfo and test OpenCL platforms
+  - [x] OpenCL works in Termux when running as root (`su -c clinfo`)
+  - [x] Adreno 630 detected with OpenCL 2.0
+  - [x] **LIMITATION**: Android linker namespace blocks vendor libs for user processes
+  - [x] **LIMITATION**: proot can't use Android OpenCL (glibc vs Bionic incompatibility)
+- [ ] 8.4 Test modeld with GPU (BLOCKED by linker namespace)
+  - [ ] Option A: Build modeld for Termux directly (Bionic)
+  - [ ] Option B: Use remote inference server
+  - [ ] Option C: Run via `su -c` wrapper
 
 ## 9. Alternative Approaches (if rooting fails)
 

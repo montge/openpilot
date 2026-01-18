@@ -146,12 +146,31 @@ alias ubuntu='proot-distro login ubuntu --bind /dev/kgsl-3d0:/dev/kgsl-3d0'
 # Check GPU device access (in Termux with root)
 su -c "ls -la /dev/kgsl*"
 
-# Check OpenCL platforms (in proot with device binding)
-clinfo | head -20
-
-# Test OpenCL from Python
-python3 -c "import pyopencl; print(pyopencl.get_platforms())"
+# Check OpenCL (MUST run as root due to linker namespace)
+su -c "clinfo | head -20"
+# Should show: QUALCOMM Snapdragon(TM) / Adreno(TM) 630
 ```
+
+## Important: Android Linker Namespace Limitation
+
+Even with root, Android's linker namespace isolation prevents regular user processes from loading `/vendor/lib64/libOpenCL.so`. This means:
+
+- **OpenCL only works when running as root** (`su -c "command"`)
+- **proot Ubuntu cannot use OpenCL** - the Android library uses Bionic libc, not glibc
+
+**What works after rooting:**
+| Component | Status | Notes |
+|-----------|--------|-------|
+| GPU device access | Works | `/dev/kgsl-3d0` accessible |
+| OpenCL (Termux + root) | Works | `su -c clinfo` shows Adreno 630 |
+| OpenCL (proot) | Blocked | glibc/Bionic incompatibility |
+| VisionIPC | Works | Frame publishing/consuming |
+
+**Implication for modeld:**
+modeld requires OpenCL for frame transforms. Options:
+1. Build modeld for Termux directly (uses Bionic, can access OpenCL as root)
+2. Use remote inference server (send frames to desktop GPU)
+3. Run relevant components through `su -c` wrapper
 
 ## Troubleshooting
 
