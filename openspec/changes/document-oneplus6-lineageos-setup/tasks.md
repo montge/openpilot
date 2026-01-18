@@ -64,10 +64,10 @@
   - [ ] 4.4.1 Install compatible camera streaming app
   - [ ] 4.4.2 Test frame capture from stream
   - [ ] 4.4.3 Verify NV12 conversion accuracy
-- [ ] 4.5 Document camera setup procedure
-  - [ ] 4.5.1 Create CAMERA.md with streaming options
-  - [ ] 4.5.2 Document latency and performance characteristics
-  - [ ] 4.5.3 Document limitations for shadow mode use
+- [x] 4.5 Document camera setup procedure
+  - [x] 4.5.1 Create CAMERA.md with streaming options
+  - [x] 4.5.2 Document latency and performance characteristics
+  - [x] 4.5.3 Document limitations for shadow mode use
 
 ## 5. Validation
 
