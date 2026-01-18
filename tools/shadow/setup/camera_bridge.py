@@ -11,7 +11,7 @@ Usage:
   3. Run: python camera_bridge.py --url http://192.168.1.x:8080
 
 Requirements:
-  pip install numpy opencv-python requests
+  pip install numpy opencv-python av
 
 This is a proof-of-concept for shadow device camera integration.
 For production use, consider RTSP streaming for lower latency.
@@ -27,8 +27,18 @@ try:
     import numpy as np
 except ImportError:
     print("Missing dependencies. Install with:")
-    print("  pip install numpy opencv-python")
+    print("  pip install numpy opencv-python av")
     sys.exit(1)
+
+# Optional VisionIPC imports (only needed for full openpilot integration)
+VIPC_AVAILABLE = False
+try:
+    import av
+    from msgq.visionipc import VisionIpcServer, VisionStreamType
+    from cereal import messaging
+    VIPC_AVAILABLE = True
+except ImportError:
+    pass
 
 
 class IPWebcamCapture:
@@ -78,9 +88,20 @@ class IPWebcamCapture:
         print("Could not open any video stream")
         return None
 
-    def frame_to_nv12(self, frame: np.ndarray) -> np.ndarray:
-        """Convert BGR frame to NV12 YUV format (openpilot's expected format)."""
-        # Convert BGR to YUV
+    @staticmethod
+    def bgr2nv12(bgr: np.ndarray) -> bytes:
+        """Convert BGR frame to NV12 YUV format using PyAV (preferred)."""
+        if VIPC_AVAILABLE:
+            frame = av.VideoFrame.from_ndarray(bgr, format='bgr24')
+            return frame.reformat(format='nv12').to_ndarray().data.tobytes()
+        else:
+            # Fallback: manual conversion via OpenCV
+            return IPWebcamCapture._bgr2nv12_opencv(bgr)
+
+    @staticmethod
+    def _bgr2nv12_opencv(frame: np.ndarray) -> bytes:
+        """Fallback BGR to NV12 conversion using OpenCV."""
+        # Convert BGR to YUV I420
         yuv = cv2.cvtColor(frame, cv2.COLOR_BGR2YUV_I420)
 
         height, width = frame.shape[:2]
@@ -101,12 +122,17 @@ class IPWebcamCapture:
 
         # Combine Y and UV planes
         nv12 = np.concatenate([y_plane.flatten(), uv_interleaved])
-        return nv12
+        return nv12.tobytes()
+
+    def frame_to_nv12(self, frame: np.ndarray) -> bytes:
+        """Convert BGR frame to NV12 YUV format (openpilot's expected format)."""
+        return self.bgr2nv12(frame)
 
 
 def test_capture(url: str):
     """Test frame capture from IP Webcam."""
     print(f"Testing capture from: {url}")
+    print(f"VisionIPC available: {VIPC_AVAILABLE}")
 
     cap = IPWebcamCapture(url)
 
@@ -114,11 +140,13 @@ def test_capture(url: str):
     print("\n1. Testing single frame capture...")
     frame = cap.get_single_frame()
     if frame is not None:
-        print(f"   Success! Frame shape: {frame.shape}")
+        h, w = frame.shape[:2]
+        print(f"   Success! Frame shape: {frame.shape} ({w}x{h})")
 
         # Test NV12 conversion
         nv12 = cap.frame_to_nv12(frame)
-        print(f"   NV12 buffer size: {len(nv12)} bytes")
+        expected_size = w * h + w * h // 2  # Y + UV planes
+        print(f"   NV12 buffer size: {len(nv12)} bytes (expected: {expected_size})")
     else:
         print("   Failed to capture frame")
         return False
@@ -154,68 +182,131 @@ def test_capture(url: str):
     return True
 
 
-def run_bridge(url: str, display: bool = False):
-    """Run the camera bridge, publishing frames to VisionIPC."""
-    print(f"Starting camera bridge from: {url}")
+class CameraBridge:
+    """Camera bridge that publishes frames to VisionIPC."""
 
-    cap = IPWebcamCapture(url)
-    stream = cap.open_mjpeg_stream()
+    def __init__(self, url: str, width: int = 1280, height: int = 720):
+        self.url = url
+        self.width = width
+        self.height = height
+        self.cap = IPWebcamCapture(url)
+        self.frame_id = 0
 
-    if stream is None:
-        print("Failed to open stream, falling back to snapshot mode")
-        use_stream = False
-    else:
-        use_stream = True
+        # Initialize VisionIPC if available
+        self.vipc_server = None
+        self.pm = None
+        if VIPC_AVAILABLE:
+            print("Initializing VisionIPC server...")
+            self.pm = messaging.PubMaster(['roadCameraState'])
+            self.vipc_server = VisionIpcServer("camerad")
+            self.vipc_server.create_buffers(
+                VisionStreamType.VISION_STREAM_ROAD,
+                20,  # number of buffers
+                width,
+                height
+            )
+            self.vipc_server.start_listener()
+            print(f"VisionIPC server started (buffers: {width}x{height})")
+        else:
+            print("VisionIPC not available - running in capture-only mode")
 
-    frame_count = 0
-    start_time = time.monotonic()
+    def _send_frame(self, nv12_data: bytes):
+        """Send frame to VisionIPC and publish metadata."""
+        if self.vipc_server is None:
+            return
 
-    try:
-        while True:
-            if use_stream:
-                ret, frame = stream.read()
-                if not ret:
-                    print("Stream read failed, reconnecting...")
-                    stream.release()
-                    time.sleep(1)
-                    stream = cap.open_mjpeg_stream()
-                    continue
-            else:
-                frame = cap.get_single_frame()
-                if frame is None:
-                    time.sleep(0.1)
-                    continue
+        # Calculate timestamps (nanoseconds)
+        eof = int(self.frame_id * 0.05 * 1e9)  # ~20 FPS timing
 
-            frame_count += 1
+        # Send frame data via VisionIPC
+        self.vipc_server.send(
+            VisionStreamType.VISION_STREAM_ROAD,
+            nv12_data,
+            self.frame_id,
+            eof,  # timestamp_sof
+            eof   # timestamp_eof
+        )
 
-            # Convert to NV12 for openpilot
-            nv12_data = cap.frame_to_nv12(frame)
+        # Publish camera state metadata via cereal
+        dat = messaging.new_message('roadCameraState', valid=True)
+        msg = {
+            "frameId": self.frame_id,
+            "transform": [1.0, 0.0, 0.0,
+                          0.0, 1.0, 0.0,
+                          0.0, 0.0, 1.0]
+        }
+        setattr(dat, 'roadCameraState', msg)
+        self.pm.send('roadCameraState', dat)
 
-            # TODO: Publish to VisionIPC here
-            # This requires the msgq/visionipc module to be built
-            # vipc_server.send(VisionStreamType.VISION_STREAM_ROAD, nv12_data, frame_id, timestamp)
+    def run(self, display: bool = False):
+        """Run the camera bridge loop."""
+        print(f"Starting camera bridge from: {self.url}")
 
+        stream = self.cap.open_mjpeg_stream()
+        if stream is None:
+            print("Failed to open stream, falling back to snapshot mode")
+            use_stream = False
+        else:
+            use_stream = True
+
+        start_time = time.monotonic()
+
+        try:
+            while True:
+                if use_stream:
+                    ret, frame = stream.read()
+                    if not ret:
+                        print("Stream read failed, reconnecting...")
+                        stream.release()
+                        time.sleep(1)
+                        stream = self.cap.open_mjpeg_stream()
+                        continue
+                else:
+                    frame = self.cap.get_single_frame()
+                    if frame is None:
+                        time.sleep(0.1)
+                        continue
+
+                # Resize if needed to match buffer dimensions
+                h, w = frame.shape[:2]
+                if w != self.width or h != self.height:
+                    frame = cv2.resize(frame, (self.width, self.height))
+
+                # Convert to NV12 for openpilot
+                nv12_data = self.cap.frame_to_nv12(frame)
+
+                # Publish to VisionIPC
+                self._send_frame(nv12_data)
+                self.frame_id += 1
+
+                if display:
+                    cv2.imshow("Camera Bridge", frame)
+                    if cv2.waitKey(1) & 0xFF == ord('q'):
+                        break
+
+                # Print stats every 100 frames
+                if self.frame_id % 100 == 0:
+                    elapsed = time.monotonic() - start_time
+                    fps = self.frame_id / elapsed
+                    mode = "VisionIPC" if self.vipc_server else "capture-only"
+                    print(f"Frames: {self.frame_id}, FPS: {fps:.1f}, Mode: {mode}")
+
+        except KeyboardInterrupt:
+            print("\nStopping camera bridge...")
+        finally:
+            if use_stream and stream:
+                stream.release()
             if display:
-                cv2.imshow("Camera Bridge", frame)
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
+                cv2.destroyAllWindows()
 
-            # Print stats every 100 frames
-            if frame_count % 100 == 0:
-                elapsed = time.monotonic() - start_time
-                fps = frame_count / elapsed
-                print(f"Frames: {frame_count}, FPS: {fps:.1f}, NV12 size: {len(nv12_data)}")
+        elapsed = time.monotonic() - start_time
+        print(f"Total frames: {self.frame_id}, Average FPS: {self.frame_id/elapsed:.1f}")
 
-    except KeyboardInterrupt:
-        print("\nStopping camera bridge...")
-    finally:
-        if use_stream and stream:
-            stream.release()
-        if display:
-            cv2.destroyAllWindows()
 
-    elapsed = time.monotonic() - start_time
-    print(f"Total frames: {frame_count}, Average FPS: {frame_count/elapsed:.1f}")
+def run_bridge(url: str, display: bool = False, width: int = 1280, height: int = 720):
+    """Run the camera bridge, publishing frames to VisionIPC."""
+    bridge = CameraBridge(url, width, height)
+    bridge.run(display)
 
 
 def main():
@@ -223,6 +314,8 @@ def main():
     parser.add_argument("--url", required=True, help="IP Webcam base URL (e.g., http://192.168.1.100:8080)")
     parser.add_argument("--test", action="store_true", help="Run capture test only")
     parser.add_argument("--display", action="store_true", help="Display frames in window")
+    parser.add_argument("--width", type=int, default=1280, help="Frame width (default: 1280)")
+    parser.add_argument("--height", type=int, default=720, help="Frame height (default: 720)")
 
     args = parser.parse_args()
 
@@ -230,7 +323,7 @@ def main():
         success = test_capture(args.url)
         sys.exit(0 if success else 1)
     else:
-        run_bridge(args.url, display=args.display)
+        run_bridge(args.url, display=args.display, width=args.width, height=args.height)
 
 
 if __name__ == "__main__":

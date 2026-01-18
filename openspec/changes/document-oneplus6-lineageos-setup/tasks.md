@@ -59,7 +59,7 @@
 - [x] 4.3 Create camera bridge prototype (`camera_bridge.py`)
   - [x] 4.3.1 HTTP MJPEG capture from IP Webcam
   - [x] 4.3.2 BGR to NV12 conversion for openpilot
-  - [ ] 4.3.3 VisionIPC publishing integration
+  - [x] 4.3.3 VisionIPC publishing integration
 - [ ] 4.4 Test camera streaming end-to-end
   - [ ] 4.4.1 Install compatible camera streaming app
   - [ ] 4.4.2 Test frame capture from stream
