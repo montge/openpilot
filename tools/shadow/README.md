@@ -174,24 +174,59 @@ The safety checks ensure no CAN actuation messages are ever sent, even if one la
 
 ## Algorithm Harness Integration
 
-Shadow logs can be converted to algorithm harness scenarios:
+Shadow logs can be imported into the algorithm test harness for replaying real-world data:
 
 ```python
-from openpilot.selfdrive.controls.lib.tests.algorithm_harness.shadow_adapter import (
-    create_shadow_scenario,
-    create_comparison_scenario,
+from openpilot.selfdrive.controls.lib.tests.algorithm_harness.shadow_import import (
+    import_shadow_segment,
+    compare_shadow_to_harness,
+    format_shadow_comparison_report,
+)
+from openpilot.selfdrive.controls.lib.tests.algorithm_harness.runner import ScenarioRunner
+from openpilot.selfdrive.controls.lib.tests.algorithm_harness.adapters import LatControlPIDAdapter
+
+# Import shadow segment as harness scenario
+scenario = import_shadow_segment(
+    "/data/shadow_logs/route_001",
+    mode="lateral",  # or "longitudinal"
 )
 
-# Create scenario from shadow logs
-df, metadata = create_shadow_scenario(frames, name="highway_test")
+# Run algorithm through harness
+runner = ScenarioRunner()
+adapter = LatControlPIDAdapter()
+result = runner.run(adapter, scenario, "LatControlPID")
 
-# Create comparison scenario with production ground truth
-df, metadata, metrics = create_comparison_scenario(
-    shadow_dir="/data/shadow_logs/drive",
-    prod_dir="/data/prod_logs/drive",
-    name="comparison_test",
+# Compare outputs
+metrics = compare_shadow_to_harness(
+    frames=ComparisonLogger.load_segment("/data/shadow_logs/route_001"),
+    harness_outputs=result.outputs,
+    mode="lateral",
 )
+
+# Generate report
+report = format_shadow_comparison_report(metrics, "LatControlPID")
+print(report)
 ```
+
+### Shadow Capture to Harness Analysis Workflow
+
+```
+Shadow Device (capture)              Desktop (analysis)
+───────────────────────              ──────────────────
+1. Run openpilot in shadow mode
+2. ComparisonLogger captures frames
+3. End drive, sync logs
+                    ─────────────▶
+                                     4. import_shadow_segment()
+                                     5. ScenarioRunner.run(algorithm, scenario)
+                                     6. compare_shadow_to_harness()
+                                     7. Generate comparison report
+```
+
+This enables:
+- Validating algorithm changes against real-world data
+- Regression testing on captured scenarios
+- Comparing different algorithm variants on identical inputs
 
 ## Troubleshooting
 

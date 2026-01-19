@@ -74,10 +74,16 @@
 
 ## 8. Integration with Algorithm Harness
 
-- [ ] 8.1 Add shadow log import to algorithm harness scenarios
-- [ ] 8.2 Enable replay of shadow logs through harness
-- [ ] 8.3 Add comparison metrics to harness reporting
-- [ ] 8.4 Document workflow: shadow capture → harness analysis
+- [x] 8.1 Add shadow log import to algorithm harness scenarios
+  - [x] `shadow_import.py` with frame_to_lateral_state, frame_to_longitudinal_state
+  - [x] `import_shadow_log`, `import_shadow_segment`, `import_shadow_segments`
+- [x] 8.2 Enable replay of shadow logs through harness
+  - [x] Convert FrameData to LateralAlgorithmState/LongitudinalAlgorithmState
+  - [x] Create Scenario objects with ground truth from actual outputs
+- [x] 8.3 Add comparison metrics to harness reporting
+  - [x] `compare_shadow_to_harness` function with RMSE, MAE, correlation
+  - [x] `format_shadow_comparison_report` for markdown output
+- [x] 8.4 Document workflow: shadow capture → harness analysis
 
 ## 9. Documentation
 
@@ -89,6 +95,6 @@
 
 ## Summary
 
-**Completed**: Shadow mode detection, actuator lockout, comparison logging, log alignment, metrics, CLI tools, visualization tools, OnePlus 6 setup documentation.
+**Completed**: Shadow mode detection, actuator lockout, comparison logging, log alignment, metrics, CLI tools, visualization tools, OnePlus 6 setup documentation, algorithm harness integration.
 
-**Remaining**: UI indicator, event timeline visualization, mount hardware design, algorithm harness integration, example notebook.
+**Remaining**: UI indicator, event timeline visualization, mount hardware design, example notebook.
