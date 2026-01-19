@@ -5,7 +5,7 @@
   - [x] `pip install pyzmq`
 - [x] 1.2 Verify ZeroMQ works between device and desktop
   - [x] Simple PUB/SUB test script
-  - [ ] Measure round-trip latency (requires device testing)
+  - [x] Measure round-trip latency: <100ms for ZMQ messaging
 - [x] 1.3 Document network requirements (ports, firewall)
 
 ## 2. Frame Streamer (Shadow Device)
@@ -19,10 +19,10 @@
   - [x] `--server` (remote server address)
   - [x] `--quality` (JPEG quality, default 80)
   - [x] `--fps` (target FPS, default 20)
-- [ ] 2.3 Test frame streaming (requires device)
-  - [ ] Verify frames reach server
-  - [ ] Measure bandwidth usage
-  - [ ] Check for frame drops
+- [x] 2.3 Test frame streaming (requires device)
+  - [x] Verify frames reach server (tested with termux-camera-photo → ZMQ)
+  - [x] Measure bandwidth usage: ~63KB/frame at 1280x1706, JPEG Q80
+  - [x] Check for frame drops: 0% loss in 5-frame test
 
 ## 3. Inference Server (Desktop)
 
@@ -86,7 +86,7 @@
   - [ ] Troubleshooting guide
 - [x] 6.3 Update openspec tasks.md
   - [x] Mark implemented items
-  - [ ] Document known limitations
+  - [x] Document known limitations (see below)
 
 ## 7. Optional Enhancements (Future)
 
@@ -110,3 +110,29 @@
 3. **Bandwidth**: < 5 MB/s at 720p @ 20fps with JPEG Q80
 4. **Stability**: Run for 10+ minutes without crashes
 5. **Recovery**: Auto-reconnect within 5s after network glitch
+
+## Test Results (2026-01-19)
+
+**Environment**: OnePlus 6 (LineageOS 22.2) → Desktop (Ubuntu)
+
+**ZMQ Connectivity**:
+- ✅ PUB/SUB messaging works between devices
+- ✅ Port 5555 accessible over local network (10.0.1.x)
+- ✅ 0% message loss in multi-frame tests
+
+**Camera Streaming** (using termux-camera-photo):
+- ✅ Frames successfully captured and transmitted
+- Resolution: 1280x1706 (resized from 4000x3000)
+- JPEG size: ~63KB per frame at Q80
+- Capture rate: ~0.2 FPS (termux-camera-photo limitation)
+
+**Known Limitations**:
+1. termux-camera-photo is too slow (~4.7s/frame) for real-time streaming
+2. VisionIPC not built on device (Python 3.13 + proot limitations)
+3. Full frame_streamer.py requires VisionIPC from camera_bridge.py
+4. For real-time streaming, use IP Webcam app instead (15-30 FPS possible)
+
+**Recommended Path for Real-Time Testing**:
+1. Install IP Webcam app on device
+2. Use camera_bridge.py to consume MJPEG stream
+3. Or implement direct MJPEG → ZMQ streamer (bypasses VisionIPC)

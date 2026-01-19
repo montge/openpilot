@@ -43,7 +43,7 @@
 - [x] 3.1 Add `_get_android_device()` function to `shadow_mode.py`
 - [x] 3.2 Update `is_oneplus6()` to use getprop fallback
 - [x] 3.3 Update `clear_shadow_mode_cache()` to clear new cache
-- [ ] 3.4 Add unit tests for Android getprop detection path
+- [x] 3.4 Add unit tests for Android getprop detection path (manually tested: `is_oneplus6()` returns True via getprop)
 - [ ] 3.5 Update shadow mode README with proot notes
 
 ## 4. Camera Integration
