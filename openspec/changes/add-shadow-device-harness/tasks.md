@@ -45,9 +45,9 @@
   - [x] 5.1.1 Model output divergence (cosine similarity, RMSE)
   - [x] 5.1.2 Trajectory divergence (path error, speed error)
   - [x] 5.1.3 Control command divergence (steer error, accel error)
-- [ ] 5.2 Implement visualization (`tools/shadow/visualize.py`)
-  - [ ] 5.2.1 Time-series plots of divergence
-  - [ ] 5.2.2 Heatmaps of control differences
+- [x] 5.2 Implement visualization (`tools/shadow/visualize.py`)
+  - [x] 5.2.1 Time-series plots of divergence
+  - [x] 5.2.2 Heatmaps of control differences
   - [ ] 5.2.3 Event timeline comparison
 - [x] 5.3 Create CLI tool (`tools/shadow/analyze.py`)
   - [x] 5.3.1 Load and align logs
@@ -89,6 +89,6 @@
 
 ## Summary
 
-**Completed**: Shadow mode detection, actuator lockout, comparison logging, log alignment, metrics, CLI tools, OnePlus 6 setup documentation.
+**Completed**: Shadow mode detection, actuator lockout, comparison logging, log alignment, metrics, CLI tools, visualization tools, OnePlus 6 setup documentation.
 
-**Remaining**: UI indicator, visualization tools, mount hardware design, algorithm harness integration, example notebook.
+**Remaining**: UI indicator, event timeline visualization, mount hardware design, algorithm harness integration, example notebook.
