@@ -198,6 +198,77 @@ clinfo
 # Should show Adreno GPU
 ```
 
+## Remote Inference
+
+Since modeld cannot run locally on the OnePlus 6 (due to Android linker namespace restrictions blocking OpenCL), we support **remote inference** where frames are streamed to a desktop/server with a GPU.
+
+### Architecture
+
+```
+Shadow Device (OnePlus 6)              Desktop/Server (GPU)
+─────────────────────────              ────────────────────
+IP Webcam → camera_bridge.py
+                ↓
+           VisionIPC
+                ↓
+        frame_streamer.py ──────────▶ inference_server.py
+                                              ↓
+                                          VisionIPC
+                                              ↓
+                                           modeld
+                                              ↓
+                                          modelV2
+                                              ↓
+        result_receiver.py ◀────────────────┘
+```
+
+### Quick Start
+
+**On the desktop/server:**
+```bash
+cd ~/openpilot
+source .venv/bin/activate
+python tools/shadow/setup/inference_server.py --port 5555 --result-port 5556
+```
+
+**On the shadow device (in proot Ubuntu):**
+```bash
+# Terminal 1: Camera bridge
+source ~/.venv/bin/activate
+cd ~/openpilot
+python tools/shadow/setup/camera_bridge.py --url http://<phone-ip>:8080
+
+# Terminal 2: Frame streamer
+source ~/.venv/bin/activate
+cd ~/openpilot
+python tools/shadow/setup/frame_streamer.py --server tcp://<desktop-ip>:5555
+
+# Terminal 3: Result receiver (optional)
+source ~/.venv/bin/activate
+cd ~/openpilot
+python tools/shadow/setup/result_receiver.py --server tcp://<desktop-ip>:5556
+```
+
+### Network Requirements
+
+- Default ports: 5555 (frames), 5556 (results)
+- Bandwidth: ~2-5 MB/s at 720p 20fps JPEG Q80
+- Latency: <500ms acceptable for shadow mode
+- Devices must be on same network (no NAT traversal)
+
+### Testing
+
+```bash
+# Test ZMQ on server:
+python inference_server.py --test
+
+# Test ZMQ on device:
+python frame_streamer.py --test-zmq --server tcp://<desktop-ip>:5555
+
+# Test VisionIPC on device:
+python frame_streamer.py --test-vipc
+```
+
 ## Camera Integration
 
 For camera access and VisionIPC publishing, see [CAMERA.md](CAMERA.md).
@@ -222,7 +293,10 @@ tools/shadow/setup/
 ├── setup-ssh.sh           # SSH server for remote dev
 ├── camera_bridge.py       # HTTP MJPEG → VisionIPC bridge
 ├── termux_camera_server.py # termux-api camera HTTP server
-└── test_visionipc_consumer.py # VisionIPC test consumer
+├── test_visionipc_consumer.py # VisionIPC test consumer
+├── frame_streamer.py      # Stream frames to remote server
+├── inference_server.py    # Remote inference server (desktop)
+└── result_receiver.py     # Receive inference results
 ```
 
 ## Tested Configuration
