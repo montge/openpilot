@@ -91,10 +91,10 @@
 - [x] 9.2 Document complete shadow device setup guide (in tools/shadow/setup/)
 - [x] 9.3 Document comparison testing workflow
 - [x] 9.4 Add troubleshooting guide (in tools/shadow/setup/TROUBLESHOOTING.md)
-- [ ] 9.5 Add example analysis notebook
+- [x] 9.5 Add example analysis notebook
 
 ## Summary
 
-**Completed**: Shadow mode detection, actuator lockout (including UI indicator), comparison logging, log alignment, metrics, CLI tools, visualization tools (including event timeline), OnePlus 6 setup documentation, algorithm harness integration.
+**Completed**: Shadow mode detection, actuator lockout (including UI indicator), comparison logging, log alignment, metrics, CLI tools, visualization tools (including event timeline), OnePlus 6 setup documentation, algorithm harness integration, example notebook.
 
-**Remaining**: Mount hardware design, example notebook.
+**Remaining**: Mount hardware design (7.1-7.4).
