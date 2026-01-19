@@ -134,13 +134,14 @@
   - [ ] Option B: Use remote inference server
   - [ ] Option C: Run via `su -c` wrapper
 
-## 9. Alternative Approaches (if rooting fails)
+## 9. Alternative Approaches (Remote Inference - IN PROGRESS)
 
-- [ ] 9.1 Remote inference server
-  - [ ] Create frame streaming protocol
-  - [ ] Implement server-side modeld wrapper
-  - [ ] Send inference results back to device
-- [ ] 9.2 CPU-only inference (experimental)
+- [x] 9.1 Remote inference server (see `enable-shadow-remote-inference` change)
+  - [x] Create frame streaming protocol (ZeroMQ PUB/SUB)
+  - [x] Implement server-side modeld wrapper (inference_server.py)
+  - [x] Send inference results back to device (result_receiver.py)
+  - [ ] End-to-end testing on actual devices
+- [ ] 9.2 CPU-only inference (experimental, deprioritized)
   - [ ] Investigate tinygrad CPU backend
   - [ ] Benchmark inference speed
   - [ ] Evaluate viability for shadow mode
