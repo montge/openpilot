@@ -136,3 +136,31 @@
 1. Install IP Webcam app on device
 2. Use camera_bridge.py to consume MJPEG stream
 3. Or implement direct MJPEG → ZMQ streamer (bypasses VisionIPC)
+
+## Next Steps (Remote Setup)
+
+**Blocker**: IP Webcam is NOT on F-Droid (proprietary). Options:
+1. Get APK from Play Store on another device, install via `adb install`
+2. Use scrcpy to mirror screen and manually start camera app
+3. Find FOSS camera streaming app on F-Droid
+
+**When IP Webcam is available**, run:
+```bash
+# Desktop: Start ZMQ receiver
+python tools/shadow/setup/inference_server.py --test
+
+# Device: Start MJPEG streamer (via SSH)
+ssh -p 8022 10.0.1.62 "proot-distro login ubuntu -- bash -c '
+cd ~/openpilot && source .venv/bin/activate
+python3 /data/data/com.termux/files/home/mjpeg_zmq_streamer.py \
+    --camera http://localhost:8080 --server tcp://10.0.1.123:5555 --fps 15'"
+```
+
+**Files created for remote testing**:
+- `tools/shadow/setup/mjpeg_zmq_streamer.py` - MJPEG → ZMQ (no VisionIPC needed)
+- `tools/shadow/setup/REMOTE_SETUP.md` - Remote setup guide with ADB/SSH commands
+
+**Remote access available**:
+- SSH: `ssh -p 8022 10.0.1.62`
+- ADB: `adb devices` shows `34f011c6`
+- Desktop IP: 10.0.1.123, Device IP: 10.0.1.62

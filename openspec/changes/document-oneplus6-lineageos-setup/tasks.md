@@ -140,8 +140,23 @@
   - [x] Create frame streaming protocol (ZeroMQ PUB/SUB)
   - [x] Implement server-side modeld wrapper (inference_server.py)
   - [x] Send inference results back to device (result_receiver.py)
-  - [ ] End-to-end testing on actual devices
+  - [x] ZMQ connectivity tested (0% loss, <100ms latency)
+  - [x] Camera → ZMQ tested with termux-camera-photo (~0.2 FPS)
+  - [ ] Real-time testing with IP Webcam (15-30 FPS expected)
 - [ ] 9.2 CPU-only inference (experimental, deprioritized)
   - [ ] Investigate tinygrad CPU backend
   - [ ] Benchmark inference speed
   - [ ] Evaluate viability for shadow mode
+
+## 10. Remote Access Documentation
+
+- [x] 10.1 Create REMOTE_SETUP.md with SSH/ADB commands
+- [x] 10.2 Document IP addresses and ports
+- [x] 10.3 Create mjpeg_zmq_streamer.py for direct camera → ZMQ
+- [ ] 10.4 Document IP Webcam installation via ADB (needs APK)
+
+**Current Access**:
+- SSH: `ssh -p 8022 10.0.1.62`
+- ADB: Device ID `34f011c6`
+- Desktop: 10.0.1.123
+- Device: 10.0.1.62
