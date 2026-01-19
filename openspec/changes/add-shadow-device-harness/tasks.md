@@ -13,7 +13,7 @@
 - [x] 2.1 Disable actuator publishing in `controlsd.py` when shadow mode
 - [x] 2.2 Add actuator lockout in `card.py` (defense in depth)
 - [x] 2.3 Log "SHADOW MODE - NO ACTUATION" warning at startup
-- [ ] 2.4 Add shadow mode indicator to UI (if UI running)
+- [x] 2.4 Add shadow mode indicator to UI (if UI running)
 - [x] 2.5 Add integration tests verifying no CAN writes in shadow mode
 
 ## 3. Comparison Logger
