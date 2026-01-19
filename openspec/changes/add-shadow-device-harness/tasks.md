@@ -48,7 +48,7 @@
 - [x] 5.2 Implement visualization (`tools/shadow/visualize.py`)
   - [x] 5.2.1 Time-series plots of divergence
   - [x] 5.2.2 Heatmaps of control differences
-  - [ ] 5.2.3 Event timeline comparison
+  - [x] 5.2.3 Event timeline comparison
 - [x] 5.3 Create CLI tool (`tools/shadow/analyze.py`)
   - [x] 5.3.1 Load and align logs
   - [x] 5.3.2 Compute metrics
@@ -95,6 +95,6 @@
 
 ## Summary
 
-**Completed**: Shadow mode detection, actuator lockout, comparison logging, log alignment, metrics, CLI tools, visualization tools, OnePlus 6 setup documentation, algorithm harness integration.
+**Completed**: Shadow mode detection, actuator lockout (including UI indicator), comparison logging, log alignment, metrics, CLI tools, visualization tools (including event timeline), OnePlus 6 setup documentation, algorithm harness integration.
 
-**Remaining**: UI indicator, event timeline visualization, mount hardware design, example notebook.
+**Remaining**: Mount hardware design, example notebook.

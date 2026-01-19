@@ -258,6 +258,200 @@ def plot_correlation_scatter(
   return fig
 
 
+def plot_event_timeline(
+  pairs: list[AlignedPair],
+  output_path: Path | None = None,
+) -> Figure | None:
+  """Plot event timeline comparison between shadow and production.
+
+  Creates a horizontal timeline showing when events occurred on each device,
+  allowing visual comparison of event timing and occurrence.
+
+  Args:
+    pairs: List of aligned frame pairs
+    output_path: Path to save figure
+
+  Returns:
+    matplotlib Figure or None if saved to file
+  """
+  check_matplotlib()
+
+  # Extract events with timestamps
+  shadow_events: list[tuple[float, str]] = []
+  prod_events: list[tuple[float, str]] = []
+
+  # Get first timestamp for normalization
+  if not pairs:
+    return None
+
+  first_time = pairs[0].shadow_frame.timestamp_mono
+
+  for pair in pairs:
+    time_offset = pair.shadow_frame.timestamp_mono - first_time
+
+    # Shadow device events
+    for event in pair.shadow_frame.events:
+      shadow_events.append((time_offset, event))
+
+    # Production device events
+    for event in pair.production_frame.events:
+      prod_events.append((time_offset, event))
+
+  # If no events, create a simple message figure
+  if not shadow_events and not prod_events:
+    fig, ax = plt.subplots(figsize=(12, 4))
+    ax.text(0.5, 0.5, "No events found in logs",
+            ha='center', va='center', fontsize=14, transform=ax.transAxes)
+    ax.set_title("Event Timeline Comparison")
+    ax.axis('off')
+    if output_path:
+      fig.savefig(output_path, dpi=150, bbox_inches='tight')
+      plt.close(fig)
+      return None
+    return fig
+
+  # Get unique event types and assign colors
+  all_event_types = sorted(set(e[1] for e in shadow_events + prod_events))
+  color_map = plt.cm.get_cmap('tab20')
+  event_colors = {event: color_map(i % 20) for i, event in enumerate(all_event_types)}
+
+  fig, axes = plt.subplots(2, 1, figsize=(14, 8), sharex=True)
+
+  # Plot shadow events
+  ax_shadow = axes[0]
+  ax_shadow.set_title("Shadow Device Events")
+  ax_shadow.set_ylabel("Event Type")
+
+  # Create y-positions for each event type
+  event_y_map = {event: i for i, event in enumerate(all_event_types)}
+
+  for time_s, event in shadow_events:
+    y = event_y_map[event]
+    ax_shadow.scatter(time_s, y, c=[event_colors[event]], s=50, alpha=0.7, marker='|')
+
+  ax_shadow.set_yticks(range(len(all_event_types)))
+  ax_shadow.set_yticklabels(all_event_types, fontsize=8)
+  ax_shadow.grid(True, alpha=0.3, axis='x')
+
+  # Plot production events
+  ax_prod = axes[1]
+  ax_prod.set_title("Production Device Events")
+  ax_prod.set_xlabel("Time (s)")
+  ax_prod.set_ylabel("Event Type")
+
+  for time_s, event in prod_events:
+    y = event_y_map[event]
+    ax_prod.scatter(time_s, y, c=[event_colors[event]], s=50, alpha=0.7, marker='|')
+
+  ax_prod.set_yticks(range(len(all_event_types)))
+  ax_prod.set_yticklabels(all_event_types, fontsize=8)
+  ax_prod.grid(True, alpha=0.3, axis='x')
+
+  # Add summary counts
+  shadow_count_by_type = {}
+  prod_count_by_type = {}
+  for _, event in shadow_events:
+    shadow_count_by_type[event] = shadow_count_by_type.get(event, 0) + 1
+  for _, event in prod_events:
+    prod_count_by_type[event] = prod_count_by_type.get(event, 0) + 1
+
+  summary = f"Shadow: {len(shadow_events)} events, Production: {len(prod_events)} events"
+  fig.suptitle(f"Event Timeline Comparison\n{summary}", fontsize=12)
+
+  plt.tight_layout()
+
+  if output_path:
+    fig.savefig(output_path, dpi=150, bbox_inches='tight')
+    plt.close(fig)
+    return None
+
+  return fig
+
+
+def plot_event_frequency(
+  pairs: list[AlignedPair],
+  output_path: Path | None = None,
+) -> Figure | None:
+  """Plot event frequency comparison as a bar chart.
+
+  Args:
+    pairs: List of aligned frame pairs
+    output_path: Path to save figure
+
+  Returns:
+    matplotlib Figure or None if saved to file
+  """
+  check_matplotlib()
+
+  # Count events by type
+  shadow_counts: dict[str, int] = {}
+  prod_counts: dict[str, int] = {}
+
+  for pair in pairs:
+    for event in pair.shadow_frame.events:
+      shadow_counts[event] = shadow_counts.get(event, 0) + 1
+    for event in pair.production_frame.events:
+      prod_counts[event] = prod_counts.get(event, 0) + 1
+
+  # Get all unique event types
+  all_events = sorted(set(list(shadow_counts.keys()) + list(prod_counts.keys())))
+
+  if not all_events:
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.text(0.5, 0.5, "No events found in logs",
+            ha='center', va='center', fontsize=14, transform=ax.transAxes)
+    ax.set_title("Event Frequency Comparison")
+    ax.axis('off')
+    if output_path:
+      fig.savefig(output_path, dpi=150, bbox_inches='tight')
+      plt.close(fig)
+      return None
+    return fig
+
+  # Prepare data
+  x = np.arange(len(all_events))
+  width = 0.35
+
+  shadow_values = [shadow_counts.get(e, 0) for e in all_events]
+  prod_values = [prod_counts.get(e, 0) for e in all_events]
+
+  fig, ax = plt.subplots(figsize=(max(10, len(all_events) * 0.8), 6))
+
+  bars1 = ax.bar(x - width / 2, shadow_values, width, label='Shadow', alpha=0.8)
+  bars2 = ax.bar(x + width / 2, prod_values, width, label='Production', alpha=0.8)
+
+  ax.set_xlabel("Event Type")
+  ax.set_ylabel("Count")
+  ax.set_title("Event Frequency Comparison: Shadow vs Production")
+  ax.set_xticks(x)
+  ax.set_xticklabels(all_events, rotation=45, ha='right', fontsize=8)
+  ax.legend()
+  ax.grid(True, alpha=0.3, axis='y')
+
+  # Add value labels on bars
+  def add_labels(bars):
+    for bar in bars:
+      height = bar.get_height()
+      if height > 0:
+        ax.annotate(f'{int(height)}',
+                    xy=(bar.get_x() + bar.get_width() / 2, height),
+                    xytext=(0, 3),
+                    textcoords="offset points",
+                    ha='center', va='bottom', fontsize=8)
+
+  add_labels(bars1)
+  add_labels(bars2)
+
+  plt.tight_layout()
+
+  if output_path:
+    fig.savefig(output_path, dpi=150, bbox_inches='tight')
+    plt.close(fig)
+    return None
+
+  return fig
+
+
 def plot_summary_dashboard(
   result: AlignmentResult,
   report: ComparisonReport,
@@ -410,6 +604,16 @@ def generate_all_plots(
   plot_control_heatmap(result.pairs, output_path=heatmap_path)
   generated.append(heatmap_path)
 
+  # Event timeline
+  timeline_path = output_dir / "event_timeline.png"
+  plot_event_timeline(result.pairs, output_path=timeline_path)
+  generated.append(timeline_path)
+
+  # Event frequency
+  frequency_path = output_dir / "event_frequency.png"
+  plot_event_frequency(result.pairs, output_path=frequency_path)
+  generated.append(frequency_path)
+
   return generated
 
 
@@ -431,7 +635,7 @@ Examples:
   parser.add_argument("--production", type=Path, help="Production device log file")
   parser.add_argument("--output", type=Path, default=Path("./plots"),
                       help="Output directory for plots")
-  parser.add_argument("--plot", type=str, choices=["all", "timeseries", "histogram", "scatter", "heatmap", "dashboard"],
+  parser.add_argument("--plot", type=str, choices=["all", "timeseries", "histogram", "scatter", "heatmap", "dashboard", "events", "event_frequency"],
                       default="all", help="Type of plot to generate")
   parser.add_argument("--field", type=str, choices=["steer", "accel", "curvature"],
                       default="steer", help="Field to plot")
@@ -497,6 +701,14 @@ Examples:
   elif args.plot == "heatmap":
     path = args.output / "control_heatmap.png"
     plot_control_heatmap(result.pairs, output_path=path)
+    print(f"Generated: {path}")
+  elif args.plot == "events":
+    path = args.output / "event_timeline.png"
+    plot_event_timeline(result.pairs, output_path=path)
+    print(f"Generated: {path}")
+  elif args.plot == "event_frequency":
+    path = args.output / "event_frequency.png"
+    plot_event_frequency(result.pairs, output_path=path)
     print(f"Generated: {path}")
 
   return 0
