@@ -10,13 +10,13 @@
 
 ## 2. Baseline Algorithm Comparison
 
-- [ ] 2.1 Create comparison harness using algorithm test framework
-- [ ] 2.2 Implement KF1D vs Stone Soup KalmanFilter comparison
-- [ ] 2.3 Implement KF1D vs ExtendedKalmanFilter comparison
-- [ ] 2.4 Implement KF1D vs UnscentedKalmanFilter comparison
-- [ ] 2.5 Implement KF1D vs CubatureKalmanFilter comparison
-- [ ] 2.6 Implement KF1D vs ParticleFilter comparison
-- [ ] 2.7 Generate comparison report with metrics
+- [x] 2.1 Create comparison harness using algorithm test framework
+- [x] 2.2 Implement KF1D vs Stone Soup KalmanFilter comparison
+- [x] 2.3 Implement KF1D vs ExtendedKalmanFilter comparison
+- [x] 2.4 Implement KF1D vs UnscentedKalmanFilter comparison
+- [x] 2.5 Implement KF1D vs CubatureKalmanFilter comparison
+- [x] 2.6 Implement KF1D vs ParticleFilter comparison
+- [x] 2.7 Generate comparison report with metrics
 
 ## 3. Multi-Target Tracking Comparison
 
