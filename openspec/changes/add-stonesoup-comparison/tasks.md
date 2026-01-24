@@ -1,12 +1,12 @@
 ## 1. Stone Soup Integration
 
-- [ ] 1.1 Add stonesoup to development dependencies
-- [ ] 1.2 Create `tools/stonesoup/` directory structure
-- [ ] 1.3 Implement `OpenpilotAdapter` for type conversion
-- [ ] 1.4 Implement radar track → Stone Soup Detection conversion
-- [ ] 1.5 Implement Stone Soup state → openpilot LeadData conversion
-- [ ] 1.6 Implement pose state conversions for localization comparison
-- [ ] 1.7 Add unit tests for adapters
+- [x] 1.1 Add stonesoup to development dependencies
+- [x] 1.2 Create `tools/stonesoup/` directory structure
+- [x] 1.3 Implement `OpenpilotAdapter` for type conversion
+- [x] 1.4 Implement radar track → Stone Soup Detection conversion
+- [x] 1.5 Implement Stone Soup state → openpilot LeadData conversion
+- [x] 1.6 Implement pose state conversions for localization comparison
+- [x] 1.7 Add unit tests for adapters
 
 ## 2. Baseline Algorithm Comparison
 
