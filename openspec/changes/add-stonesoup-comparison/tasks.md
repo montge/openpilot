@@ -65,17 +65,17 @@
 
 ## 8. Benchmark Scenarios
 
-- [ ] 8.1 Create highway following scenario
-- [ ] 8.2 Create cut-in scenario
-- [ ] 8.3 Create cut-out scenario
-- [ ] 8.4 Create multi-vehicle scenario
-- [ ] 8.5 Create occlusion scenario
-- [ ] 8.6 Create adverse weather scenario (simulated sensor noise)
+- [x] 8.1 Create highway following scenario
+- [x] 8.2 Create cut-in scenario
+- [x] 8.3 Create cut-out scenario
+- [x] 8.4 Create multi-vehicle scenario
+- [x] 8.5 Create occlusion scenario
+- [x] 8.6 Create adverse weather scenario (simulated sensor noise)
 
 ## 9. Documentation and Recommendations
 
-- [ ] 9.1 Generate benchmark results report
-- [ ] 9.2 Create algorithm selection decision tree
-- [ ] 9.3 Document production integration recommendations
-- [ ] 9.4 Add README with usage examples
+- [x] 9.1 Generate benchmark results report
+- [x] 9.2 Create algorithm selection decision tree
+- [x] 9.3 Document production integration recommendations
+- [x] 9.4 Add README with usage examples
 - [ ] 9.5 Create visualization notebooks for results
