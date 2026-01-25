@@ -35,14 +35,14 @@
 
 ## 5. Voxel Grid Tracker
 
-- [ ] 5.1 Create `selfdrive/controls/lib/trackers/` directory
-- [ ] 5.2 Implement `VoxelGrid` class
-- [ ] 5.3 Implement log-odds occupancy update
-- [ ] 5.4 Implement voxel-to-world coordinate conversion
-- [ ] 5.5 Add sparse voxel representation for memory efficiency
-- [ ] 5.6 Add GPU acceleration option (for DGX Spark)
-- [ ] 5.7 Create benchmark scenarios for voxel tracking
-- [ ] 5.8 Add unit tests for voxel grid
+- [x] 5.1 Create `tools/stonesoup/voxel_tracker.py`
+- [x] 5.2 Implement `VoxelGrid` class
+- [x] 5.3 Implement log-odds occupancy update
+- [x] 5.4 Implement voxel-to-world coordinate conversion
+- [x] 5.5 Add sparse voxel representation for memory efficiency
+- [x] 5.6 Add GPU acceleration option (for DGX Spark)
+- [x] 5.7 Create benchmark scenarios for voxel tracking
+- [x] 5.8 Add unit tests for voxel grid
 
 ## 6. Viterbi Track Association
 
