@@ -56,12 +56,12 @@
 
 ## 7. Octree Spatial Index
 
-- [ ] 7.1 Implement `Octree` class
-- [ ] 7.2 Implement recursive insert/query operations
-- [ ] 7.3 Implement range query optimization
-- [ ] 7.4 Implement k-nearest-neighbor query
-- [ ] 7.5 Benchmark query performance vs brute force
-- [ ] 7.6 Add unit tests for octree operations
+- [x] 7.1 Implement `Octree` class
+- [x] 7.2 Implement recursive insert/query operations
+- [x] 7.3 Implement range query optimization
+- [x] 7.4 Implement k-nearest-neighbor query
+- [x] 7.5 Benchmark query performance vs brute force
+- [x] 7.6 Add unit tests for octree operations
 
 ## 8. Benchmark Scenarios
 
