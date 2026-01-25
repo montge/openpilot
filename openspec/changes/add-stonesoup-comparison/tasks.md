@@ -46,13 +46,13 @@
 
 ## 6. Viterbi Track Association
 
-- [ ] 6.1 Implement `ViterbiTracker` class
-- [ ] 6.2 Implement HMM transition matrix computation
-- [ ] 6.3 Implement emission probability (Mahalanobis likelihood)
-- [ ] 6.4 Implement Viterbi decoding algorithm
-- [ ] 6.5 Benchmark vs Hungarian algorithm baseline
-- [ ] 6.6 Create occlusion handling scenarios
-- [ ] 6.7 Add unit tests for Viterbi tracker
+- [x] 6.1 Implement `ViterbiTracker` class
+- [x] 6.2 Implement HMM transition matrix computation
+- [x] 6.3 Implement emission probability (Mahalanobis likelihood)
+- [x] 6.4 Implement Viterbi decoding algorithm
+- [x] 6.5 Benchmark vs Hungarian algorithm baseline
+- [x] 6.6 Create occlusion handling scenarios
+- [x] 6.7 Add unit tests for Viterbi tracker
 
 ## 7. Octree Spatial Index
 
