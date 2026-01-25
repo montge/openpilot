@@ -20,11 +20,11 @@
 
 ## 3. Multi-Target Tracking Comparison
 
-- [ ] 3.1 Implement JPDATracker integration
-- [ ] 3.2 Implement GNNTracker (MHT) integration
-- [ ] 3.3 Create multi-vehicle tracking scenarios
-- [ ] 3.4 Benchmark MOTA, MOTP, ID switches metrics
-- [ ] 3.5 Compare vs current probabilistic matching
+- [x] 3.1 Implement JPDATracker integration
+- [x] 3.2 Implement GNNTracker (MHT) integration
+- [x] 3.3 Create multi-vehicle tracking scenarios
+- [x] 3.4 Benchmark MOTA, MOTP, ID switches metrics
+- [x] 3.5 Compare vs current probabilistic matching
 
 ## 4. Track-to-Track Fusion
 
