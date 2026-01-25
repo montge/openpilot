@@ -28,10 +28,10 @@
 
 ## 4. Track-to-Track Fusion
 
-- [ ] 4.1 Implement Covariance Intersection adapter
-- [ ] 4.2 Create radar + vision fusion test scenarios
-- [ ] 4.3 Benchmark fusion accuracy vs current approach
-- [ ] 4.4 Document fusion latency characteristics
+- [x] 4.1 Implement Covariance Intersection adapter
+- [x] 4.2 Create radar + vision fusion test scenarios
+- [x] 4.3 Benchmark fusion accuracy vs current approach
+- [x] 4.4 Document fusion latency characteristics
 
 ## 5. Voxel Grid Tracker
 
