@@ -23,7 +23,7 @@ dependencies = [
   # core
   "cffi",
   "scons",
-  "pycapnp==2.1.0",
+  "pycapnp==2.2.2",
   "Cython",
   "setuptools",
   "numpy >=2.0",
