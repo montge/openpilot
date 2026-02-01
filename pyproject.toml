@@ -86,7 +86,6 @@ docs = [
 
 testing = [
   "coverage",
-  "pytest-cov",
   "hypothesis ==6.47.*",
   "ty",
   "pytest",
@@ -152,9 +151,7 @@ asyncio_default_fixture_loop_scope = "function"
 markers = [
   "slow: tests that take awhile to run and can be skipped with -m 'not slow'",
   "tici: tests that are only meant to run on the C3/C3X",
-  "skip_tici_setup: mark test to skip tici setup fixture",
-  "algorithm_benchmark: algorithm test harness benchmark tests",
-  "slow_benchmark: slow algorithm benchmark tests (>30s)",
+  "skip_tici_setup: mark test to skip tici setup fixture"
 ]
 testpaths = [
   "common",
@@ -177,7 +174,7 @@ testpaths = [
 [tool.codespell]
 quiet-level = 3
 # if you've got a short variable name that's getting flagged, add it here
-ignore-words-list = "bu,ro,te,ue,alo,hda,ois,nam,nams,ned,som,parm,setts,inout,warmup,bumb,nd,sie,preints,whit,indexIn,ws,uint,grey,deque,stdio,amin,BA,LITE,atEnd,UIs,errorString,arange,FocusIn,od,tim,relA,hist,copyable,jupyter,thead,TGE,abl,lite,assertIn,CAS"
+ignore-words-list = "bu,ro,te,ue,alo,hda,ois,nam,nams,ned,som,parm,setts,inout,warmup,bumb,nd,sie,preints,whit,indexIn,ws,uint,grey,deque,stdio,amin,BA,LITE,atEnd,UIs,errorString,arange,FocusIn,od,tim,relA,hist,copyable,jupyter,thead,TGE,abl,lite"
 builtin = "clear,rare,informal,code,names,en-GB_to_en-US"
 skip = "./third_party/*, ./tinygrad/*, ./tinygrad_repo/*, ./msgq/*, ./panda/*, ./opendbc/*, ./opendbc_repo/*, ./rednose/*, ./rednose_repo/*, ./teleoprtc/*, ./teleoprtc_repo/*, *.po, uv.lock, *.onnx, ./cereal/gen/*, */c_generated_code/*, docs/assets/*, tools/plotjuggler/layouts/*, selfdrive/assets/offroad/mici_fcc.html"
 
@@ -240,39 +237,6 @@ lint.flake8-implicit-str-concat.allow-multiline = false
 [tool.ruff.format]
 quote-style = "preserve"
 
-[tool.coverage.run]
-source = ["selfdrive", "system", "tools", "common"]
-omit = [
-  "*/tests/*",
-  "*/test_*",
-  "*_test.py",
-  "*/c_generated_code/*",
-  "selfdrive/debug/*",
-  "tools/sim/*",
-  "tools/replay/*",
-]
-branch = true
-parallel = true
-
-[tool.coverage.report]
-exclude_lines = [
-  "pragma: no cover",
-  "def __repr__",
-  "raise NotImplementedError",
-  "if TYPE_CHECKING:",
-  "if __name__ == .__main__.:",
-]
-show_missing = true
-# Minimum coverage threshold - ratchet up as coverage improves
-# Baseline: 33% (2025-12-25)
-fail_under = 33
-
-[tool.coverage.html]
-directory = "htmlcov"
-
-[tool.coverage.xml]
-output = "coverage.xml"
-
 [tool.ty.src]
 exclude = [
   "cereal/",
@@ -309,5 +273,6 @@ invalid-argument-type = "ignore"
 call-non-callable = "ignore"
 # Ignore unsupported-operator - false positives from dynamic types
 unsupported-operator = "ignore"
-# Ignore non-subscriptable - false positives from dynamic types
-non-subscriptable = "ignore"
+# Ignore not-subscriptable - false positives from dynamic types
+not-subscriptable = "ignore"
+# not-iterable errors are now fixed

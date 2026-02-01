@@ -1,32 +1,47 @@
 import numpy as np
+import pytest
 
-from openpilot.common.transformations.orientation import euler2quat, quat2euler, euler2rot, rot2euler, \
-                                               rot2quat, quat2rot, \
-                                               ned_euler_from_ecef
+from openpilot.common.transformations.orientation import euler2quat, quat2euler, euler2rot, rot2euler, rot2quat, quat2rot, ned_euler_from_ecef
 
-eulers = np.array([[ 1.46520501,  2.78688383,  2.92780854],
-       [ 4.86909526,  3.60618161,  4.30648981],
-       [ 3.72175965,  2.68763705,  5.43895988],
-       [ 5.92306687,  5.69573614,  0.81100357],
-       [ 0.67838374,  5.02402037,  2.47106426]])
+eulers = np.array(
+  [
+    [1.46520501, 2.78688383, 2.92780854],
+    [4.86909526, 3.60618161, 4.30648981],
+    [3.72175965, 2.68763705, 5.43895988],
+    [5.92306687, 5.69573614, 0.81100357],
+    [0.67838374, 5.02402037, 2.47106426],
+  ]
+)
 
-quats = np.array([[ 0.66855182, -0.71500939,  0.19539353,  0.06017818],
-       [ 0.43163717,  0.70013301,  0.28209145,  0.49389021],
-       [ 0.44121991, -0.08252646,  0.34257534,  0.82532207],
-       [ 0.88578382, -0.04515356, -0.32936046,  0.32383617],
-       [ 0.06578165,  0.61282835,  0.07126891,  0.78424163]])
+quats = np.array(
+  [
+    [0.66855182, -0.71500939, 0.19539353, 0.06017818],
+    [0.43163717, 0.70013301, 0.28209145, 0.49389021],
+    [0.44121991, -0.08252646, 0.34257534, 0.82532207],
+    [0.88578382, -0.04515356, -0.32936046, 0.32383617],
+    [0.06578165, 0.61282835, 0.07126891, 0.78424163],
+  ]
+)
 
-ecef_positions = np.array([[-2711076.55270557, -4259167.14692758,  3884579.87669935],
-                          [ 2068042.69652729, -5273435.40316622,  2927004.89190746],
-                          [-2160412.60461669, -4932588.89873832,  3406542.29652851],
-                          [-1458247.92550567,  5983060.87496612,  1654984.6099885 ],
-                          [ 4167239.10867871,  4064301.90363223,  2602234.6065749 ]])
+ecef_positions = np.array(
+  [
+    [-2711076.55270557, -4259167.14692758, 3884579.87669935],
+    [2068042.69652729, -5273435.40316622, 2927004.89190746],
+    [-2160412.60461669, -4932588.89873832, 3406542.29652851],
+    [-1458247.92550567, 5983060.87496612, 1654984.6099885],
+    [4167239.10867871, 4064301.90363223, 2602234.6065749],
+  ]
+)
 
-ned_eulers = np.array([[ 0.46806039, -0.4881889 ,  1.65697808],
-                    [-2.14525969, -0.36533066,  0.73813479],
-                    [-1.39523364, -0.58540761, -1.77376356],
-                    [-1.84220435,  0.61828016, -1.03310421],
-                    [ 2.50450101,  0.36304151,  0.33136365]])
+ned_eulers = np.array(
+  [
+    [0.46806039, -0.4881889, 1.65697808],
+    [-2.14525969, -0.36533066, 0.73813479],
+    [-1.39523364, -0.58540761, -1.77376356],
+    [-1.84220435, 0.61828016, -1.03310421],
+    [2.50450101, 0.36304151, 0.33136365],
+  ]
+)
 
 
 class TestOrientation:
@@ -57,123 +72,34 @@ class TestOrientation:
   def test_euler_ned(self):
     for i in range(len(eulers)):
       np.testing.assert_allclose(ned_eulers[i], ned_euler_from_ecef(ecef_positions[i], eulers[i]), rtol=1e-7)
-      #np.testing.assert_allclose(eulers[i], ecef_euler_from_ned(ecef_positions[i], ned_eulers[i]), rtol=1e-7)
+      # np.testing.assert_allclose(eulers[i], ecef_euler_from_ned(ecef_positions[i], ned_eulers[i]), rtol=1e-7)
     # np.testing.assert_allclose(ned_eulers, ned_euler_from_ecef(ecef_positions, eulers), rtol=1e-7)
 
+  def test_inputs(self):
+    with pytest.raises(ValueError):
+      euler2quat([1, 2])
 
-class TestOrientationEdgeCases:
-  """Test edge cases for orientation transformations."""
+    with pytest.raises(ValueError):
+      quat2rot([1, 2, 3])
 
-  def test_zero_euler_gives_identity_quat(self):
-    """Test zero euler angles give identity quaternion."""
-    euler = np.array([0.0, 0.0, 0.0])
-    quat = euler2quat(euler)
+    with pytest.raises(IndexError):
+      rot2quat(np.zeros((2, 2)))
 
-    # Identity quaternion - w should be 1, xyz should be 0
-    assert quat.shape == (4,)
-    np.testing.assert_allclose(abs(quat[0]), 1.0, rtol=1e-5)
-    np.testing.assert_allclose(quat[1:], [0.0, 0.0, 0.0], atol=1e-7)
+  def test_euler_rot_consistency(self):
+    rpy = [0.1, 0.2, 0.3]
+    R = euler2rot(rpy)
 
-  def test_identity_quat_gives_zero_euler(self):
-    """Test identity quaternion gives zero euler angles."""
-    quat = np.array([1.0, 0.0, 0.0, 0.0])
-    euler = quat2euler(quat)
+    # R -> q -> R
+    q = rot2quat(R)
+    R_new = quat2rot(q)
+    np.testing.assert_allclose(R, R_new, atol=1e-15)
 
-    np.testing.assert_allclose(euler, [0.0, 0.0, 0.0], atol=1e-7)
+    # q -> R -> Euler (quat2euler) -> R
+    rpy_new = quat2euler(q)
+    R_new2 = euler2rot(rpy_new)
+    np.testing.assert_allclose(R, R_new2, atol=1e-15)
 
-  def test_zero_euler_gives_identity_rot(self):
-    """Test zero euler angles give identity rotation."""
-    euler = np.array([0.0, 0.0, 0.0])
-    rot = euler2rot(euler)
-
-    np.testing.assert_allclose(rot, np.eye(3), rtol=1e-7)
-
-  def test_identity_rot_gives_zero_euler(self):
-    """Test identity rotation gives zero euler angles."""
-    rot = np.eye(3)
-    euler = rot2euler(rot)
-
-    np.testing.assert_allclose(euler, [0.0, 0.0, 0.0], atol=1e-7)
-
-  def test_identity_rot_gives_identity_quat(self):
-    """Test identity rotation gives identity quaternion."""
-    rot = np.eye(3)
-    quat = rot2quat(rot)
-
-    np.testing.assert_allclose(abs(quat[0]), 1.0, rtol=1e-5)
-
-  def test_identity_quat_gives_identity_rot(self):
-    """Test identity quaternion gives identity rotation."""
-    quat = np.array([1.0, 0.0, 0.0, 0.0])
-    rot = quat2rot(quat)
-
-    np.testing.assert_allclose(rot, np.eye(3), rtol=1e-7)
-
-  def test_rotation_matrix_is_orthogonal(self):
-    """Test euler2rot produces orthogonal matrices."""
-    euler = np.array([0.3, 0.2, 0.1])
-    rot = euler2rot(euler)
-
-    # R^T * R should be identity
-    product = rot.T @ rot
-    np.testing.assert_allclose(product, np.eye(3), atol=1e-10)
-
-  def test_rotation_matrix_det_is_one(self):
-    """Test euler2rot produces rotation matrices with det=1."""
-    euler = np.array([0.3, 0.2, 0.1])
-    rot = euler2rot(euler)
-
-    det = np.linalg.det(rot)
-    np.testing.assert_allclose(det, 1.0, rtol=1e-7)
-
-  def test_quaternion_is_normalized(self):
-    """Test euler2quat produces unit quaternions."""
-    euler = np.array([0.5, 0.3, 0.1])
-    quat = euler2quat(euler)
-
-    norm = np.linalg.norm(quat)
-    np.testing.assert_allclose(norm, 1.0, rtol=1e-7)
-
-
-class TestOrientationAliases:
-  """Test function aliases."""
-
-  def test_quats_from_rotations_alias(self):
-    """Test quats_from_rotations is rot2quat."""
-    from openpilot.common.transformations.orientation import quats_from_rotations
-    assert quats_from_rotations is rot2quat
-
-  def test_quat_from_rot_alias(self):
-    """Test quat_from_rot is rot2quat."""
-    from openpilot.common.transformations.orientation import quat_from_rot
-    assert quat_from_rot is rot2quat
-
-  def test_rotations_from_quats_alias(self):
-    """Test rotations_from_quats is quat2rot."""
-    from openpilot.common.transformations.orientation import rotations_from_quats
-    assert rotations_from_quats is quat2rot
-
-  def test_rot_from_quat_alias(self):
-    """Test rot_from_quat is quat2rot."""
-    from openpilot.common.transformations.orientation import rot_from_quat
-    assert rot_from_quat is quat2rot
-
-  def test_euler_from_rot_alias(self):
-    """Test euler_from_rot is rot2euler."""
-    from openpilot.common.transformations.orientation import euler_from_rot
-    assert euler_from_rot is rot2euler
-
-  def test_euler_from_quat_alias(self):
-    """Test euler_from_quat is quat2euler."""
-    from openpilot.common.transformations.orientation import euler_from_quat
-    assert euler_from_quat is quat2euler
-
-  def test_rot_from_euler_alias(self):
-    """Test rot_from_euler is euler2rot."""
-    from openpilot.common.transformations.orientation import rot_from_euler
-    assert rot_from_euler is euler2rot
-
-  def test_quat_from_euler_alias(self):
-    """Test quat_from_euler is euler2quat."""
-    from openpilot.common.transformations.orientation import quat_from_euler
-    assert quat_from_euler is euler2quat
+    # R -> Euler (rot2euler) -> R
+    rpy_from_rot = rot2euler(R)
+    R_new3 = euler2rot(rpy_from_rot)
+    np.testing.assert_allclose(R, R_new3, atol=1e-15)
