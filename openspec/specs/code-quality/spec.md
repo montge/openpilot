@@ -53,7 +53,7 @@ The CI pipeline SHALL run MISRA static analysis on C/C++ code.
 - **GIVEN** a pull request with C/C++ changes
 - **WHEN** the MISRA workflow runs
 - **THEN** cppcheck-misra analyzes changed files
-- **AND** clang-tidy-automotive analyzes changed files (Not yet enabled in CI - planned)
+- **AND** clang-tidy-automotive analyzes changed files (deferred - requires custom CI image)
 - **AND** new violations are reported in the PR
 
 #### Scenario: Differential MISRA reporting
@@ -67,11 +67,10 @@ The project SHALL provide a quality dashboard showing coverage and analysis tren
 
 #### Scenario: Developer views quality metrics
 - **GIVEN** a developer wants to check quality metrics
-- **WHEN** they visit SonarCloud or Codecov dashboards
-- **THEN** they see current coverage percentages
-- **AND** they see coverage trend over time
-- **AND** they see MISRA violation counts
-- **NOTE** MISRA findings are uploaded as GitHub Actions artifacts, not to SonarCloud/Codecov dashboards.
+- **WHEN** they access quality dashboards and CI artifacts
+- **THEN** they see current coverage percentages on Codecov
+- **AND** they see coverage trend over time on Codecov
+- **AND** they see MISRA violation counts in CI artifacts
 
 ### Requirement: pytest-mock for Test Mocking
 All test files SHALL use pytest-mock's `mocker` fixture instead of `unittest.mock`.

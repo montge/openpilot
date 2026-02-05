@@ -17,7 +17,6 @@ The algorithm harness SHALL maintain minimum 90% code coverage.
 - **WHEN** coverage drops below 90%
 - **THEN** the PR check fails
 - **AND** coverage report shows uncovered lines
-- **NOTE** CI threshold discrepancy: the basic workflow job (minimal dependencies) enforces 80%, while the full job enforces 90%.
 
 ### Requirement: Module-Level Coverage
 Each algorithm harness module SHALL have individual coverage requirements.
