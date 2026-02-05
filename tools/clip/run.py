@@ -40,7 +40,7 @@ def parse_args():
   parser.add_argument("-f", "--file-size", type=float, default=9.0, help="Target file size in MB")
   parser.add_argument("-x", "--speed", type=int, default=1, help="Speed multiplier")
   parser.add_argument("--demo", action="store_true", help="Use demo route with default timing")
-  parser.add_argument("--big", action="store_true", default=True, help="Use big UI (2160x1080)")
+  parser.add_argument("--big", action="store_true", help="Use big UI (2160x1080)")
   parser.add_argument("--qcam", action="store_true", help="Use qcamera instead of fcamera")
   parser.add_argument("--windowed", action="store_true", help="Show window")
   parser.add_argument("--no-metadata", action="store_true", help="Disable metadata overlay")
@@ -265,9 +265,9 @@ def clip(route: Route, output: str, start: int, end: int, headless: bool = True,
 
   import pyray as rl
   if big:
-    from openpilot.selfdrive.ui.layouts.main import MainLayout
+    from openpilot.selfdrive.ui.onroad.augmented_road_view import AugmentedRoadView
   else:
-    from openpilot.selfdrive.ui.mici.layouts.main import MiciMainLayout as MainLayout  # type: ignore[assignment]
+    from openpilot.selfdrive.ui.mici.onroad.augmented_road_view import AugmentedRoadView  # type: ignore[assignment]
   from openpilot.selfdrive.ui.ui_state import ui_state
   from openpilot.system.ui.lib.application import gui_app, FontWeight, FONT_SCALE
   timer.lap("import")
@@ -298,8 +298,8 @@ def clip(route: Route, output: str, start: int, end: int, headless: bool = True,
     patch_submaster(message_chunks, ui_state)
     gui_app.init_window("clip", fps=FRAMERATE)
 
-    main_layout = MainLayout()
-    main_layout.set_rect(rl.Rectangle(0, 0, gui_app.width, gui_app.height))
+    road_view = AugmentedRoadView()
+    road_view.set_rect(rl.Rectangle(0, 0, gui_app.width, gui_app.height))
     font = gui_app.font(FontWeight.NORMAL)
     timer.lap("setup")
 
@@ -312,7 +312,7 @@ def clip(route: Route, output: str, start: int, end: int, headless: bool = True,
         vipc.send(VisionStreamType.VISION_STREAM_ROAD, frame_bytes, frame_idx, int(frame_idx * 5e7), int(frame_idx * 5e7))
         ui_state.update()
         if should_render:
-          main_layout.render()
+          road_view.render()
           render_overlays(rl, gui_app, font, FONT_SCALE, metadata, title, start, frame_idx, show_metadata, show_time)
         frame_idx += 1
         pbar.update(1)
@@ -329,7 +329,6 @@ def clip(route: Route, output: str, start: int, end: int, headless: bool = True,
 def main():
   logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s\t%(message)s")
   args = parse_args()
-  assert args.big, "Clips doesn't support mici UI yet. TODO: make it work"
 
   setup_env(args.output, big=args.big, speed=args.speed, target_mb=args.file_size, duration=args.end - args.start)
   clip(Route(args.route, data_dir=args.data_dir), args.output, args.start, args.end, not args.windowed,

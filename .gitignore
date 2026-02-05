@@ -111,4 +111,7 @@ Pipfile
 cpp-coverage-details.txt
 cpp-coverage.lcov
 cpp-coverage-report/
-coverage.xml
+
+.claude/
+PLAN.md
+TASK.md

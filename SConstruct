@@ -14,7 +14,6 @@ Decider('MD5-timestamp')
 
 SetOption('num_jobs', max(1, int(os.cpu_count()/2)))
 
-AddOption('--kaitai', action='store_true', help='Regenerate kaitai struct parsers')
 AddOption('--asan', action='store_true', help='turn on ASAN')
 AddOption('--ubsan', action='store_true', help='turn on UBSan')
 AddOption('--coverage', action='store_true', help='enable code coverage instrumentation (llvm-cov)')
@@ -208,7 +207,6 @@ SConscript(['rednose/SConscript'])
 
 # Build system services
 SConscript([
-  'system/ubloxd/SConscript',
   'system/loggerd/SConscript',
 ])
 
