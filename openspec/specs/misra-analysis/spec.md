@@ -28,7 +28,7 @@ The project SHALL provide tooling to compare baseline and MISRA analysis results
 
 #### Scenario: Developer generates comparison report
 Given both `reports/cppcheck-misra-report.txt` and `reports/clang-tidy-misra-report.txt` exist
-When they run `scripts/lint/compare-analysis.sh` (Script not yet created - planned)
+When they run `scripts/lint/compare-analysis.sh`
 Then a comparison report is generated showing:
 - Findings unique to baseline analysis
 - Findings unique to MISRA analysis
