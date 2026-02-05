@@ -1,7 +1,7 @@
 # algorithm-test-harness Specification
 
 ## Purpose
-TBD - created by archiving change add-algorithm-test-harness. Update Purpose after archive.
+Define the algorithm test harness framework for standardized testing, benchmarking, and comparison of control algorithms in openpilot.
 ## Requirements
 ### Requirement: Algorithm Interface Protocol
 All control algorithms tested via the harness SHALL implement the `AlgorithmInterface` protocol.
@@ -150,4 +150,3 @@ The algorithm test harness code SHALL pass all ruff linting checks without viola
 #### Scenario: Strict zip usage
 - **WHEN** `zip()` is used to iterate over multiple iterables
 - **THEN** `strict=True` parameter is provided to catch length mismatches
-

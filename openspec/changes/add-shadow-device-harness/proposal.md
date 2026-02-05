@@ -16,7 +16,7 @@ The OnePlus 6 is ideal because:
 
 ## What Changes
 
-- **Add Shadow Device Mode** (`system/hardware/tici/shadow_mode.py`):
+- **Add Shadow Device Mode** (`system/hardware/shadow_mode.py`):
   - Detect when running as shadow device (not connected to panda)
   - Disable all actuator outputs (steering, gas, brake)
   - Enable full sensor pipeline (cameras, GPS, IMU)

@@ -3,7 +3,6 @@
 ## Purpose
 Define formal verification requirements for safety-critical openpilot code using mathematically rigorous tools that can prove properties hold for all inputs, not just tested cases.
 ## Requirements
-TBD - to be populated by approved changes.
 
 ### Requirement: CBMC Bounded Model Checking
 The CI pipeline SHALL run CBMC verification on safety-critical C code.
@@ -43,7 +42,7 @@ The CI pipeline SHALL run TLA+ model checking on the selfdrived state machine sp
 
 #### Scenario: TLC verifies NO_ENTRY blocks engagement
 - **GIVEN** the SelfDrived.tla specification with NO_ENTRY event
-- **WHEN** TLC runs with the NoEntryBlocks invariant
+- **WHEN** TLC runs with the NoEntryBlocksEngagement invariant
 - **THEN** TLC proves: state cannot become enabled while NO_ENTRY is active
 - **AND** no path exists from disabled to enabled with NO_ENTRY
 
@@ -64,14 +63,14 @@ The CI pipeline SHALL run SPIN model checking on the msgq messaging protocol.
 
 #### Scenario: SPIN verifies no message loss for valid readers
 - **GIVEN** the msgq_protocol.pml Promela model
-- **WHEN** SPIN runs with the no_message_loss LTL property
+- **WHEN** SPIN runs with the `no_stale_reads` LTL property
 - **THEN** SPIN proves: valid readers receive all published messages
-- **AND** no counterexample shows a missed message
+- **AND** no counterexample shows a stale read
 
 #### Scenario: SPIN verifies reader eviction correctness
 - **GIVEN** the msgq_protocol.pml Promela model with slow readers
-- **WHEN** SPIN runs with the eviction_respected property
-- **THEN** SPIN proves: evicted readers stop accessing the buffer
+- **WHEN** SPIN runs with the `reader0_progress` property
+- **THEN** SPIN proves: readers make progress and are not starved
 - **AND** eviction happens before data is overwritten
 
 #### Scenario: SPIN detects known race conditions
@@ -96,7 +95,7 @@ The CI pipeline SHALL run libFuzzer-based fuzzing on safety-critical C code.
 - **AND** ASAN/UBSAN sanitizers detect no violations
 
 #### Scenario: Fuzz harness exercises torque validation
-- **GIVEN** the fuzz_torque_cmd.c harness
+- **GIVEN** the fuzz_safety_tx_hook.c harness
 - **WHEN** libFuzzer generates random torque commands
 - **THEN** bounds checking rejects out-of-range values
 - **AND** no integer overflow or underflow occurs

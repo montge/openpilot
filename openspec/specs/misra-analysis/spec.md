@@ -1,7 +1,7 @@
 # misra-analysis Specification
 
 ## Purpose
-TBD - created by archiving change add-misra-analysis. Update Purpose after archive.
+Define MISRA C compliance analysis configuration and reporting for safety-critical C/C++ code in openpilot.
 ## Requirements
 ### Requirement: Baseline MISRA Analysis Configuration
 The project SHALL provide a cppcheck configuration for MISRA C:2012 baseline analysis.
@@ -10,7 +10,7 @@ The project SHALL provide a cppcheck configuration for MISRA C:2012 baseline ana
 Given the developer has cppcheck installed with the MISRA addon
 When they run `scripts/lint/cppcheck-misra.sh`
 Then cppcheck analyzes selfdrive/, system/, and common/ directories
-And outputs findings to `cppcheck-misra-report.txt`
+And outputs findings to `reports/cppcheck-misra-report.txt`
 And excludes third_party, submodules, and generated code
 
 ### Requirement: MISRA Analysis Configuration
@@ -20,15 +20,15 @@ The project SHALL provide a configuration for MISRA C:2025 and C++:2023 analysis
 Given the developer has clang-tidy-automotive built at a known path
 When they run `scripts/lint/clang-tidy-misra.sh`
 Then the automotive fork analyzes selfdrive/, system/, and common/ directories
-And outputs findings to `misra-report.txt`
+And outputs findings to `reports/clang-tidy-misra-report.txt`
 And uses automotive-* and automotive-cpp23-* checks
 
 ### Requirement: Analysis Comparison Report
 The project SHALL provide tooling to compare baseline and MISRA analysis results.
 
 #### Scenario: Developer generates comparison report
-Given both baseline-report.txt and misra-report.txt exist
-When they run `scripts/lint/compare-analysis.sh`
+Given both `reports/cppcheck-misra-report.txt` and `reports/clang-tidy-misra-report.txt` exist
+When they run `scripts/lint/compare-analysis.sh` (Script not yet created - planned)
 Then a comparison report is generated showing:
 - Findings unique to baseline analysis
 - Findings unique to MISRA analysis

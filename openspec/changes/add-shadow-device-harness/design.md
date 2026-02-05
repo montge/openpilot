@@ -90,7 +90,7 @@ Control outputs are computed but logged, never sent.
 
 ### Decision 4: Comparison Logging Format
 
-Logs captured in msgpack format with microsecond timestamps:
+Logs captured in JSON format with microsecond timestamps:
 
 ```python
 @dataclass
@@ -116,7 +116,7 @@ class ShadowLogEntry:
   events: list[str]
 ```
 
-**Rationale**: Compact binary format, easy to align with primary device logs.
+**Rationale**: Human-readable JSON format with optional gzip compression, easy to align with primary device logs.
 
 ### Decision 5: Time Synchronization
 

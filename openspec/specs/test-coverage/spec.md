@@ -1,7 +1,7 @@
 # test-coverage Specification
 
 ## Purpose
-TBD - created by archiving change add-test-coverage-requirements. Update Purpose after archive.
+Define test coverage requirements and enforcement for the algorithm test harness modules.
 ## Requirements
 ### Requirement: Minimum Coverage Threshold
 The algorithm harness SHALL maintain minimum 90% code coverage.
@@ -17,6 +17,7 @@ The algorithm harness SHALL maintain minimum 90% code coverage.
 - **WHEN** coverage drops below 90%
 - **THEN** the PR check fails
 - **AND** coverage report shows uncovered lines
+- **NOTE** CI threshold discrepancy: the basic workflow job (minimal dependencies) enforces 80%, while the full job enforces 90%.
 
 ### Requirement: Module-Level Coverage
 Each algorithm harness module SHALL have individual coverage requirements.
@@ -39,11 +40,41 @@ Each algorithm harness module SHALL have individual coverage requirements.
 - **THEN** coverage is at least 90%
 - **AND** deterministic mode is tested
 
-#### Scenario: Scenario modules coverage
-- **GIVEN** the scenario-related modules
+#### Scenario: Adapters module coverage
+- **GIVEN** the `adapters.py` module
 - **WHEN** coverage is measured
-- **THEN** each module has at least 90% coverage
+- **THEN** coverage is at least 90%
+- **AND** all adapter implementations are tested
+
+#### Scenario: Scenario schema module coverage
+- **GIVEN** the `scenario_schema.py` module
+- **WHEN** coverage is measured
+- **THEN** coverage is at least 90%
+- **AND** schema validation is tested
+
+#### Scenario: Scenarios module coverage
+- **GIVEN** the `scenarios.py` module
+- **WHEN** coverage is measured
+- **THEN** coverage is at least 90%
 - **AND** Parquet I/O is tested
+
+#### Scenario: Scenario generator module coverage
+- **GIVEN** the `scenario_generator.py` module
+- **WHEN** coverage is measured
+- **THEN** coverage is at least 90%
+- **AND** generated scenarios are valid
+
+#### Scenario: Vehicle dynamics module coverage
+- **GIVEN** the `vehicle_dynamics.py` module
+- **WHEN** coverage is measured
+- **THEN** coverage is at least 90%
+- **AND** dynamics calculations are tested
+
+#### Scenario: Deterministic module coverage
+- **GIVEN** the `deterministic.py` module
+- **WHEN** coverage is measured
+- **THEN** coverage is at least 90%
+- **AND** deterministic execution is verified
 
 ### Requirement: Test Categories
 The test suite SHALL include multiple categories of tests.
@@ -118,4 +149,3 @@ The test harness SHALL integrate with pytest fixtures and markers.
 - **THEN** tracking error assertions work
 - **AND** latency assertions work
 - **AND** safety assertions work
-

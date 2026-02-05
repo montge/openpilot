@@ -1,7 +1,7 @@
 # dgx-spark-integration Specification
 
 ## Purpose
-TBD - created by archiving change add-dgx-spark-support. Update Purpose after archive.
+Define DGX Spark GPU hardware integration for model inference, benchmarking, and fine-tuning in openpilot.
 ## Requirements
 ### Requirement: DGX Spark Hardware Detection
 The system SHALL automatically detect when running on NVIDIA DGX Spark hardware.
@@ -9,13 +9,13 @@ The system SHALL automatically detect when running on NVIDIA DGX Spark hardware.
 #### Scenario: DGX Spark detected on compatible hardware
 - **GIVEN** the system is running on NVIDIA DGX Spark or GB10-based OEM system
 - **WHEN** the hardware abstraction layer initializes
-- **THEN** `HARDWARE.is_dgx_spark()` returns `True`
+- **THEN** the module-level `DGX_SPARK` boolean from `system/hardware/__init__.py` is `True` (only available on `NvidiaPC` instances)
 - **AND** GPU capabilities are queried and cached
 
 #### Scenario: DGX Spark detection on incompatible hardware
 - **GIVEN** the system is running on PC or comma device
 - **WHEN** the hardware abstraction layer initializes
-- **THEN** `HARDWARE.is_dgx_spark()` returns `False`
+- **THEN** the module-level `DGX_SPARK` boolean from `system/hardware/__init__.py` is `False`
 - **AND** standard hardware abstraction is used
 
 ### Requirement: CUDA Backend Selection
@@ -74,7 +74,7 @@ The system SHALL support DoRA (Weight-Decomposed Low-Rank Adaptation) for model 
 
 #### Scenario: Create DoRA adapter for base model
 - **GIVEN** a pre-trained supercombo model
-- **WHEN** `tools/dgx/finetune.py --create-adapter` is executed
+- **WHEN** `tools/dgx/training/train.py --create-adapter` is executed (DoRA adapters defined in `tools/dgx/training/dora.py`)
 - **THEN** DoRA adapter layers are initialized
 - **AND** base model weights are frozen
 - **AND** only adapter parameters are trainable
@@ -121,7 +121,7 @@ The system SHALL provide benchmarking tools for model inference performance.
 #### Scenario: Run inference benchmark
 - **GIVEN** a model loaded on DGX Spark
 - **WHEN** `tools/dgx/benchmark_inference.py` is executed
-- **THEN** inference latency statistics are reported (mean, p50, p99)
+- **THEN** inference latency statistics are reported (mean, std, min, max, fps)
 - **AND** throughput (inferences/second) is reported
 - **AND** GPU utilization and memory usage are reported
 

@@ -69,7 +69,7 @@ class ComparisonLogger:
   """Logger for capturing shadow device data for comparison analysis.
 
   Captures model outputs, planned trajectories, control commands, and
-  state for each frame. Data is serialized using msgpack and optionally
+  state for each frame. Data is serialized using JSON and optionally
   compressed with gzip.
 
   Usage:
@@ -232,7 +232,7 @@ class ComparisonLogger:
       controls={
         "steer_torque": steer_torque,
         "accel": accel,
-        "steering_angle_deg": steering_angle_deg,
+        **({"steering_angle_deg": steering_angle_deg} if steering_angle_deg is not None else {}),
       },
       state={
         "lat_active": lat_active,
@@ -347,11 +347,9 @@ class ComparisonLogger:
 
     for filepath in files:
       if filepath.name.endswith(".gz"):
-        with gzip.open(filepath, "rb") as f:
-          content = f.read()
+        content = gzip.open(filepath, "rb").read()
       else:
-        with open(filepath, "rb") as f:
-          content = f.read()
+        content = filepath.read_bytes()
 
       data = json.loads(content.decode("utf-8"))
       for frame_dict in data["frames"]:
@@ -382,7 +380,7 @@ class ComparisonLogger:
 
 
 def _serialize_numpy(obj: Any) -> Any:
-  """Convert numpy types to Python types for msgpack serialization."""
+  """Convert numpy types to Python types for JSON serialization."""
   if isinstance(obj, np.ndarray):
     return obj.tolist()
   if isinstance(obj, (np.integer, np.floating)):

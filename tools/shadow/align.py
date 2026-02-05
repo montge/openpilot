@@ -105,10 +105,10 @@ class LogAligner:
       # Fall back to timestamp alignment if no GPS
       return self.align_by_timestamp(shadow_frames, production_frames)
 
-    # Build index of production frames by GPS time
+    # Build index of production frames by GPS time (timestamp_gps is guaranteed non-None by filter above)
     prod_by_time: list[tuple[float, int, FrameData]] = [
-      (f.timestamp_gps, i, f)
-      for i, f in prod_gps  # type: ignore[misc]
+      (f.timestamp_gps, i, f)  # type: ignore[misc]
+      for i, f in prod_gps
     ]
     prod_by_time.sort(key=lambda x: x[0])
     prod_times = np.array([t for t, _, _ in prod_by_time])
@@ -431,7 +431,7 @@ def merge_aligned_logs(
 
   if include_unmatched:
     for frame in result.shadow_only:
-      entry = {
+      unmatched_entry: dict[str, Any] = {
         "frame_id": frame.frame_id,
         "timestamp_mono": frame.timestamp_mono,
         "timestamp_gps": frame.timestamp_gps,
@@ -447,10 +447,10 @@ def merge_aligned_logs(
         "prod_state": None,
         "unmatched": "shadow",
       }
-      merged.append(entry)
+      merged.append(unmatched_entry)
 
     for frame in result.production_only:
-      entry = {
+      unmatched_entry = {
         "frame_id": frame.frame_id,
         "timestamp_mono": frame.timestamp_mono,
         "timestamp_gps": frame.timestamp_gps,
@@ -466,7 +466,7 @@ def merge_aligned_logs(
         "prod_state": frame.state,
         "unmatched": "production",
       }
-      merged.append(entry)
+      merged.append(unmatched_entry)
 
   return merged
 

@@ -1,7 +1,7 @@
 # code-quality Specification
 
 ## Purpose
-TBD - created by archiving change add-code-quality-gates. Update Purpose after archive.
+Enforce code quality standards including test coverage thresholds, linting rules, and static analysis across the openpilot codebase.
 ## Requirements
 ### Requirement: Python Coverage Enforcement
 The CI pipeline SHALL enforce minimum Python code coverage thresholds.
@@ -53,7 +53,7 @@ The CI pipeline SHALL run MISRA static analysis on C/C++ code.
 - **GIVEN** a pull request with C/C++ changes
 - **WHEN** the MISRA workflow runs
 - **THEN** cppcheck-misra analyzes changed files
-- **AND** clang-tidy-automotive analyzes changed files
+- **AND** clang-tidy-automotive analyzes changed files (Not yet enabled in CI - planned)
 - **AND** new violations are reported in the PR
 
 #### Scenario: Differential MISRA reporting
@@ -71,6 +71,7 @@ The project SHALL provide a quality dashboard showing coverage and analysis tren
 - **THEN** they see current coverage percentages
 - **AND** they see coverage trend over time
 - **AND** they see MISRA violation counts
+- **NOTE** MISRA findings are uploaded as GitHub Actions artifacts, not to SonarCloud/Codecov dashboards.
 
 ### Requirement: pytest-mock for Test Mocking
 All test files SHALL use pytest-mock's `mocker` fixture instead of `unittest.mock`.
@@ -114,14 +115,16 @@ Each Python module SHALL maintain minimum test coverage thresholds appropriate t
 #### Scenario: Core module meets coverage threshold
 - **GIVEN** a core Python module (selfdrive/, system/, common/)
 - **WHEN** pytest runs with coverage measurement
-- **THEN** line coverage is >= 90%
+- **THEN** line coverage is >= 80%
 - **AND** branch coverage is >= 80%
+- **NOTE** The enforced minimum in codecov.yml is 80%. The aspirational target is 90%.
 
 #### Scenario: Tools module meets coverage threshold
 - **GIVEN** a tools module (tools/lib/, tools/replay/)
 - **WHEN** pytest runs with coverage measurement
-- **THEN** line coverage is >= 90%
+- **THEN** line coverage is >= 80%
 - **AND** branch coverage is >= 80%
+- **NOTE** The enforced minimum in codecov.yml is 80%. The aspirational target is 90%.
 
 #### Scenario: Coverage report identifies gaps
 - **GIVEN** a module with coverage below threshold
@@ -132,5 +135,6 @@ Each Python module SHALL maintain minimum test coverage thresholds appropriate t
 #### Scenario: Safety-critical modules have higher coverage
 - **GIVEN** a safety-critical module (selfdrive/controls/, selfdrive/monitoring/)
 - **WHEN** pytest runs with coverage measurement
-- **THEN** line coverage is >= 95%
+- **THEN** line coverage is >= 85%
 - **AND** all safety-related code paths have explicit test coverage
+- **NOTE** The enforced minimum in codecov.yml is 85% for selfdrive/monitoring/. The aspirational target is 95%.
