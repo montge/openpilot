@@ -20,10 +20,10 @@ through Claude Code skills and slash commands.
 
 ## Key Paths
 
-- `openspec/project.md` - Project context and conventions
-- `openspec/specs/` - Main capability specs (7 specs)
+- `openspec/config.yaml` - Project configuration
+- `openspec/specs/` - Main capability specs (9 specs)
 - `openspec/changes/` - Active changes (proposal, design, tasks, delta specs)
-- `openspec/archive/` - Completed changes
+- `openspec/changes/archive/` - Completed changes (22 archived)
 - `.claude/commands/opsx/` - Slash command definitions
 - `.claude/skills/` - Skill definitions
 
