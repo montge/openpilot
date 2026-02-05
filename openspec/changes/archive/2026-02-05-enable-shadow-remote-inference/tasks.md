@@ -31,10 +31,10 @@
   - [x] JPEG to NV12 decoding
   - [x] VisionIpcServer for local modeld
   - [x] roadCameraState message publishing
-- [ ] 3.2 Integrate with modeld
-  - [ ] Start modeld process
-  - [ ] Verify modeld receives frames
-  - [ ] Subscribe to modelV2 output
+- [x] 3.2 Integrate with modeld
+  - [x] Start modeld process (start_modeld/stop_modeld methods)
+  - [ ] Verify modeld receives frames (DEFERRED: requires built modeld + GPU)
+  - [x] Subscribe to modelV2 output (result_forwarder thread)
 - [x] 3.3 Result streaming back to device
   - [x] ZMQ PUB socket for results
   - [x] Serialize modelV2 messages
@@ -42,7 +42,7 @@
 - [x] 3.4 Add CLI arguments
   - [x] `--port` (listen port, default 5555)
   - [x] `--result-port` (result port, default 5556)
-  - [ ] `--model` (model variant if applicable)
+  - [x] `--model` (model variant if applicable)
 
 ## 4. Result Receiver (Shadow Device)
 
@@ -59,17 +59,17 @@
 
 ## 5. Integration Testing
 
-- [ ] 5.1 End-to-end test
+- [ ] 5.1 End-to-end test (DEFERRED: requires device + IP Webcam + built modeld)
   - [ ] Start camera server on phone
   - [ ] Start camera_bridge.py
   - [ ] Start frame_streamer.py
   - [ ] Start inference_server.py on desktop
   - [ ] Verify modelV2 results received
-- [ ] 5.2 Performance benchmarks
+- [ ] 5.2 Performance benchmarks (DEFERRED: requires end-to-end setup)
   - [ ] Measure end-to-end latency
   - [ ] Measure frame rate achieved
   - [ ] Document bandwidth requirements
-- [ ] 5.3 Error handling tests
+- [ ] 5.3 Error handling tests (DEFERRED: requires end-to-end setup)
   - [ ] Network disconnect/reconnect
   - [ ] Server restart
   - [ ] Frame buffer overflow
@@ -80,10 +80,10 @@
   - [x] Add remote inference section
   - [x] Document server requirements
   - [x] Add quick start guide
-- [ ] 6.2 Create `tools/shadow/setup/REMOTE_INFERENCE.md`
-  - [ ] Detailed setup instructions
-  - [ ] Network configuration
-  - [ ] Troubleshooting guide
+- [x] 6.2 Create `tools/shadow/setup/REMOTE_INFERENCE.md`
+  - [x] Detailed setup instructions
+  - [x] Network configuration
+  - [x] Troubleshooting guide
 - [x] 6.3 Update openspec tasks.md
   - [x] Mark implemented items
   - [x] Document known limitations (see below)
