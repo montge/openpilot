@@ -1,0 +1,46 @@
+schema: spec-driven
+
+context: |
+  Purpose: openpilot is an open-source driver assistance system for supported vehicles,
+  providing adaptive cruise control and lane-keeping with a focus on safety-critical development.
+
+  Tech stack: Python 3.11+, C++17, Cap'n Proto (messaging), SCons (build), pytest, raylib (UI)
+  Code style: 2-space indent, 160 char lines, ruff (Python), clang-format/clang-tidy (C++)
+  Imports: fully qualified from openpilot.* (e.g. from openpilot.selfdrive.controls.controlsd import ...)
+  Time: use time.monotonic(), never time.time()
+
+  Architecture: process-based, managed by system/manager/manager.py
+  Messaging: ZeroMQ pub/sub defined in cereal/services.py
+  Hardware abstraction: system/hardware/
+  Car abstraction: selfdrive/car/
+
+  Coverage: 80% per-component minimum, 85% safety-critical (monitoring), 80% patch minimum
+  See codecov.yml for detailed component targets.
+  Testing: pytest with OpenpilotPrefix isolation, markers @pytest.mark.tici (device), @pytest.mark.slow
+  Pre-commit hooks: ruff, mypy, codespell, openspec-validate
+
+  Git workflow: fork origin=montge/openpilot (push OK), upstream=commaai/openpilot (never push)
+  Branches: git flow with master (production), develop (integration), feature/, bugfix/, release/, hotfix/
+  Worktrees: sibling dir /home/e/Development/openpilot-worktrees/, scripts in tools/worktree/
+
+  Safety constraints:
+  - Never disable driver monitoring (selfdrive/monitoring/)
+  - Never weaken actuation limits (selfdrive/selfdrived/helpers.py)
+  - Safety model enforced in opendbc/safety/
+  - Real-time code must avoid memory allocation in hot paths
+
+  External deps: panda (CAN bus hardware), comma device, ML models (driving, dmonitoring)
+
+rules:
+  proposal:
+    - Identify safety implications if touching controls, monitoring, or actuation code
+    - Reference existing specs in openspec/specs/ that the change affects
+  specs:
+    - Include at least one scenario per requirement with concrete thresholds
+    - Use file paths relative to repo root
+  design:
+    - Reference actual file paths (verify they exist before citing)
+    - Note any real-time or safety constraints for affected modules
+  tasks:
+    - Break into sections matching the design modules
+    - Include test tasks alongside implementation tasks
