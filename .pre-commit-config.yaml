@@ -18,7 +18,7 @@ repos:
     hooks:
       - id: check-added-large-files
         args: ['--maxkb=120', '--enforce-all']
-        exclude: '^(uv\.lock|docs/CARS\.md)$'
+        exclude: '^(uv\.lock|docs/CARS\.md|reports/misra-baseline\.txt|selfdrive/assets/)$'
       - id: check-shebang-scripts-are-executable
       - id: trailing-whitespace
         exclude: '^(third_party|msgq_repo|opendbc_repo|panda|rednose_repo|tinygrad_repo|teleoprtc_repo|cereal)/'
