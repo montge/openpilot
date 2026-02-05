@@ -3,6 +3,8 @@
 # Run manually: pre-commit run --all-files
 # Skip hooks: SKIP=mypy git commit -m "message"
 
+default_stages: [pre-commit]
+
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.14.10
@@ -16,6 +18,7 @@ repos:
     hooks:
       - id: check-added-large-files
         args: ['--maxkb=120', '--enforce-all']
+        exclude: '^(uv\.lock|docs/CARS\.md)$'
       - id: check-shebang-scripts-are-executable
       - id: trailing-whitespace
         exclude: '^(third_party|msgq_repo|opendbc_repo|panda|rednose_repo|tinygrad_repo|teleoprtc_repo|cereal)/'
@@ -71,5 +74,6 @@ repos:
         types: [python]
         stages: [pre-push]
         pass_filenames: false
+        verbose: true
         # Runs coverage check on core modules before push
         # Skip with: SKIP=coverage-check git push
