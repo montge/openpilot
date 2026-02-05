@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from openpilot.common.constants import CV
 from openpilot.selfdrive.ui.onroad.exp_button import ExpButton
 from openpilot.selfdrive.ui.ui_state import ui_state, UIStatus
+from openpilot.system.hardware import SHADOW_MODE
 from openpilot.system.ui.lib.application import gui_app, FontWeight
 from openpilot.system.ui.lib.multilang import tr
 from openpilot.system.ui.lib.text_measure import measure_text_cached
@@ -49,6 +50,9 @@ class Colors:
   BORDER_TRANSLUCENT = rl.Color(255, 255, 255, 75)
   HEADER_GRADIENT_START = rl.Color(0, 0, 0, 114)
   HEADER_GRADIENT_END = rl.BLANK
+  # Shadow mode indicator colors
+  SHADOW_MODE_BG = rl.Color(128, 0, 128, 200)  # Purple with transparency
+  SHADOW_MODE_TEXT = rl.Color(255, 255, 255, 255)  # White text
 
 
 UI_CONFIG = UIConfig()
@@ -121,6 +125,10 @@ class HudRenderer(Widget):
     button_y = rect.y + UI_CONFIG.border_size
     self._exp_button.render(rl.Rectangle(button_x, button_y, UI_CONFIG.button_size, UI_CONFIG.button_size))
 
+    # Draw shadow mode indicator if in shadow mode
+    if SHADOW_MODE:
+      self._draw_shadow_mode_indicator(rect)
+
   def user_interacting(self) -> bool:
     return self._exp_button.is_pressed
 
@@ -178,3 +186,21 @@ class HudRenderer(Widget):
     unit_text_size = measure_text_cached(self._font_medium, unit_text, FONT_SIZES.speed_unit)
     unit_pos = rl.Vector2(rect.x + rect.width / 2 - unit_text_size.x / 2, 290 - unit_text_size.y / 2)
     rl.draw_text_ex(self._font_medium, unit_text, unit_pos, FONT_SIZES.speed_unit, 0, COLORS.WHITE_TRANSLUCENT)
+
+  def _draw_shadow_mode_indicator(self, rect: rl.Rectangle) -> None:
+    """Draw the shadow mode indicator banner at the top of the screen."""
+    banner_height = 50
+    banner_y = rect.y + 10
+
+    # Draw banner background
+    banner_rect = rl.Rectangle(rect.x + rect.width / 2 - 150, banner_y, 300, banner_height)
+    rl.draw_rectangle_rounded(banner_rect, 0.3, 10, COLORS.SHADOW_MODE_BG)
+
+    # Draw text
+    text = "SHADOW MODE"
+    text_size = measure_text_cached(self._font_bold, text, 32)
+    text_pos = rl.Vector2(
+      banner_rect.x + (banner_rect.width - text_size.x) / 2,
+      banner_rect.y + (banner_height - text_size.y) / 2,
+    )
+    rl.draw_text_ex(self._font_bold, text, text_pos, 32, 0, COLORS.SHADOW_MODE_TEXT)

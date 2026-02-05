@@ -1,197 +1,212 @@
-# Stone Soup Comparison Tools
+# Stone Soup Tracking Algorithm Comparison
 
-Tools for comparing openpilot's tracking algorithms against Stone Soup and other baseline implementations.
+Tools for comparing openpilot's tracking algorithms against the [Stone Soup](https://stonesoup.readthedocs.io/) library and implementing experimental tracking approaches.
 
 ## Overview
 
-This module provides:
+The Stone Soup comparison framework provides:
 
-1. **Stone Soup Adapters** - Type conversions between openpilot and Stone Soup
-2. **Alternative Trackers** - Voxel grid, Viterbi tracker, and octree implementations
-3. **Benchmark Scenarios** - Standardized driving scenarios for algorithm comparison
+1. **Filter Comparison** - Compare KF1D against Stone Soup's Kalman variants
+2. **Multi-Target Tracking** - JPDA and GNN trackers with MOTA/MOTP metrics
+3. **Track Fusion** - Covariance Intersection for radar + vision fusion
+4. **Voxel Tracking** - Log-odds occupancy grid with sparse representation
+5. **Viterbi Association** - HMM-based track association for occlusion handling
+6. **Octree Index** - Efficient spatial queries for large point sets
 
 ## Installation
 
-Stone Soup is an optional dependency:
+Stone Soup is an optional development dependency:
 
 ```bash
 pip install stonesoup
 ```
 
-The adapters work without Stone Soup installed for basic openpilot types.
-
-## Components
-
-### Adapters (`adapters.py`)
-
-Convert between openpilot and Stone Soup data types:
+## Quick Start
 
 ```python
-from openpilot.tools.stonesoup.adapters import (
-    OpenpilotAdapter,
-    RadarDetection,
-    LeadData,
-    PoseState,
+# Filter comparison
+from openpilot.tools.stonesoup.comparison import (
+    create_constant_velocity_scenario,
+    compare_filters,
+    format_comparison_report
 )
+
+scenario = create_constant_velocity_scenario(dt=0.05, duration=5.0)
+metrics = compare_filters(scenario)
+print(format_comparison_report(scenario, metrics))
+
+# Multi-target tracking
+from openpilot.tools.stonesoup.multi_target import (
+    create_highway_scenario,
+    compare_multi_target_trackers,
+    format_tracking_report
+)
+
+scenario = create_highway_scenario(dt=0.1, duration=10.0, n_vehicles=3)
+metrics = compare_multi_target_trackers(scenario)
+print(format_tracking_report(scenario, metrics))
+
+# Track fusion
+from openpilot.tools.stonesoup.track_fusion import (
+    create_fusion_scenario,
+    compare_fusion_methods,
+    format_fusion_report
+)
+
+scenario = create_fusion_scenario(dt=0.05, duration=5.0)
+metrics = compare_fusion_methods(scenario)
+print(format_fusion_report(scenario, metrics))
+```
+
+## Modules
+
+### adapters.py
+
+Type conversion between openpilot and Stone Soup data structures:
+
+```python
+from openpilot.tools.stonesoup.adapters import OpenpilotAdapter
 
 adapter = OpenpilotAdapter()
-
-# Convert radar detection to Stone Soup
-radar = RadarDetection(d_rel=50.0, v_rel=-5.0, a_rel=0.0, y_rel=0.0, timestamp=100.0)
-ss_detection = adapter.radar_to_stonesoup(radar)
-
-# Convert Stone Soup state back to openpilot
-lead_data = adapter.stonesoup_to_lead(ss_state)
+detection = adapter.radar_point_to_detection(radar_point, timestamp)
+lead_dict = adapter.gaussian_state_to_lead_dict(state)
 ```
 
-### Alternative Trackers (`selfdrive/controls/lib/trackers/`)
+### comparison.py
 
-#### VoxelGrid
+Single-target filter comparison harness:
 
-3D occupancy grid for environment representation:
+- `KF1DWrapper` - openpilot's production Kalman filter
+- `StoneSoupKalmanWrapper` - Stone Soup filters (KF, EKF, UKF, CKF)
+- `ParticleFilterWrapper` - Particle filter with resampling
+
+### multi_target.py
+
+Multi-object tracking comparison:
+
+- `JPDATrackerWrapper` - Joint Probabilistic Data Association
+- `GNNTrackerWrapper` - Global Nearest Neighbor
+- Metrics: MOTA, MOTP, ID switches, false positives/negatives
+
+### track_fusion.py
+
+Sensor fusion using Covariance Intersection:
 
 ```python
-from openpilot.selfdrive.controls.lib.trackers import VoxelGrid, VoxelGridConfig
+from openpilot.tools.stonesoup.track_fusion import TrackFusionEngine, RadarTrack, VisionTrack
+
+engine = TrackFusionEngine()
+fused = engine.fuse_tracks(radar_track, vision_track)
+```
+
+### voxel_tracker.py
+
+Occupancy grid tracking:
+
+```python
+from openpilot.tools.stonesoup.voxel_tracker import VoxelTracker, VoxelGridConfig
 
 config = VoxelGridConfig(resolution=0.5)
-grid = VoxelGrid(config)
-
-# Update with point cloud
-points = np.array([[10, 0, 0], [20, 1, 0], ...])
-grid.update_with_points(points, origin=np.zeros(3))
-
-# Query occupancy
-if grid.is_occupied(10.0, 0.0, 0.0):
-    print("Occupied!")
-
-# Get all occupied voxels
-occupied = grid.get_occupied_voxels()
+tracker = VoxelTracker(config, use_sparse=True)
+result = tracker.process_detections(timestamp, points)
 ```
 
-#### ViterbiTracker
+- `VoxelGrid` - Dense 3D grid with log-odds updates
+- `SparseVoxelGrid` - Memory-efficient dict-based representation (99.95% memory reduction)
+- `GPUVoxelGrid` - CuPy-accelerated batch updates
 
-Multi-object tracker using HMM and Viterbi decoding for globally optimal track association:
+### viterbi_tracker.py
+
+HMM-based track association:
 
 ```python
-from openpilot.selfdrive.controls.lib.trackers import (
-    ViterbiTracker,
-    ViterbiConfig,
-    Detection,
-)
+from openpilot.tools.stonesoup.viterbi_tracker import ViterbiTracker, Detection
 
-config = ViterbiConfig(window_size=5, min_hits_to_confirm=3)
-tracker = ViterbiTracker(config)
-
-# Update with detections each frame
-for frame_detections in detection_stream:
-    dets = [Detection(measurement=np.array([d.x, d.y])) for d in frame_detections]
-    confirmed_tracks = tracker.update(dets)
-
-    for track in confirmed_tracks:
-        print(f"Track {track.id}: pos=({track.state[0]:.1f}, {track.state[2]:.1f})")
+tracker = ViterbiTracker()
+tracks = tracker.process_detections(timestamp, detections)
 ```
 
-#### Octree
+- Sliding window Viterbi decoding
+- Better handling of temporary occlusions than frame-by-frame matching
 
-Spatial index for efficient 3D point queries:
+### octree.py
+
+Spatial index for 3D point queries:
 
 ```python
-from openpilot.selfdrive.controls.lib.trackers import (
-    Octree,
-    BoundingBox,
-    create_octree_from_bounds,
+from openpilot.tools.stonesoup.octree import Octree, BoundingBox
+import numpy as np
+
+bounds = BoundingBox(
+    min_corner=np.array([0.0, -30.0, -5.0]),
+    max_corner=np.array([100.0, 30.0, 5.0])
 )
+tree = Octree(bounds)
+tree.insert_points(points)
 
-# Create octree
-tree = create_octree_from_bounds(
-    x_min=-50, x_max=150,
-    y_min=-25, y_max=25,
-    z_min=-2, z_max=8,
-)
-
-# Insert points
-for point in points:
-    tree.insert(point)
-
-# Range query
-query = BoundingBox(min_corner=np.array([0, -5, -1]), max_corner=np.array([50, 5, 3]))
-found = tree.query_range(query)
-
-# K-nearest neighbors
-neighbors = tree.query_knn(np.array([10, 0, 1]), k=5)
-
-# Radius search
-nearby = tree.query_radius(np.array([10, 0, 1]), radius=10.0)
+neighbors = tree.k_nearest(query_point, k=5)
+in_range = tree.radius_query(query_point, radius=10.0)
 ```
 
-### Benchmark Scenarios (`benchmarks/`)
+- 7.6x speedup for radius queries vs brute force
+- 4.2x speedup for K-NN queries
 
-Standardized driving scenarios for testing tracking algorithms:
+### scenarios.py
 
-```python
-from openpilot.tools.stonesoup.benchmarks import (
-    create_highway_scenario,
-    create_cut_in_scenario,
-    create_cut_out_scenario,
-    create_multi_vehicle_scenario,
-    create_occlusion_scenario,
-    create_noisy_scenario,
-)
+Standardized benchmark scenarios:
 
-# Highway following
-scenario = create_highway_scenario(
-    duration=30.0,
-    lead_distance=50.0,
-    ego_velocity=28.0,
-    noise_std=0.5,
-)
+- `create_highway_following()` - Steady-state tracking
+- `create_cut_in()` - Lane change handling
+- `create_cut_out()` - Revealed vehicle tracking
+- `create_multi_vehicle()` - Cluttered environment
+- `create_occlusion()` - Detection gaps
+- `create_adverse_weather()` - Degraded sensor performance
 
-# Access data
-for frame_idx in range(scenario.n_frames):
-    detections = scenario.get_all_detections_at(frame_idx)
-    ego_state = scenario.ego_trajectory[frame_idx]
+## Running Benchmarks
 
-    for det in detections:
-        print(f"Detection: d={det.d_rel:.1f}m, v={det.v_rel:.1f}m/s")
+```bash
+# Run filter comparison
+python -m openpilot.tools.stonesoup.comparison
+
+# Run multi-target tracking benchmark
+python -m openpilot.tools.stonesoup.multi_target
+
+# Run track fusion benchmark
+python -m openpilot.tools.stonesoup.track_fusion
+
+# Run voxel grid benchmark
+python -m openpilot.tools.stonesoup.voxel_tracker
+
+# Run octree benchmark
+python -m openpilot.tools.stonesoup.octree
+
+# Run scenario summary
+python -m openpilot.tools.stonesoup.scenarios
 ```
-
-Available scenarios:
-- **Highway Following**: Simple constant-distance lead tracking
-- **Cut-In**: Vehicle enters from adjacent lane
-- **Cut-Out**: Lead leaves lane, revealing slower vehicle
-- **Multi-Vehicle**: Multiple vehicles in sensor view
-- **Occlusion**: Lead temporarily occluded
-- **Noisy**: High noise simulating adverse weather
 
 ## Algorithm Selection Guide
 
-| Scenario | Recommended Algorithm |
+| Use Case | Recommended Algorithm |
 |----------|----------------------|
-| Single lead, low noise | KF1D (openpilot default) |
-| Multi-target | ViterbiTracker or JPDA |
-| High noise / false alarms | Particle filter or IMM |
-| Occlusions | ViterbiTracker (temporal consistency) |
-| Dense point clouds | VoxelGrid + Octree for queries |
+| Single lead vehicle | KF1D (production) |
+| Multiple vehicles | JPDA or GNN |
+| Radar + vision fusion | Covariance Intersection |
+| Dense point clouds | Sparse Voxel Grid |
+| Long occlusions | Viterbi Tracker |
+| Spatial queries | Octree |
 
 ## Running Tests
 
 ```bash
-# Adapter tests
 pytest tools/stonesoup/tests/
-
-# Tracker tests
-pytest selfdrive/controls/lib/trackers/tests/
-
-# Benchmark tests
-pytest tools/stonesoup/benchmarks/tests/
 ```
 
-## Integration with Existing Code
+## Dependencies
 
-The trackers are designed for experimentation and comparison, not production use. They provide:
+Required:
+- numpy
+- scipy
 
-1. Reference implementations for algorithm comparison
-2. Baseline metrics for evaluating improvements
-3. Test infrastructure for tracking algorithm development
-
-For production, openpilot continues to use optimized implementations in `selfdrive/controls/`.
+Optional:
+- stonesoup (for Stone Soup filter comparison)
+- cupy (for GPU voxel grid acceleration)

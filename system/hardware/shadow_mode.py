@@ -78,15 +78,46 @@ def _get_device_model() -> str:
     return ""
 
 
+@lru_cache(maxsize=1)
+def _get_android_device() -> str:
+  """Get the device name from Android getprop.
+
+  This is a fallback for proot/chroot environments where device tree
+  isn't accessible.
+
+  Returns:
+    Device name string or empty string if not available.
+  """
+  import subprocess
+  try:
+    result = subprocess.run(
+      ["getprop", "ro.product.device"],
+      capture_output=True,
+      text=True,
+      timeout=5
+    )
+    return result.stdout.strip()
+  except Exception:
+    return ""
+
+
 def is_oneplus6() -> bool:
   """Check if running on OnePlus 6 hardware.
 
   The OnePlus 6 uses Snapdragon 845 (same as comma two) and is
   an ideal shadow device due to its camera and compute capabilities.
   """
+  # Try device tree first (native Linux)
   model = _get_device_model()
-  # OnePlus 6 device tree contains "OnePlus" or specific model
-  return "OnePlus" in model or "enchilada" in model.lower()
+  if "OnePlus" in model or "enchilada" in model.lower():
+    return True
+
+  # Fallback to Android getprop (for proot/Termux environments)
+  device = _get_android_device()
+  if device.lower() in ("oneplus6", "enchilada"):
+    return True
+
+  return False
 
 
 def is_shadow_device() -> bool:
@@ -155,6 +186,7 @@ def clear_shadow_mode_cache() -> None:
   _compute_shadow_mode.cache_clear()
   _check_panda_connected.cache_clear()
   _get_device_model.cache_clear()
+  _get_android_device.cache_clear()
 
 
 # Module-level constant for fast access (computed once at import)
