@@ -265,6 +265,83 @@ class AttentionDistillationLoss(DistillationLoss):
       raise ValueError(f"Unknown loss type: {self.config.loss_type}")
 
 
+@dataclass
+class TaskDistillationConfig:
+  """Configuration for combined task + distillation loss.
+
+  Attributes:
+    task_weight: Weight for the task-specific loss
+    distill_weight: Weight for the distillation loss
+    temperature: Softmax temperature for soft targets
+    task_loss_type: Type of task loss ('ce', 'mse', 'l1')
+  """
+
+  task_weight: float = 0.3
+  distill_weight: float = 0.7
+  temperature: float = 4.0
+  task_loss_type: str = "ce"
+
+
+class TaskDistillationLoss(DistillationLoss):
+  """Combined task + distillation loss.
+
+  Jointly optimizes for task performance (using ground truth) and
+  knowledge transfer from teacher. Useful for DoRA + FAIR distillation
+  where both task labels and teacher outputs are available.
+
+  Usage:
+    loss_fn = TaskDistillationLoss(config)
+    loss = loss_fn(student_logits, teacher_logits, targets)
+  """
+
+  def __init__(self, config: TaskDistillationConfig | None = None):
+    if not TORCH_AVAILABLE:
+      raise ImportError("PyTorch required for distillation losses")
+
+    self.config = config or TaskDistillationConfig()
+
+    if self.config.task_loss_type == "ce":
+      self._task_loss = nn.CrossEntropyLoss()
+    elif self.config.task_loss_type == "mse":
+      self._task_loss = nn.MSELoss()
+    elif self.config.task_loss_type == "l1":
+      self._task_loss = nn.L1Loss()
+    else:
+      raise ValueError(f"Unknown task loss type: {self.config.task_loss_type}")
+
+    self._kl_loss = nn.KLDivLoss(reduction="batchmean")
+
+  def compute(
+    self,
+    student_output: torch.Tensor,
+    teacher_output: torch.Tensor,
+    targets: torch.Tensor | None = None,
+  ) -> torch.Tensor:
+    """Compute combined task + distillation loss.
+
+    Args:
+      student_output: Student predictions
+      teacher_output: Teacher predictions
+      targets: Ground truth labels (required)
+
+    Returns:
+      Weighted sum of task and distillation losses
+    """
+    T = self.config.temperature
+
+    # Distillation loss (soft targets)
+    soft_student = F.log_softmax(student_output / T, dim=-1)
+    soft_teacher = F.softmax(teacher_output / T, dim=-1)
+    distill_loss = self._kl_loss(soft_student, soft_teacher) * (T * T)
+
+    # Task loss (hard targets)
+    if targets is not None:
+      task_loss = self._task_loss(student_output, targets)
+      return self.config.distill_weight * distill_loss + self.config.task_weight * task_loss
+
+    return distill_loss
+
+
 class CombinedDistillationLoss(DistillationLoss):
   """Combined distillation loss with multiple components.
 

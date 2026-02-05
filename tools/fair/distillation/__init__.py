@@ -9,6 +9,7 @@ from openpilot.tools.fair.distillation.losses import (
   FeatureDistillationLoss,
   AttentionDistillationLoss,
   ResponseDistillationLoss,
+  TaskDistillationLoss,
 )
 from openpilot.tools.fair.distillation.trainer import (
   DistillationConfig,
@@ -20,6 +21,7 @@ __all__ = [
   "FeatureDistillationLoss",
   "AttentionDistillationLoss",
   "ResponseDistillationLoss",
+  "TaskDistillationLoss",
   "DistillationConfig",
   "DistillationTrainer",
 ]

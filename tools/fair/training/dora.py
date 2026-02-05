@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from pathlib import Path
 
 # Check PyTorch availability
 try:
@@ -225,6 +226,86 @@ def get_dora_parameters(model: nn.Module) -> list[nn.Parameter]:
         ]
       )
   return params
+
+
+def save_dora_checkpoint(
+  model: nn.Module,
+  path: str | Path,
+  config: DoRAConfig | None = None,
+  metadata: dict | None = None,
+) -> Path:
+  """Save only DoRA adapter weights (not the full model).
+
+  This is much smaller than a full model checkpoint since only
+  the low-rank adaptation parameters are saved.
+
+  Args:
+    model: Model with DoRA layers
+    path: Path to save checkpoint
+    config: DoRA config to save with checkpoint
+    metadata: Optional metadata (epoch, loss, etc.)
+
+  Returns:
+    Path to saved checkpoint
+  """
+  if not TORCH_AVAILABLE:
+    raise ImportError("PyTorch required for DoRA")
+
+  path = Path(path)
+  path.parent.mkdir(parents=True, exist_ok=True)
+
+  adapter_state = {}
+  for name, module in model.named_modules():
+    if isinstance(module, DoRALayer):
+      adapter_state[f"{name}.lora_A.weight"] = module.lora_A.weight.data.cpu()
+      adapter_state[f"{name}.lora_B.weight"] = module.lora_B.weight.data.cpu()
+      adapter_state[f"{name}.magnitude"] = module.magnitude.data.cpu()
+
+  checkpoint = {
+    "adapter_state": adapter_state,
+    "config": config.__dict__ if config else None,
+    "metadata": metadata or {},
+  }
+
+  torch.save(checkpoint, path)
+  return path
+
+
+def load_dora_checkpoint(
+  model: nn.Module,
+  path: str | Path,
+) -> dict:
+  """Load DoRA adapter weights into a model.
+
+  The model must already have DoRA layers applied.
+
+  Args:
+    model: Model with DoRA layers
+    path: Path to checkpoint
+
+  Returns:
+    Checkpoint metadata
+  """
+  if not TORCH_AVAILABLE:
+    raise ImportError("PyTorch required for DoRA")
+
+  checkpoint = torch.load(path, map_location="cpu", weights_only=True)
+  adapter_state = checkpoint["adapter_state"]
+
+  for name, module in model.named_modules():
+    if isinstance(module, DoRALayer):
+      a_key = f"{name}.lora_A.weight"
+      b_key = f"{name}.lora_B.weight"
+      m_key = f"{name}.magnitude"
+
+      if a_key in adapter_state:
+        module.lora_A.weight.data = adapter_state[a_key].to(module.lora_A.weight.device)
+      if b_key in adapter_state:
+        module.lora_B.weight.data = adapter_state[b_key].to(module.lora_B.weight.device)
+      if m_key in adapter_state:
+        module.magnitude.data = adapter_state[m_key].to(module.magnitude.device)
+
+  return checkpoint.get("metadata", {})
 
 
 def merge_dora(model: nn.Module) -> nn.Module:
