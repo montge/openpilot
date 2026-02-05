@@ -55,30 +55,67 @@ python3 /data/data/com.termux/files/home/camera_zmq_test.py
 '"
 ```
 
-### Option 2: Install IP Webcam via ADB (Requires APK)
+### Option 2: Install IP Webcam via ADB
 
-IP Webcam must be downloaded from Play Store as it's not on F-Droid.
-If you have the APK file:
+IP Webcam is a proprietary app (not on F-Droid). There are several ways to obtain and install it:
 
+**Option A: Extract from another Android device with Play Store**
 ```bash
-# Install APK via ADB
-adb install /path/to/ipwebcam.apk
+# On a device with IP Webcam installed, find the APK path
+adb shell pm path com.pas.webcam
+# Output: package:/data/app/.../base.apk
 
-# Start IP Webcam via ADB (launches the app)
+# Pull the APK to your desktop
+adb pull /data/app/.../base.apk ipwebcam.apk
+```
+
+**Option B: Download from an APK mirror site**
+Search for "IP Webcam by Pavel Khlebovich" APK. Verify the package name is `com.pas.webcam` and check the SHA256 hash against known versions before installing.
+
+**Option C: Install Aurora Store (F-Droid) to access Play Store apps**
+```bash
+# Aurora Store is an open-source Play Store client on F-Droid
+# Install F-Droid first, then install Aurora Store, then search for IP Webcam
+```
+
+**Install and configure via ADB:**
+```bash
+# Install the APK
+adb install ipwebcam.apk
+
+# Grant camera permission
+adb shell pm grant com.pas.webcam android.permission.CAMERA
+
+# Grant audio permission (optional, not needed for shadow mode)
+adb shell pm grant com.pas.webcam android.permission.RECORD_AUDIO
+
+# Launch IP Webcam
 adb shell am start -n com.pas.webcam/.Rolling
 
-# Start the server programmatically (may not work on all versions)
+# Start the HTTP server programmatically
 adb shell am broadcast -a com.pas.webcam.START_SERVER
 ```
 
-Once IP Webcam is running on port 8080:
+**Recommended settings** (configure via the app UI or scrcpy):
+- Resolution: 1280x720 (720p balances quality and performance)
+- Quality: 50-80% (higher = more bandwidth, lower latency matters more)
+- FPS: 30 (or max available)
+- Audio: disabled (not needed)
+- Focus mode: Continuous (for driving)
 
+**Verify IP Webcam is working:**
 ```bash
-# Test from device
+# Test from device via SSH
 ssh -p 8022 10.0.1.62 "curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/shot.jpg"
 # Should return 200
 
-# Run MJPEG streamer
+# Test from desktop (requires ADB port forward)
+adb forward tcp:8080 tcp:8080
+curl -s -o /tmp/test.jpg http://localhost:8080/shot.jpg
+# Check file size - should be >10KB
+ls -la /tmp/test.jpg
+
+# Run MJPEG streamer for shadow mode
 ssh -p 8022 10.0.1.62 "proot-distro login ubuntu -- bash -c '
 cd ~/openpilot && source .venv/bin/activate
 python3 /data/data/com.termux/files/home/mjpeg_zmq_streamer.py \
@@ -86,6 +123,22 @@ python3 /data/data/com.termux/files/home/mjpeg_zmq_streamer.py \
     --server tcp://10.0.1.123:5555 \
     --fps 15
 '"
+```
+
+**Auto-start IP Webcam on boot** (optional):
+```bash
+# Use Termux:Boot (install from F-Droid) to run on device boot
+mkdir -p ~/.termux/boot
+cat > ~/.termux/boot/start-ipwebcam.sh << 'SCRIPT'
+#!/usr/bin/env bash
+# NOTE: On Termux, bash is at /data/data/com.termux/files/usr/bin/bash
+# but #!/usr/bin/env bash works when Termux is on PATH
+sleep 10  # Wait for system to settle
+am start -n com.pas.webcam/.Rolling
+sleep 3
+am broadcast -a com.pas.webcam.START_SERVER
+SCRIPT
+chmod +x ~/.termux/boot/start-ipwebcam.sh
 ```
 
 ### Option 3: Use scrcpy for Screen/Camera Mirroring

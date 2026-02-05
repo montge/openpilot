@@ -133,6 +133,53 @@ The safety checks ensure no CAN actuation messages are ever sent, even if one la
 - Same camera mounting as production for valid comparison
 - GPS for cross-device time synchronization (recommended)
 
+## Running in proot (OnePlus 6 / LineageOS)
+
+On the OnePlus 6, openpilot runs inside a **proot-distro Ubuntu** environment within Termux. This has important implications:
+
+### Shadow Mode Detection in proot
+
+Shadow mode detection uses `getprop` to identify OnePlus 6 hardware. In proot, the Android `getprop` binary is accessible via Termux's PATH:
+
+```bash
+# Ensure Termux binaries are on PATH (already set by setup scripts)
+export PATH=$PATH:/data/data/com.termux/files/usr/bin
+
+# Verify detection
+python3 -c "from openpilot.system.hardware.shadow_mode import is_shadow_mode; print(is_shadow_mode())"
+```
+
+If `getprop` is not found, set the environment variable explicitly:
+```bash
+SHADOW_MODE=1 ./launch_openpilot.sh
+```
+
+### proot Limitations
+
+| Limitation | Impact | Workaround |
+|------------|--------|------------|
+| No GPU access | OpenCL unavailable | Remote inference server (see `enable-shadow-remote-inference`) |
+| No `/dev/kgsl-3d0` | modeld can't use GPU | CPU-only or remote inference |
+| No V4L2 cameras | Direct camera access unavailable | IP Webcam HTTP stream (see `setup/CAMERA.md`) |
+| glibc vs Bionic | Can't load Android `.so` libs | Build native or use remote |
+| No kernel modules | Limited hardware access | Use Termux APIs for hardware |
+
+### proot Performance Notes
+
+- **CPU inference**: Snapdragon 845 A75 cores are capable but slow without GPU acceleration
+- **Memory**: 6-8 GB RAM on OnePlus 6 is sufficient for the pipeline minus GPU inference
+- **Storage**: Use `/data` partition for logs (larger than `/home`)
+- **Thermals**: Monitor temperature - sustained inference causes throttling. See `setup/TROUBLESHOOTING.md`
+
+### Setup Reference
+
+See `tools/shadow/setup/README.md` for the complete OnePlus 6 setup guide covering:
+- LineageOS flashing (`FLASHING.md`)
+- Termux and proot environment setup
+- Camera integration (`CAMERA.md`)
+- Rooting for GPU access (`ROOTING.md`)
+- Remote access (`REMOTE_SETUP.md`)
+
 ## Workflow
 
 ```

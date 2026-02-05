@@ -44,7 +44,7 @@
 - [x] 3.2 Update `is_oneplus6()` to use getprop fallback
 - [x] 3.3 Update `clear_shadow_mode_cache()` to clear new cache
 - [x] 3.4 Add unit tests for Android getprop detection path (manually tested: `is_oneplus6()` returns True via getprop)
-- [ ] 3.5 Update shadow mode README with proot notes
+- [x] 3.5 Update shadow mode README with proot notes
 
 ## 4. Camera Integration
 
@@ -74,7 +74,7 @@
 - [x] 5.1 Test on fresh LineageOS 22.2 install
 - [x] 5.2 Verify shadow mode detection works via SSH
 - [x] 5.3 Document tested LineageOS version (22.2)
-- [ ] 5.4 Run full openpilot pipeline in shadow mode
+- [ ] 5.4 Run full openpilot pipeline in shadow mode (DEFERRED: requires physical device + IP Webcam APK)
 - [x] 5.5 Measure camera latency and frame rate (0.4 FPS termux-api, 15-30 FPS IP Webcam)
 
 ## 6. VisionIPC Integration
@@ -129,10 +129,10 @@
   - [x] Adreno 630 detected with OpenCL 2.0
   - [x] **LIMITATION**: Android linker namespace blocks vendor libs for user processes
   - [x] **LIMITATION**: proot can't use Android OpenCL (glibc vs Bionic incompatibility)
-- [ ] 8.4 Test modeld with GPU (BLOCKED by linker namespace)
-  - [ ] Option A: Build modeld for Termux directly (Bionic)
-  - [ ] Option B: Use remote inference server
-  - [ ] Option C: Run via `su -c` wrapper
+- [ ] 8.4 Test modeld with GPU (BLOCKED: Android linker namespace blocks vendor libs in proot)
+  - [ ] Option A: Build modeld for Termux directly (Bionic) (DEFERRED)
+  - [ ] Option B: Use remote inference server (see `enable-shadow-remote-inference` change)
+  - [ ] Option C: Run via `su -c` wrapper (DEFERRED)
 
 ## 9. Alternative Approaches (Remote Inference - IN PROGRESS)
 
@@ -142,8 +142,8 @@
   - [x] Send inference results back to device (result_receiver.py)
   - [x] ZMQ connectivity tested (0% loss, <100ms latency)
   - [x] Camera → ZMQ tested with termux-camera-photo (~0.2 FPS)
-  - [ ] Real-time testing with IP Webcam (15-30 FPS expected)
-- [ ] 9.2 CPU-only inference (experimental, deprioritized)
+  - [ ] Real-time testing with IP Webcam (DEFERRED: needs APK installed on device)
+- [ ] 9.2 CPU-only inference (DEPRIORITIZED: remote inference preferred)
   - [ ] Investigate tinygrad CPU backend
   - [ ] Benchmark inference speed
   - [ ] Evaluate viability for shadow mode
@@ -153,7 +153,7 @@
 - [x] 10.1 Create REMOTE_SETUP.md with SSH/ADB commands
 - [x] 10.2 Document IP addresses and ports
 - [x] 10.3 Create mjpeg_zmq_streamer.py for direct camera → ZMQ
-- [ ] 10.4 Document IP Webcam installation via ADB (needs APK)
+- [x] 10.4 Document IP Webcam installation via ADB
 
 **Current Access**:
 - SSH: `ssh -p 8022 10.0.1.62`
