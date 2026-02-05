@@ -1,4 +1,5 @@
 venv/
+.venv
 .venv/
 .local/
 .ci_cache
@@ -56,6 +57,7 @@ system/camerad/test/ae_gray_test
 
 .coverage*
 coverage.xml
+coverage-*.xml
 htmlcov
 pandaextra
 
@@ -68,6 +70,7 @@ cppcheck_report.txt
 *.ctu-info
 *.dump
 external_symbols.json
+cppcheck-addon-ctu-file-list*
 
 # MISRA analysis raw reports (regenerate with scripts/lint/*.sh)
 reports/*-report.txt
@@ -80,6 +83,11 @@ selfdrive/modeld/models/*.pkl
 *.zst
 
 build/
+
+# Verification build artifacts
+verification/fuzz/fuzz_can_rx
+verification/fuzz/fuzz_safety_tx_hook
+verification/tlaplus/tla2tools.jar
 
 !**/.gitkeep
 
