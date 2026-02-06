@@ -100,7 +100,7 @@ dev = [
   "dictdiffer",
   "matplotlib",
   "opencv-python-headless",
-  "parameterized >=0.8, <0.9",
+  "parameterized >=0.8, <0.10",
   "pyautogui",
   "pywinctl",
   "tabulate",
