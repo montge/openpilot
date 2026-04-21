@@ -36,7 +36,7 @@ dependencies = [
   "spidev; platform_system == 'Linux'",
 
   # modeld
-  "onnx >= 1.14.0",
+  "onnx>=1.21.0",
 
   # logging
   "pyzmq",
