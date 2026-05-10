@@ -39,7 +39,7 @@ jobs:
       with:
         submodules: true
     - name: Getting LFS files
-      uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e
+      uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60
       with:
         timeout_minutes: 2
         max_attempts: 3
@@ -142,14 +142,14 @@ jobs:
     - name: Print diff report
       if: always()
       run: cat selfdrive/test/process_replay/diff_report.txt
-    - uses: actions/upload-artifact@v6
+    - uses: actions/upload-artifact@v7
       if: always()
       continue-on-error: true
       with:
         name: process_replay_diff.txt
         path: selfdrive/test/process_replay/diff.txt
     - name: Upload diff report
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       if: always() && github.event_name == 'pull_request'
       continue-on-error: true
       with:
@@ -157,7 +157,7 @@ jobs:
         path: selfdrive/test/process_replay/diff_report.txt
     - name: Checkout ci-artifacts
       if: github.repository == 'commaai/openpilot' && github.ref == 'refs/heads/master'
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         repository: commaai/ci-artifacts
         ssh-key: ${{ secrets.CI_ARTIFACTS_DEPLOY_KEY }}
@@ -225,7 +225,7 @@ jobs:
           python3 selfdrive/ui/tests/diff/replay.py
           python3 selfdrive/ui/tests/diff/replay.py --big
       - name: Upload UI Report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ui-report-${{ inputs.run_number || '1' }}-${{ github.event_name == 'push' && github.ref == 'refs/heads/master' && 'master' || github.event.number }}
           path: selfdrive/ui/tests/diff/report
