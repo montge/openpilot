@@ -5,7 +5,7 @@ import random
 from collections import defaultdict, Counter
 import hypothesis.strategies as st
 from hypothesis import Phase, given, settings
-from parameterized import parameterized_class
+from openpilot.common.parameterized import parameterized_class
 
 from opendbc.car import DT_CTRL, gen_empty_fingerprint, structs
 from opendbc.car.can_definitions import CanData

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cassert>
-#include <filesystem>
 #include <string>
 
 #include "common/params.h"
@@ -25,18 +24,17 @@ public:
   }
 
   ~OpenpilotPrefix() {
-    std::error_code ec;  // Use non-throwing overload
     auto param_path = Params().getParamPath();
     if (util::file_exists(param_path)) {
       std::string real_path = util::readlink(param_path);
-      std::filesystem::remove_all(real_path, ec);
+      util::check_system(util::string_format("rm %s -rf", real_path.c_str()));
       unlink(param_path.c_str());
     }
     if (getenv("COMMA_CACHE") == nullptr) {
-      std::filesystem::remove_all(Path::download_cache_root(), ec);
+      util::check_system(util::string_format("rm %s -rf", Path::download_cache_root().c_str()));
     }
-    std::filesystem::remove_all(Path::comma_home(), ec);
-    std::filesystem::remove_all(msgq_path, ec);
+    util::check_system(util::string_format("rm %s -rf", Path::comma_home().c_str()));
+    util::check_system(util::string_format("rm %s -rf", msgq_path.c_str()));
     unsetenv("OPENPILOT_PREFIX");
   }
 

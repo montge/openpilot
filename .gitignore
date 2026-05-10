@@ -1,7 +1,5 @@
 venv/
-.venv
 .venv/
-.local/
 .ci_cache
 .env
 .clang-format
@@ -15,13 +13,13 @@ venv/
 a.out
 .hypothesis
 .cache/
-
-/docs_site/
+bin/
 
 *.mp4
 *.dylib
 *.DSYM
 *.d
+*.pem
 *.pyc
 *.pyo
 .*.swp
@@ -41,11 +39,15 @@ a.out
 *.mo
 *_pyx.cpp
 *.stats
+*.pkl
+*.pkl*
 config.json
-clcache
 compile_commands.json
 compare_runtime*.html
+selfdrive/modeld/models/tg_compiled_flags.json
 
+# build artifacts
+docs_site/
 selfdrive/pandad/pandad
 cereal/services.h
 cereal/gen
@@ -57,69 +59,32 @@ system/camerad/test/ae_gray_test
 
 .coverage*
 coverage.xml
-coverage-*.xml
 htmlcov
-pandaextra
-
-.mypy_cache/
-flycheck_*
-
-cppcheck_report.txt
-
-# clang-tidy CTU analysis temp files
-*.ctu-info
-*.dump
-external_symbols.json
-cppcheck-addon-ctu-file-list*
-
-# MISRA analysis raw reports (regenerate with scripts/lint/*.sh)
-reports/*-report.txt
-comma*.sh
-
-selfdrive/modeld/models/*.pkl
 
 # openpilot log files
 *.bz2
 *.zst
+*.rlog
 
 build/
 
-# Verification build artifacts
-verification/fuzz/fuzz_can_rx
-verification/fuzz/fuzz_safety_tx_hook
-verification/tlaplus/tla2tools.jar
-
 !**/.gitkeep
 
-poetry.toml
-Pipfile
 
 ### VisualStudioCode ###
+*.vsix
+.history
+.ionide
 .vscode/*
+.history/
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
 !.vscode/*.code-snippets
 
-# Local History for Visual Studio Code
-.history/
-
-# Built Visual Studio Code Extensions
-*.vsix
-
-### VisualStudioCode Patch ###
-# Ignore all local history of files
-.history
-.ionide
-
-# Coverage data files
-*.profraw
-*.profdata
-cpp-coverage-details.txt
-cpp-coverage.lcov
-cpp-coverage-report/
-
+# agents
 .claude/
+.context/
 PLAN.md
 TASK.md
