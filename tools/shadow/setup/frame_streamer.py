@@ -102,7 +102,7 @@ class FrameStreamer:
                 False  # conflate - drop old frames
             )
             # Wait for connection
-            for i in range(50):  # 5 second timeout
+            for _ in range(50):  # 5 second timeout
                 if self.vipc_client.connect(False):
                     print("VisionIPC connected!")
                     break
@@ -112,7 +112,7 @@ class FrameStreamer:
         else:
             print("ERROR: VisionIPC not available - cannot stream frames")
 
-        print(f"Frame streamer initialized:")
+        print("Frame streamer initialized:")
         print(f"  Server: {server_url}")
         print(f"  JPEG quality: {jpeg_quality}")
         print(f"  Target FPS: {target_fps}")
@@ -189,9 +189,8 @@ class FrameStreamer:
                     elapsed = time.monotonic() - start_time
                     fps = self.frame_count / elapsed
                     bandwidth = self.bytes_sent / elapsed / 1024 / 1024  # MB/s
-                    print(f"Frames: {self.frame_count}, FPS: {fps:.1f}, "
-                          f"Bandwidth: {bandwidth:.2f} MB/s, "
-                          f"Avg JPEG: {self.bytes_sent // self.frame_count // 1024}KB")
+                    avg_kb = self.bytes_sent // self.frame_count // 1024
+                    print(f"Frames: {self.frame_count}, FPS: {fps:.1f}, Bandwidth: {bandwidth:.2f} MB/s, Avg JPEG: {avg_kb}KB")
 
         except KeyboardInterrupt:
             print("\nStopping streamer...")
@@ -199,7 +198,7 @@ class FrameStreamer:
             self.running = False
 
         elapsed = time.monotonic() - start_time
-        print(f"\nStreamer stopped:")
+        print("\nStreamer stopped:")
         print(f"  Total frames: {self.frame_count}")
         print(f"  Total data: {self.bytes_sent / 1024 / 1024:.1f} MB")
         print(f"  Average FPS: {self.frame_count / elapsed:.1f}")
@@ -228,7 +227,7 @@ def test_vipc():
     )
 
     print("Waiting for VisionIPC server (5s timeout)...")
-    for i in range(50):
+    for _ in range(50):
         if client.connect(False):
             print("Connected!")
             break
@@ -239,14 +238,14 @@ def test_vipc():
 
     print("Receiving test frame...")
     buf = None
-    for i in range(100):  # 10 second timeout
+    for _ in range(100):  # 10 second timeout
         buf = client.recv()
         if buf is not None:
             break
         time.sleep(0.1)
 
     if buf:
-        print(f"Received frame:")
+        print("Received frame:")
         print(f"  Frame ID: {buf.frame_id}")
         print(f"  Dimensions: {buf.width}x{buf.height}")
         print(f"  Data size: {len(buf.data)} bytes")

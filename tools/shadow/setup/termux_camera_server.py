@@ -84,7 +84,7 @@ def capture_loop(camera_id: int, temp_dir: str):
 class MJPEGHandler(BaseHTTPRequestHandler):
     """HTTP handler for MJPEG streaming and single frame capture."""
 
-    def log_message(self, format, *args):
+    def log_message(self, format, *args):  # noqa: A002 - signature dictated by BaseHTTPRequestHandler
         # Suppress default logging
         pass
 
@@ -177,7 +177,7 @@ def main():
 
     # Check if termux-camera-photo is available
     try:
-        result = subprocess.run(
+        subprocess.run(
             ["termux-camera-photo", "-c", "0", "/dev/null"],
             capture_output=True,
             timeout=10
@@ -214,13 +214,13 @@ def main():
 
         # Start HTTP server
         server = HTTPServer(("0.0.0.0", args.port), MJPEGHandler)
-        print(f"\n=== Termux Camera Server ===")
+        print("\n=== Termux Camera Server ===")
         print(f"Camera: {args.camera}")
         print(f"Port: {args.port}")
-        print(f"\nEndpoints:")
+        print("\nEndpoints:")
         print(f"  http://localhost:{args.port}/shot.jpg  - Single frame")
         print(f"  http://localhost:{args.port}/video     - MJPEG stream")
-        print(f"\nPress Ctrl+C to stop")
+        print("\nPress Ctrl+C to stop")
 
         server.serve_forever()
 

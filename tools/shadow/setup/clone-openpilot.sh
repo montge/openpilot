@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # OnePlus 6 Shadow Device - Clone Openpilot Script
 # Run this inside proot-distro Ubuntu after ubuntu-setup.sh
 set -e

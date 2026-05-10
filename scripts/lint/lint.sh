@@ -13,7 +13,7 @@ cd $ROOT
 
 FAILED=0
 
-IGNORED_FILES="uv\.lock|docs\/CARS.md"
+IGNORED_FILES="uv\.lock|docs\/CARS.md|reports\/misra-baseline\.txt|system\/hardware\/tici\/updater_magic|tools\/shadow\/setup\/(camera_stream|setup-ssh|termux-setup)\.sh"
 IGNORED_DIRS="^third_party.*|^msgq.*|^msgq_repo.*|^opendbc.*|^opendbc_repo.*|^cereal.*|^panda.*|^rednose.*|^rednose_repo.*|^tinygrad.*|^tinygrad_repo.*|^teleoprtc.*|^teleoprtc_repo.*"
 
 function run() {

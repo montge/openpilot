@@ -33,8 +33,7 @@ def check_matplotlib() -> None:
   """Check if matplotlib is available."""
   if not MATPLOTLIB_AVAILABLE:
     raise ImportError(
-      "matplotlib is required for visualization. "
-      "Install with: pip install matplotlib"
+      "matplotlib is required for visualization. Install with: pip install matplotlib"
     )
 
 
@@ -135,13 +134,13 @@ def plot_error_histogram(
   ax.grid(True, alpha=0.3)
 
   # Add statistics text box
-  stats_text = (
-    f"N = {len(errors)}\n"
-    f"Mean = {np.mean(errors):.4f}\n"
-    f"Std = {np.std(errors):.4f}\n"
-    f"Min = {np.min(errors):.4f}\n"
-    f"Max = {np.max(errors):.4f}"
-  )
+  stats_text = "\n".join([
+    f"N = {len(errors)}",
+    f"Mean = {np.mean(errors):.4f}",
+    f"Std = {np.std(errors):.4f}",
+    f"Min = {np.min(errors):.4f}",
+    f"Max = {np.max(errors):.4f}",
+  ])
   ax.text(0.95, 0.95, stats_text, transform=ax.transAxes, fontsize=10,
           verticalalignment='top', horizontalalignment='right',
           bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
@@ -311,7 +310,7 @@ def plot_event_timeline(
     return fig
 
   # Get unique event types and assign colors
-  all_event_types = sorted(set(e[1] for e in shadow_events + prod_events))
+  all_event_types = sorted({e[1] for e in shadow_events + prod_events})
   color_map = plt.cm.get_cmap('tab20')
   event_colors = {event: color_map(i % 20) for i, event in enumerate(all_event_types)}
 
@@ -491,21 +490,22 @@ def plot_summary_dashboard(
   # 2. Summary metrics (top right)
   ax2 = fig.add_subplot(gs[0, 2])
   ax2.axis('off')
-  summary_text = (
-    f"Alignment Summary\n"
-    f"─────────────────\n"
-    f"Aligned Pairs: {report.n_aligned_pairs}\n"
-    f"Shadow Only: {report.n_shadow_only}\n"
-    f"Production Only: {report.n_production_only}\n"
-    f"Quality: {report.alignment_quality:.1%}\n"
-    f"Method: {report.alignment_method}\n\n"
-    f"Control Metrics\n"
-    f"─────────────────\n"
-    f"Steer RMSE: {report.control_metrics.steer_rmse:.4f}\n"
-    f"Steer MAE: {report.control_metrics.steer_mae:.4f}\n"
-    f"Accel RMSE: {report.control_metrics.accel_rmse:.4f}\n"
-    f"Accel MAE: {report.control_metrics.accel_mae:.4f}"
-  )
+  summary_text = "\n".join([
+    "Alignment Summary",
+    "─────────────────",
+    f"Aligned Pairs: {report.n_aligned_pairs}",
+    f"Shadow Only: {report.n_shadow_only}",
+    f"Production Only: {report.n_production_only}",
+    f"Quality: {report.alignment_quality:.1%}",
+    f"Method: {report.alignment_method}",
+    "",
+    "Control Metrics",
+    "─────────────────",
+    f"Steer RMSE: {report.control_metrics.steer_rmse:.4f}",
+    f"Steer MAE: {report.control_metrics.steer_mae:.4f}",
+    f"Accel RMSE: {report.control_metrics.accel_rmse:.4f}",
+    f"Accel MAE: {report.control_metrics.accel_mae:.4f}",
+  ])
   ax2.text(0.1, 0.9, summary_text, transform=ax2.transAxes, fontsize=10,
            verticalalignment='top', fontfamily='monospace',
            bbox=dict(boxstyle='round', facecolor='lightgray', alpha=0.5))

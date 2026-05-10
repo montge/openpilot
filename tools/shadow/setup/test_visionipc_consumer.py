@@ -81,10 +81,8 @@ def test_frame_reception(timeout_sec: float = 10.0):
             frame_times.append(dt)
             frames_received += 1
 
-            print(f"  Frame {frames_received}: id={buf.frame_id}, "
-                  f"size={buf.width}x{buf.height}, "
-                  f"stride={buf.stride}, uv_offset={buf.uv_offset}, "
-                  f"dt={dt*1000:.1f}ms")
+            dims = f"{buf.width}x{buf.height}"
+            print(f"  Frame {frames_received}: id={buf.frame_id}, size={dims}, stride={buf.stride}, uv_offset={buf.uv_offset}, dt={dt*1000:.1f}ms")
 
         if time.monotonic() - start > timeout_sec:
             break

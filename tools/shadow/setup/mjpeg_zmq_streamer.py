@@ -57,7 +57,7 @@ class MJPEGZMQStreamer:
         # Camera capture
         self.cap = None
 
-        print(f"MJPEG → ZMQ Streamer")
+        print("MJPEG → ZMQ Streamer")
         print(f"  Camera: {camera_url}")
         print(f"  Server: {server_url}")
         print(f"  Quality: {jpeg_quality}")
@@ -78,7 +78,7 @@ class MJPEGZMQStreamer:
             print(f"  Trying: {url}")
             self.cap = cv2.VideoCapture(url)
             if self.cap.isOpened():
-                print(f"  Connected!")
+                print("  Connected!")
                 return True
             self.cap.release()
 
@@ -151,8 +151,7 @@ class MJPEGZMQStreamer:
                     fps = self.frame_count / elapsed
                     bandwidth = self.bytes_sent / elapsed / 1024  # KB/s
                     avg_size = self.bytes_sent / self.frame_count / 1024 if self.frame_count > 0 else 0
-                    print(f"Frames: {self.frame_count:5d} | FPS: {fps:5.1f} | "
-                          f"BW: {bandwidth:6.1f} KB/s | Avg: {avg_size:5.1f} KB/frame")
+                    print(f"Frames: {self.frame_count:5d} | FPS: {fps:5.1f} | BW: {bandwidth:6.1f} KB/s | Avg: {avg_size:5.1f} KB/frame")
                     last_stats_time = now
 
         except KeyboardInterrupt:
@@ -163,7 +162,7 @@ class MJPEGZMQStreamer:
 
         # Final stats
         elapsed = time.monotonic() - self.start_time
-        print(f"\nSession complete:")
+        print("\nSession complete:")
         print(f"  Total frames: {self.frame_count}")
         print(f"  Total data: {self.bytes_sent / 1024 / 1024:.1f} MB")
         print(f"  Average FPS: {self.frame_count / elapsed:.1f}")
@@ -194,7 +193,7 @@ def test_camera(url: str):
         print(f"  Trying: {test_url}")
         cap = cv2.VideoCapture(test_url)
         if cap.isOpened():
-            print(f"  Connected!")
+            print("  Connected!")
             break
         cap.release()
         cap = None
@@ -224,7 +223,7 @@ def test_camera(url: str):
     if frame_times:
         avg_time = sum(frame_times) / len(frame_times)
         fps = 1.0 / avg_time if avg_time > 0 else 0
-        print(f"\nResults:")
+        print("\nResults:")
         print(f"  Captured: {len(frame_times)} frames")
         print(f"  Avg frame time: {avg_time*1000:.1f} ms")
         print(f"  Estimated FPS: {fps:.1f}")

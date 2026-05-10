@@ -89,7 +89,7 @@ class ResultReceiver:
             self.log_file = open(log_path, 'w')
             print(f"Logging to: {log_path}")
 
-        print(f"Result receiver initialized:")
+        print("Result receiver initialized:")
         print(f"  Server: {server_url}")
         print(f"  Logging: {'enabled' if self.log_file else 'disabled'}")
         print(f"  Republish: {'enabled' if self.pm else 'disabled'}")
@@ -100,7 +100,7 @@ class ResultReceiver:
             return
 
         entry = {
-            "timestamp": time.time(),
+            "timestamp": time.monotonic(),
             "frame_id": frame_id,
             "latency_ms": latency_ms,
             "result_size": len(result_bytes),
@@ -151,8 +151,6 @@ class ResultReceiver:
                     # Timeout - no result received
                     continue
 
-                recv_time = time.monotonic()
-
                 if len(parts) != 3:
                     print(f"Invalid message format: {len(parts)} parts")
                     continue
@@ -177,8 +175,7 @@ class ResultReceiver:
                 if self.result_count % 100 == 0:
                     elapsed = time.monotonic() - start_time
                     rps = self.result_count / elapsed
-                    print(f"Results: {self.result_count}, Rate: {rps:.1f}/s, "
-                          f"Size: {len(result_bytes)} bytes")
+                    print(f"Results: {self.result_count}, Rate: {rps:.1f}/s, Size: {len(result_bytes)} bytes")
 
         except KeyboardInterrupt:
             print("\nStopping receiver...")
@@ -186,7 +183,7 @@ class ResultReceiver:
             self.running = False
 
         elapsed = time.monotonic() - start_time
-        print(f"\nReceiver stopped:")
+        print("\nReceiver stopped:")
         print(f"  Total results: {self.result_count}")
         print(f"  Average rate: {self.result_count / elapsed:.1f} results/s")
 
@@ -218,7 +215,7 @@ def test_receiver(server_url: str, timeout: int = 10):
         if len(parts) == 3:
             topic, frame_id_bytes, result_bytes = parts
             frame_id = struct.unpack("Q", frame_id_bytes)[0]
-            print(f"\nReceived result:")
+            print("\nReceived result:")
             print(f"  Frame ID: {frame_id}")
             print(f"  Size: {len(result_bytes)} bytes")
 

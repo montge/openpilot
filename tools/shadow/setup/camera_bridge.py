@@ -242,7 +242,7 @@ class CameraBridge:
                           0.0, 1.0, 0.0,
                           0.0, 0.0, 1.0]
         }
-        setattr(dat, 'roadCameraState', msg)
+        dat.roadCameraState = msg
         self.pm.send('roadCameraState', dat)
 
     def run(self, display: bool = False):

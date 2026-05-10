@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # OnePlus 6 Shadow Device - Ubuntu Setup Script
 # Run this inside proot-distro Ubuntu
 set -e
