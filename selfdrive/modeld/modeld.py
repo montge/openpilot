@@ -7,6 +7,17 @@ USBGPU = "USBGPU" in os.environ
 if USBGPU:
   os.environ['DEV'] = 'AMD'
   os.environ['AMD_IFACE'] = 'USB'
+
+# NVIDIA GPU detection (DGX Spark, RTX, etc.) — overrides default only when no other backend selected
+NVIDIAGPU = "NVIDIAGPU" in os.environ or "CUDAGPU" in os.environ
+if not USBGPU and 'DEV' not in os.environ:
+  try:
+    from openpilot.system.hardware import NVIDIA_GPU
+    if NVIDIA_GPU or NVIDIAGPU:
+      os.environ['DEV'] = 'CUDA'
+      NVIDIAGPU = True
+  except ImportError:
+    pass
 from tinygrad.tensor import Tensor
 import time
 import pickle

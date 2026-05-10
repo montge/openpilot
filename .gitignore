@@ -88,3 +88,32 @@ build/
 .context/
 PLAN.md
 TASK.md
+
+# fork-specific (montge/openpilot)
+pandaextra
+.mypy_cache/
+flycheck_*
+
+# clang-tidy CTU analysis temp files
+cppcheck_report.txt
+*.ctu-info
+*.dump
+external_symbols.json
+cppcheck-addon-ctu-file-list*
+
+# MISRA analysis raw reports (regenerate with scripts/lint/*.sh)
+reports/*-report.txt
+comma*.sh
+
+# coverage data
+coverage-*.xml
+*.profraw
+*.profdata
+cpp-coverage-details.txt
+cpp-coverage.lcov
+cpp-coverage-report/
+
+# verification build artifacts
+verification/fuzz/fuzz_can_rx
+verification/fuzz/fuzz_safety_tx_hook
+verification/tlaplus/tla2tools.jar

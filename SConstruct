@@ -16,6 +16,10 @@ Decider('MD5-timestamp')
 
 SetOption('num_jobs', max(1, int(os.cpu_count()/(1 if "CI" in os.environ else 2))))
 
+AddOption('--asan', action='store_true', help='turn on ASAN')
+AddOption('--ubsan', action='store_true', help='turn on UBSan')
+AddOption('--coverage', action='store_true', help='enable code coverage instrumentation (llvm-cov)')
+AddOption('--mutation', action='store_true', help='generate mutation-ready code')
 AddOption('--ccflags', action='store', type='string', default='', help='pass arbitrary flags over the command line')
 AddOption('--verbose', action='store_true', default=False, help='show full build commands')
 AddOption('--minimal',
@@ -150,6 +154,11 @@ elif arch == "Darwin":
   ])
   env.Append(CCFLAGS=["-DGL_SILENCE_DEPRECATION"])
   env.Append(CXXFLAGS=["-DGL_SILENCE_DEPRECATION"])
+
+# Code coverage instrumentation (llvm-cov)
+if GetOption('coverage'):
+  env.Append(CCFLAGS=["-fprofile-instr-generate", "-fcoverage-mapping"])
+  env.Append(LINKFLAGS=["-fprofile-instr-generate", "-fcoverage-mapping"])
 
 _extra_cc = shlex.split(GetOption('ccflags') or '')
 if _extra_cc:
