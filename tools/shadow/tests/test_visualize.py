@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from openpilot.tools.shadow.align import AlignedPair, AlignmentResult
-from openpilot.tools.shadow.comparison_logger import ComparisonFrame
+from openpilot.tools.shadow.comparison_logger import FrameData
 from openpilot.tools.shadow.metrics import ComparisonReport, ControlMetrics
 
 
@@ -16,9 +16,9 @@ def make_test_frame(
   timestamp: float,
   steer: float = 0.0,
   accel: float = 0.0,
-) -> ComparisonFrame:
+) -> FrameData:
   """Create a test comparison frame."""
-  return ComparisonFrame(
+  return FrameData(
     frame_id=frame_id,
     timestamp_gps=timestamp,
     timestamp_mono=timestamp,

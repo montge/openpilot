@@ -4,7 +4,7 @@ import os
 import pytest
 
 from openpilot.tools.lib.url_file import (
-  hash_256,
+  hash_url as hash_256,
   URLFile,
   URLFileException,
   CHUNK_SIZE,

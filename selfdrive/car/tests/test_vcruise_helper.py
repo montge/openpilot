@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from parameterized import parameterized_class
+from openpilot.common.parameterized import parameterized_class
 
 from cereal import car
 from openpilot.common.constants import CV

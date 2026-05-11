@@ -156,7 +156,10 @@ elif arch == "Darwin":
   env.Append(CXXFLAGS=["-DGL_SILENCE_DEPRECATION"])
 
 # Code coverage instrumentation (llvm-cov)
+# Force clang since -fprofile-instr-generate / -fcoverage-mapping are clang-only
+# (g++ has a different -fprofile-generate flag that is incompatible with llvm-cov tooling)
 if GetOption('coverage'):
+  env.Replace(CC='clang', CXX='clang++')
   env.Append(CCFLAGS=["-fprofile-instr-generate", "-fcoverage-mapping"])
   env.Append(LINKFLAGS=["-fprofile-instr-generate", "-fcoverage-mapping"])
 

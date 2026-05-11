@@ -14,7 +14,6 @@ from openpilot.selfdrive.controls.lib.longitudinal_planner import (
   A_CRUISE_MAX_BP,
   ALLOW_THROTTLE_THRESHOLD,
   MIN_ALLOW_THROTTLE_SPEED,
-  LON_MPC_STEP,
 )
 from openpilot.selfdrive.controls.lib.drive_helpers import CONTROL_N
 from openpilot.selfdrive.car.cruise import V_CRUISE_UNSET
@@ -593,10 +592,6 @@ class TestLongitudinalPlannerPublish:
 
 class TestConstants:
   """Test module constants."""
-
-  def test_lon_mpc_step_positive(self):
-    """Test LON_MPC_STEP is positive."""
-    assert LON_MPC_STEP > 0
 
   def test_a_cruise_max_vals_decreasing(self):
     """Test A_CRUISE_MAX_VALS decreases with speed."""
