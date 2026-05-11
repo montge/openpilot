@@ -74,7 +74,7 @@ jobs:
             libavfilter-dev
 
       - name: Install Python dependencies
-        run: uv sync --frozen --extra testing
+        run: uv sync --frozen --extra testing --extra tools  # tools provides imgui for jotpluggler SConscript
 
       - name: Build C++ with coverage
         run: |

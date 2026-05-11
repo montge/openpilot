@@ -79,7 +79,7 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-          uv sync --frozen --extra testing
+          uv sync --frozen --extra testing --extra tools  # tools provides imgui for jotpluggler SConscript
           uv pip install pytest-cov coverage
 
       - name: Build project
@@ -184,7 +184,7 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-          uv sync --frozen --extra testing
+          uv sync --frozen --extra testing --extra tools  # tools provides imgui for jotpluggler SConscript
           uv pip install pytest-cov coverage
 
       - name: Build project
@@ -276,7 +276,7 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-          uv sync --frozen --extra testing
+          uv sync --frozen --extra testing --extra tools  # tools provides imgui for jotpluggler SConscript
           uv pip install pytest-cov coverage
 
       - name: Build project
@@ -345,7 +345,7 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-          uv sync --frozen --extra testing
+          uv sync --frozen --extra testing --extra tools  # tools provides imgui for jotpluggler SConscript
           uv pip install pytest-cov coverage
 
       - name: Build minimal project
