@@ -6,7 +6,7 @@ import os
 
 import pytest
 
-from openpilot.common.util import MovingAverage
+from openpilot.common.utils import MovingAverage
 
 
 class TestMovingAverage:
@@ -214,8 +214,8 @@ class TestSudoWrite:
 
   def test_sudo_write_success(self, mocker):
     """Test sudo_write with writable file."""
-    mocker.patch('openpilot.common.util.os.system')
-    from openpilot.common.util import sudo_write
+    mocker.patch('openpilot.common.utils.os.system')
+    from openpilot.common.utils import sudo_write
 
     with tempfile.NamedTemporaryFile(mode='w', delete=False) as f:
       path = f.name
@@ -230,8 +230,8 @@ class TestSudoWrite:
 
   def test_sudo_write_permission_error_handled(self, mocker):
     """Test sudo_write handles PermissionError."""
-    mocker.patch('openpilot.common.util.os.system')
-    from openpilot.common.util import sudo_write
+    mocker.patch('openpilot.common.utils.os.system')
+    from openpilot.common.utils import sudo_write
 
     with tempfile.TemporaryDirectory() as tmpdir:
       path = os.path.join(tmpdir, "test.txt")
@@ -244,7 +244,7 @@ class TestSudoWrite:
 
   def test_sudo_write_chmod_on_permission_error(self, mocker):
     """Test sudo_write calls chmod on PermissionError then succeeds."""
-    mock_system = mocker.patch('openpilot.common.util.os.system')
+    mock_system = mocker.patch('openpilot.common.utils.os.system')
 
     # Mock open to fail first, then succeed
     call_count = [0]
@@ -257,7 +257,7 @@ class TestSudoWrite:
       return real_open(path, mode, *args, **kwargs)
 
     mocker.patch('builtins.open', mock_open_fn)
-    from openpilot.common.util import sudo_write
+    from openpilot.common.utils import sudo_write
 
     with tempfile.TemporaryDirectory() as tmpdir:
       path = os.path.join(tmpdir, "test.txt")
@@ -273,7 +273,7 @@ class TestSudoWrite:
 
   def test_sudo_write_fallback_on_double_permission_error(self, mocker):
     """Test sudo_write uses echo fallback on double PermissionError."""
-    mock_system = mocker.patch('openpilot.common.util.os.system')
+    mock_system = mocker.patch('openpilot.common.utils.os.system')
 
     # Mock open to always fail with PermissionError
     def mock_open_fn(path, mode='r', *args, **kwargs):
@@ -282,7 +282,7 @@ class TestSudoWrite:
       return open.__class__(path, mode, *args, **kwargs)
 
     mocker.patch('builtins.open', mock_open_fn)
-    from openpilot.common.util import sudo_write
+    from openpilot.common.utils import sudo_write
 
     sudo_write("testval", "/some/path")
 
@@ -297,8 +297,8 @@ class TestSudoRead:
 
   def test_sudo_read_success(self, mocker):
     """Test sudo_read returns content."""
-    mock_check_output = mocker.patch('openpilot.common.util.subprocess.check_output')
-    from openpilot.common.util import sudo_read
+    mock_check_output = mocker.patch('openpilot.common.utils.subprocess.check_output')
+    from openpilot.common.utils import sudo_read
 
     mock_check_output.return_value = "file content\n"
 
@@ -309,8 +309,8 @@ class TestSudoRead:
 
   def test_sudo_read_failure_returns_empty(self, mocker):
     """Test sudo_read returns empty on failure."""
-    mock_check_output = mocker.patch('openpilot.common.util.subprocess.check_output')
-    from openpilot.common.util import sudo_read
+    mock_check_output = mocker.patch('openpilot.common.utils.subprocess.check_output')
+    from openpilot.common.utils import sudo_read
 
     mock_check_output.side_effect = Exception("command failed")
 
