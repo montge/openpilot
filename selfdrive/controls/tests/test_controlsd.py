@@ -1,7 +1,7 @@
 import math
 
 import pytest
-from parameterized import parameterized
+from openpilot.common.parameterized import parameterized
 
 from cereal import car, log
 import cereal.messaging as messaging
@@ -157,6 +157,7 @@ class TestControlsStateControl:
       'liveCalibration',
       'livePose',
       'longitudinalPlan',
+      'lateralManeuverPlan',
       'carState',
       'carOutput',
       'driverMonitoringState',
@@ -451,6 +452,7 @@ class TestControlsActuatorSafety:
       'liveCalibration',
       'livePose',
       'longitudinalPlan',
+      'lateralManeuverPlan',
       'carState',
       'carOutput',
       'driverMonitoringState',
@@ -535,6 +537,7 @@ class TestControlsPublish:
       'liveCalibration',
       'livePose',
       'longitudinalPlan',
+      'lateralManeuverPlan',
       'carState',
       'carOutput',
       'driverMonitoringState',
@@ -723,6 +726,7 @@ class TestControlsUpdate:
       'liveCalibration',
       'livePose',
       'longitudinalPlan',
+      'lateralManeuverPlan',
       'carState',
       'carOutput',
       'driverMonitoringState',
@@ -785,6 +789,7 @@ class TestControlsIntegration:
       'liveCalibration',
       'livePose',
       'longitudinalPlan',
+      'lateralManeuverPlan',
       'carState',
       'carOutput',
       'driverMonitoringState',
@@ -963,6 +968,7 @@ class TestControlsDifferentCars:
       'liveCalibration',
       'livePose',
       'longitudinalPlan',
+      'lateralManeuverPlan',
       'carState',
       'carOutput',
       'driverMonitoringState',
@@ -1034,6 +1040,7 @@ class TestControlsNaNInfHandling:
       'liveCalibration',
       'livePose',
       'longitudinalPlan',
+      'lateralManeuverPlan',
       'carState',
       'carOutput',
       'driverMonitoringState',
@@ -1173,6 +1180,7 @@ class TestControlsCruiseLogic:
       'liveCalibration',
       'livePose',
       'longitudinalPlan',
+      'lateralManeuverPlan',
       'carState',
       'carOutput',
       'driverMonitoringState',
@@ -1295,6 +1303,7 @@ class TestControlsForceDecel:
       'liveCalibration',
       'livePose',
       'longitudinalPlan',
+      'lateralManeuverPlan',
       'carState',
       'carOutput',
       'driverMonitoringState',
@@ -1401,6 +1410,7 @@ class TestControlsSteerLimitedBySafety:
       'liveCalibration',
       'livePose',
       'longitudinalPlan',
+      'lateralManeuverPlan',
       'carState',
       'carOutput',
       'driverMonitoringState',
@@ -1511,6 +1521,7 @@ class TestControlsVehicleModelUpdate:
       'liveCalibration',
       'livePose',
       'longitudinalPlan',
+      'lateralManeuverPlan',
       'carState',
       'carOutput',
       'driverMonitoringState',
