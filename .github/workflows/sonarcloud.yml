@@ -24,7 +24,7 @@ jobs:
         with:
           fetch-depth: 0  # Full history for proper blame analysis
           submodules: true
-          lfs: true
+          lfs: false  # LFS objects are stored on commaai's GitLab, not GitHub
 
       - name: Set up Python
         uses: actions/setup-python@v5

@@ -22,7 +22,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: true
-          lfs: true
+          lfs: false  # LFS objects are stored on commaai's GitLab, not GitHub
 
       - name: Set up Python
         uses: actions/setup-python@v5
