@@ -19,6 +19,15 @@ from openpilot.selfdrive.controls.controlsd import Controls, ACTUATOR_FIELDS
 State = log.SelfdriveState.OpenpilotState
 LaneChangeState = log.LaneChangeState
 LaneChangeDirection = log.LaneChangeDirection
+AlertLevel = log.DriverMonitoringState.AlertLevel
+
+
+def test_alert_level_three_has_ordinal_three():
+  # cereal/log.capnp comments AlertLevel: "ordinal must match the name to prevent
+  # bugs comparing against the raw ordinal value". controlsd.forceDecel reads
+  # `alertLevel == AlertLevel.three`; if a future enum reorder breaks this
+  # invariant the comparison can silently misfire across version mismatches.
+  assert int(AlertLevel.three) == 3
 
 
 def get_car_params(car_name):
@@ -266,11 +275,11 @@ class TestControlsStateControl:
     co.actuatorsOutput.torque = torque
     self.mock_sm.data['carOutput'] = msg.as_reader().carOutput
 
-  def _set_driver_monitoring_state(self, awarenessStatus=1.0):
+  def _set_driver_monitoring_state(self, alert_level=AlertLevel.none):
     """Set driverMonitoringState in the mock SubMaster."""
     msg = messaging.new_message('driverMonitoringState')
     dms = msg.driverMonitoringState
-    dms.awarenessStatus = awarenessStatus
+    dms.alertLevel = alert_level
     self.mock_sm.data['driverMonitoringState'] = msg.as_reader().driverMonitoringState
 
   def _set_driver_assistance(self, leftLaneDeparture=False, rightLaneDeparture=False):
@@ -563,7 +572,7 @@ class TestControlsPublish:
     self.mock_sm.data['carOutput'] = msg.as_reader().carOutput
 
     msg = messaging.new_message('driverMonitoringState')
-    msg.driverMonitoringState.awarenessStatus = 1.0
+    msg.driverMonitoringState.alertLevel = AlertLevel.none
     self.mock_sm.data['driverMonitoringState'] = msg.as_reader().driverMonitoringState
 
     msg = messaging.new_message('driverAssistance')
@@ -844,7 +853,7 @@ class TestControlsIntegration:
     self.mock_sm.data['carOutput'] = msg.as_reader().carOutput
 
     msg = messaging.new_message('driverMonitoringState')
-    msg.driverMonitoringState.awarenessStatus = 1.0
+    msg.driverMonitoringState.alertLevel = AlertLevel.none
     self.mock_sm.data['driverMonitoringState'] = msg.as_reader().driverMonitoringState
 
     msg = messaging.new_message('driverAssistance')
@@ -1213,7 +1222,7 @@ class TestControlsCruiseLogic:
     self.mock_sm.data['carOutput'] = msg.as_reader().carOutput
 
     msg = messaging.new_message('driverMonitoringState')
-    msg.driverMonitoringState.awarenessStatus = 1.0
+    msg.driverMonitoringState.alertLevel = AlertLevel.none
     self.mock_sm.data['driverMonitoringState'] = msg.as_reader().driverMonitoringState
 
     msg = messaging.new_message('driverAssistance')
@@ -1296,7 +1305,7 @@ class TestControlsForceDecel:
     self.controls.sm = self.mock_sm
     self._setup_default_sm()
 
-  def _setup_default_sm(self, awarenessStatus=1.0, state=State.enabled):
+  def _setup_default_sm(self, alert_level=AlertLevel.none, state=State.enabled):
     """Set up mock SubMaster with configurable state."""
     msg = messaging.new_message('carState')
     msg.carState.vEgo = 20.0
@@ -1331,7 +1340,7 @@ class TestControlsForceDecel:
     self.mock_sm.data['carOutput'] = msg.as_reader().carOutput
 
     msg = messaging.new_message('driverMonitoringState')
-    msg.driverMonitoringState.awarenessStatus = awarenessStatus
+    msg.driverMonitoringState.alertLevel = alert_level
     self.mock_sm.data['driverMonitoringState'] = msg.as_reader().driverMonitoringState
 
     msg = messaging.new_message('driverAssistance')
@@ -1339,36 +1348,36 @@ class TestControlsForceDecel:
 
     self.mock_sm.data['onroadEvents'] = []
 
-  def test_force_decel_on_negative_awareness(self):
-    """Test forceDecel is True when awarenessStatus < 0."""
-    self._setup_default_sm(awarenessStatus=-0.5)
+  TERMINAL_ALERT = AlertLevel.three
+
+  def _force_decel_expected(self):
+    dms = self.mock_sm['driverMonitoringState']
+    sds = self.mock_sm['selfdriveState']
+    return bool((dms.alertLevel == self.TERMINAL_ALERT) or (sds.state == State.softDisabling))
+
+  def test_force_decel_on_terminal_dm_alert(self):
+    """forceDecel is True when DM emits a terminal (level three) alert."""
+    self._setup_default_sm(alert_level=AlertLevel.three)
 
     self.controls.state_control()
 
-    # Check the forceDecel calculation directly
-    force_decel = bool((self.mock_sm['driverMonitoringState'].awarenessStatus < 0.0) or (self.mock_sm['selfdriveState'].state == State.softDisabling))
-
-    assert force_decel is True
+    assert self._force_decel_expected() is True
 
   def test_force_decel_on_soft_disabling(self):
-    """Test forceDecel is True when state is softDisabling."""
+    """forceDecel is True when state is softDisabling."""
     self._setup_default_sm(state=State.softDisabling)
 
-    CC, lac_log = self.controls.state_control()
+    self.controls.state_control()
 
-    force_decel = bool((self.mock_sm['driverMonitoringState'].awarenessStatus < 0.0) or (self.mock_sm['selfdriveState'].state == State.softDisabling))
-
-    assert force_decel is True
+    assert self._force_decel_expected() is True
 
   def test_no_force_decel_under_normal_conditions(self):
-    """Test forceDecel is False under normal conditions."""
-    self._setup_default_sm(awarenessStatus=1.0, state=State.enabled)
+    """forceDecel is False under nominal alert level and enabled state."""
+    self._setup_default_sm(alert_level=AlertLevel.none, state=State.enabled)
 
-    CC, lac_log = self.controls.state_control()
+    self.controls.state_control()
 
-    force_decel = bool((self.mock_sm['driverMonitoringState'].awarenessStatus < 0.0) or (self.mock_sm['selfdriveState'].state == State.softDisabling))
-
-    assert force_decel is False
+    assert self._force_decel_expected() is False
 
 
 class TestControlsSteerLimitedBySafety:
