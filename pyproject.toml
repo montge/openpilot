@@ -23,7 +23,7 @@ dependencies = [
   "pycapnp",
   "Cython",
   "setuptools",
-  "numpy >=2.0",
+  "numpy >=2.4.6",
 
   # vendored native dependencies
   "bzip2 @ git+https://github.com/commaai/dependencies.git@release-bzip2#subdirectory=bzip2",
