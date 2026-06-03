@@ -87,7 +87,7 @@ docs = [
 
 testing = [
   "coverage",
-  "hypothesis ==6.47.*",
+  "hypothesis ==6.155.*",
   "ty",
   "pytest",
   "pytest-cpp",
