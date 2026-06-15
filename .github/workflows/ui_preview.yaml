@@ -39,7 +39,7 @@ jobs:
           submodules: true
 
       - name: Waiting for ui generation to end
-        uses: lewagon/wait-on-check-action@v1.3.4
+        uses: lewagon/wait-on-check-action@v1.8.0
         with:
           ref: ${{ env.SHA }}
           check-name: ${{ env.UI_JOB_NAME }}
@@ -53,7 +53,7 @@ jobs:
           echo "run_id=$(curl https://api.github.com/repos/${{ github.repository }}/commits/${{ env.SHA }}/check-runs | jq -r '.check_runs[] | select(.name == "${{ env.UI_JOB_NAME }}") | .html_url | capture("(?<number>[0-9]+)") | .number')" >> $GITHUB_OUTPUT
 
       - name: Getting proposed ui
-        uses: dawidd6/action-download-artifact@v6
+        uses: dawidd6/action-download-artifact@v21
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           run_id: ${{ steps.get_run_id.outputs.run_id }}
@@ -97,7 +97,7 @@ jobs:
           done
 
       - name: Setup FFmpeg
-        uses: AnimMouse/setup-ffmpeg@ae28d57dabbb148eff63170b6bf7f2b60062cbae
+        uses: AnimMouse/setup-ffmpeg@178e0b4a408f06ce40d896c3cd79f50fa6f8b0c3
 
       - name: Finding diffs
         if: github.event_name == 'pull_request_target'
@@ -164,7 +164,7 @@ jobs:
 
       - name: Comment on PR
         if: github.event_name == 'pull_request_target'
-        uses: thollander/actions-comment-pull-request@v2
+        uses: thollander/actions-comment-pull-request@v3
         with:
           message: |
             <!-- _(run_id_ui_preview **${{ github.run_id }}**)_ -->

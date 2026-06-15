@@ -36,7 +36,7 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Post model report comment
-        uses: marocchino/sticky-pull-request-comment@baa7203ed60924babbe5dcd0ac8eae3b66ec5e16
+        uses: marocchino/sticky-pull-request-comment@7ca3351918538393984b324cfe28d098c4e1bd34
         with:
           header: model-review
           message: ${{ steps.report.outputs.content }}
