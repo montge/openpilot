@@ -51,8 +51,10 @@ class TrainingSample:
   desire: np.ndarray  # (8,) one-hot desire vector
   traffic_convention: np.ndarray  # (2,) left/right hand drive
 
-  # Labels from recorded model outputs
-  model_outputs: np.ndarray | None  # (1000,) raw model output for distillation
+  # Legacy placeholder assembled from parsed modelV2 logs; its layout matches
+  # neither the old split models nor driving_supercombo's output_slices.
+  # Distillation labels come from TeacherModel.generate_labels at train time.
+  model_outputs: np.ndarray | None  # (1000,) placeholder, unused by train.py
 
   # Metadata
   timestamp: int
@@ -170,10 +172,12 @@ class RouteLogDataset:
     )
 
   def _extract_model_output(self, model_data) -> np.ndarray:
-    """Extract raw model output from modelV2 message."""
-    # The modelV2 message contains parsed predictions
-    # For distillation, we want the raw output vector
-    # This is a simplified version - full implementation needs output format details
+    """Extract a coarse feature vector from the parsed modelV2 message.
+
+    Legacy placeholder: modelV2 logs carry parsed predictions, not the raw
+    output vector, so this layout matches no model's output_slices. Training
+    distills against TeacherModel.generate_labels instead.
+    """
     outputs = []
 
     # Path predictions

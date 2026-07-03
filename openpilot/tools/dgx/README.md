@@ -162,7 +162,7 @@ ssh -i ~/.ssh/dgx_key user@dgx-spark-ip
 ### Slow tinygrad performance
 tinygrad CUDA is not optimized for Blackwell architecture. Use TensorRT:
 ```bash
-# TensorRT: ~800 FPS
+# TensorRT: ~800 FPS (historical split-model measurement)
 python openpilot/tools/dgx/benchmark_tensorrt.py
 
 # tinygrad: ~2 FPS (not optimized)
@@ -214,29 +214,41 @@ Options:
 - `--warmup N`: Number of warmup runs (default: 5)
 - `--beam N`: BEAM optimization level (default: 0, disabled)
 
-### Benchmark Results (2026-01)
+### Benchmark Results (2026-01, historical)
 
-Tested on DGX Spark (GB10, Blackwell, compute 12.1):
+Tested on DGX Spark (GB10, Blackwell, compute 12.1).
+
+**Note**: these numbers were measured against the pre-July-2026 split models
+(`driving_vision.onnx` / `driving_policy.onnx`), which have been replaced upstream
+by the combined `driving_supercombo.onnx`. The rows are kept as historical
+reference; supercombo numbers are pending re-validation on DGX hardware.
 
 #### TensorRT FP16 (Recommended)
 
+Historical measurements (pre-July-2026 split models):
+
 | Model | Inference | FPS | vs tinygrad |
 |-------|-----------|-----|-------------|
-| driving_policy | 0.09ms | 11,355 | 659x faster |
-| driving_vision | 0.85ms | 1,181 | 432x faster |
+| driving_policy (historical) | 0.09ms | 11,355 | 659x faster |
+| driving_vision (historical) | 0.85ms | 1,181 | 432x faster |
 | dmonitoring | 0.28ms | 3,584 | 1,175x faster |
-| **Combined** | **1.21ms** | **824** | **620x faster** |
+| **Combined (historical)** | **1.21ms** | **824** | **620x faster** |
+| driving_supercombo | pending re-validation on DGX hardware | — | — |
 
-**TensorRT is 41x faster than comma 3X** (1.2ms vs ~50ms).
+**TensorRT was 41x faster than comma 3X** (1.2ms vs ~50ms) in the historical
+split-model benchmark.
 
 #### tinygrad CUDA (Not Optimized for Blackwell)
 
+Historical measurements (pre-July-2026 split models):
+
 | Model | Inference | FPS |
 |-------|-----------|-----|
-| driving_policy | 58ms | 17.2 |
-| driving_vision | 366ms | 2.7 |
+| driving_policy (historical) | 58ms | 17.2 |
+| driving_vision (historical) | 366ms | 2.7 |
 | dmonitoring | 328ms | 3.0 |
-| **Combined** | **514ms** | **1.9** |
+| **Combined (historical)** | **514ms** | **1.9** |
+| driving_supercombo | pending re-validation on DGX hardware | — |
 
 tinygrad's CUDA backend is not yet optimized for Blackwell architecture.
 Use TensorRT for production-level performance.
@@ -249,7 +261,7 @@ The DGX Spark is ideal for fine-tuning openpilot models using DoRA (Weight-Decom
 
 - **Parameter Efficient**: Only ~2-5% of parameters are trained
 - **Preserves Base Model**: Original weights are frozen, preventing catastrophic forgetting
-- **Fast Training**: With TensorRT teacher, pseudo-label generation runs at 800+ FPS
+- **Fast Training**: With TensorRT teacher, pseudo-label generation ran at 800+ FPS (historical split-model measurement; supercombo pending re-validation)
 - **Easy Deployment**: DoRA weights can be merged back into the base model for inference
 
 ### Quick Start Training
@@ -273,7 +285,7 @@ python openpilot/tools/dgx/training/train.py --data comma_car_segments --epochs 
 ```bash
 python openpilot/tools/dgx/training/train.py \
   --data /path/to/segments \    # Training data path
-  --model openpilot/selfdrive/modeld/models/driving_policy.onnx \
+  --model openpilot/selfdrive/modeld/models/driving_supercombo.onnx \
   --epochs 10 \                 # Number of training epochs
   --batch-size 32 \             # Batch size
   --lr 1e-4 \                   # Learning rate

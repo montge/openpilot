@@ -54,65 +54,26 @@ def main():
 
   models_dir = "openpilot/selfdrive/modeld/models"
 
-  # driving_policy
-  print("\n[driving_policy.onnx]")
-  policy = OnnxRunner(f"{models_dir}/driving_policy.onnx")
-  policy_inputs = {
-    "desire_pulse": Tensor(np.random.randn(1, 25, 8).astype(np.float16)),
-    "traffic_convention": Tensor(np.random.randn(1, 2).astype(np.float16)),
-    "features_buffer": Tensor(np.random.randn(1, 25, 512).astype(np.float16)),
-  }
-  stats = benchmark_model(policy, policy_inputs, args.warmup, args.runs)
-  print(f"  {stats['mean_ms']:.2f}ms +/- {stats['std_ms']:.2f}ms ({stats['fps']:.1f} FPS)")
+  def random_inputs(runner) -> dict:
+    inputs = {}
+    for k, v in runner.get_empty_input_data().items():
+      if "float" in str(v.dtype):
+        inputs[k] = Tensor(np.random.randn(*v.shape).astype(np.float32))
+      else:
+        inputs[k] = Tensor(np.random.randint(0, 255, v.shape, dtype=np.uint8))
+    return inputs
 
-  # driving_vision
-  print("\n[driving_vision.onnx]")
-  vision = OnnxRunner(f"{models_dir}/driving_vision.onnx")
-  vision_inputs = {
-    "img": Tensor(np.random.randint(0, 255, (1, 12, 128, 256), dtype=np.uint8)),
-    "big_img": Tensor(np.random.randint(0, 255, (1, 12, 128, 256), dtype=np.uint8)),
-  }
-  stats = benchmark_model(vision, vision_inputs, args.warmup, args.runs)
+  # driving_supercombo: merged vision+policy graph, one pass does everything
+  print("\n[driving_supercombo.onnx]")
+  supercombo = OnnxRunner(f"{models_dir}/driving_supercombo.onnx")
+  stats = benchmark_model(supercombo, random_inputs(supercombo), args.warmup, args.runs)
   print(f"  {stats['mean_ms']:.2f}ms +/- {stats['std_ms']:.2f}ms ({stats['fps']:.1f} FPS)")
 
   # dmonitoring_model
   print("\n[dmonitoring_model.onnx]")
   dmon = OnnxRunner(f"{models_dir}/dmonitoring_model.onnx")
-  dmon_empty = dmon.get_empty_input_data()
-  dmon_inputs = {}
-  for k, v in dmon_empty.items():
-    if "float" in str(v.dtype):
-      dmon_inputs[k] = Tensor(np.random.randn(*v.shape).astype(np.float32))
-    else:
-      dmon_inputs[k] = Tensor(np.random.randint(0, 255, v.shape, dtype=np.uint8))
-  stats = benchmark_model(dmon, dmon_inputs, args.warmup, args.runs)
+  stats = benchmark_model(dmon, random_inputs(dmon), args.warmup, args.runs)
   print(f"  {stats['mean_ms']:.2f}ms +/- {stats['std_ms']:.2f}ms ({stats['fps']:.1f} FPS)")
-
-  # Combined pipeline
-  print("\n[Combined Vision + Policy Pipeline]")
-  times = []
-  for _ in range(args.warmup):
-    vout = vision(vision_inputs)
-    for v in vout.values():
-      v.realize()
-    pout = policy(policy_inputs)
-    for v in pout.values():
-      v.realize()
-
-  for _ in range(args.runs):
-    start = time.perf_counter()
-    vout = vision(vision_inputs)
-    for v in vout.values():
-      v.realize()
-    pout = policy(policy_inputs)
-    for v in pout.values():
-      v.realize()
-    times.append(time.perf_counter() - start)
-
-  mean_ms = np.mean(times) * 1000
-  std_ms = np.std(times) * 1000
-  fps = 1 / np.mean(times)
-  print(f"  {mean_ms:.2f}ms +/- {std_ms:.2f}ms ({fps:.1f} FPS)")
 
   print("\n" + "=" * 60)
   print("Benchmark complete!")

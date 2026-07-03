@@ -10,6 +10,10 @@ from pathlib import Path
 
 import numpy as np
 
+from openpilot.selfdrive.modeld.constants import Plan
+from openpilot.selfdrive.modeld.get_model_metadata import make_metadata_dict
+from openpilot.selfdrive.modeld.parse_model_outputs import Parser
+
 # Type hints for optional imports
 try:
   import tensorrt as trt  # type: ignore[import-not-found]
@@ -107,12 +111,36 @@ class TensorRTEngine:
     return {name: buf.copy() for name, buf in self.outputs.items()}
 
 
+def parse_supercombo_outputs(raw_outputs: np.ndarray, output_slices: dict[str, slice]) -> dict[str, np.ndarray]:
+  """Decompose and parse the flat supercombo output vector.
+
+  Mirrors modeld's slice_outputs + Parser().parse_outputs flow
+  (openpilot/selfdrive/modeld/modeld.py), batched.
+
+  Args:
+    raw_outputs: (batch, N) flat combined model output
+    output_slices: name -> slice mapping from the ONNX-embedded metadata
+
+  Returns:
+    Parsed outputs keyed by name (plan, plan_stds, lane_lines, road_edges,
+    lead, meta, desire_state, hidden_state, ...). Values keep the batch dim.
+  """
+  # Parser mutates in place (softmax/exp on views), so slice copies
+  sliced = {k: raw_outputs[:, v].copy() for k, v in output_slices.items()}
+  return Parser().parse_outputs(sliced)
+
+
 class TeacherModel:
-  """Combined vision + policy teacher for pseudo-label generation."""
+  """Combined supercombo teacher for pseudo-label generation.
+
+  Runs the single driving_supercombo.onnx (merged vision+policy graph);
+  input/output specs come from the metadata embedded in the ONNX.
+  """
 
   def __init__(
     self,
     models_dir: str = "openpilot/selfdrive/modeld/models",
+    model_name: str = "driving_supercombo.onnx",
     fp16: bool = True,
     verbose: bool = False,
   ):
@@ -120,19 +148,17 @@ class TeacherModel:
     self.fp16 = fp16
     self.verbose = verbose
 
-    # Load models
-    print("Loading teacher models with TensorRT...")
-    self.vision = self._load_model("driving_vision.onnx")
-    self.policy = self._load_model("driving_policy.onnx")
-    print("Teacher models loaded!")
+    model_path = self.models_dir / model_name
+    if not model_path.exists():
+      raise FileNotFoundError(f"Model not found: {model_path}")
 
-  def _load_model(self, name: str) -> TensorRTEngine:
-    path = self.models_dir / name
-    if not path.exists():
-      raise FileNotFoundError(f"Model not found: {path}")
+    self.metadata = make_metadata_dict(model_path)
+    self.input_shapes: dict[str, tuple[int, ...]] = self.metadata["input_shapes"]
+    self.output_slices: dict[str, slice] = self.metadata["output_slices"]
 
-    print(f"  Building {name}...")
-    return TensorRTEngine(str(path), fp16=self.fp16, verbose=self.verbose)
+    print(f"Loading teacher model with TensorRT...\n  Building {model_name}...")
+    self.model = TensorRTEngine(str(model_path), fp16=self.fp16, verbose=self.verbose)
+    print("Teacher model loaded!")
 
   def generate_labels(
     self,
@@ -140,56 +166,70 @@ class TeacherModel:
     big_img: np.ndarray,
     desire: np.ndarray,
     traffic_convention: np.ndarray,
+    features_buffer: np.ndarray | None = None,
+    action_t: np.ndarray | None = None,
   ) -> dict[str, np.ndarray]:
     """Generate pseudo-labels for a batch of frames.
 
+    The engine is built for batch 1 (the ONNX has fixed shapes), so frames
+    are run one at a time. Without an explicit features_buffer the recurrent
+    feature history is zero (cold start) — fine for shuffled training frames,
+    but sequential streams get better labels by threading each frame's
+    returned features back in.
+
     Args:
-      img: (batch, 12, 128, 256) uint8 camera frames
+      img: (batch, 12, 128, 256) uint8 camera frames (2 stacked YUV frames)
       big_img: (batch, 12, 128, 256) uint8 wide camera frames
-      desire: (batch, 8) float16 desire vector
-      traffic_convention: (batch, 2) float16 traffic convention
+      desire: (batch, 8) desire vector, placed in the last desire_pulse step
+      traffic_convention: (batch, 2) traffic convention
+      features_buffer: (batch, 24, 512) prior feature history, zeros if None
+      action_t: (batch, 2) previous action, zeros if None
 
     Returns:
       Dictionary with:
-        - features: (batch, 512) visual features
-        - path_mean: (batch, num_hyp, horizon, 2) path predictions
-        - path_std: (batch, num_hyp, horizon, 2) uncertainties
-        - path_prob: (batch, num_hyp) hypothesis probabilities
+        - features: (batch, 512) hidden_state features (recurrent feedback)
+        - raw_outputs: (batch, N) flat model output
+        - path_mean: (batch, 1, 33, 3) plan position mean (single hypothesis)
+        - path_std: (batch, 1, 33, 3) plan position std
+        - path_prob: (batch, 1) hypothesis probability (always 1)
+        - all parsed outputs (plan, plan_stds, lane_lines, road_edges, lead, ...)
     """
-    # Vision model: extract features
-    vision_out = self.vision(img=img, big_img=big_img)
-
-    # Get features (assumed to be in vision output)
-    features = vision_out.get("features", vision_out.get("output", None))
-    if features is None:
-      # Take first output if key not found
-      features = list(vision_out.values())[0]
-
-    # Policy model: generate predictions
-    # Build features buffer for policy (1, 25, 512) from single frame features
     batch_size = img.shape[0]
-    features_buffer = np.zeros((batch_size, 25, 512), dtype=np.float16)
-    features_buffer[:, -1, :] = features.reshape(batch_size, -1)[:, :512]
+    pulse_shape = self.input_shapes["desire_pulse"][1:]  # (25, 8)
+    feat_shape = self.input_shapes["features_buffer"][1:]  # (24, 512)
 
-    # Desire pulse (1, 25, 8) from single desire
-    desire_pulse = np.zeros((batch_size, 25, 8), dtype=np.float16)
-    desire_pulse[:, -1, :] = desire
+    if features_buffer is None:
+      features_buffer = np.zeros((batch_size, *feat_shape), dtype=np.float32)
+    if action_t is None:
+      action_t = np.zeros((batch_size, self.input_shapes["action_t"][-1]), dtype=np.float32)
 
-    policy_out = self.policy(
-      desire_pulse=desire_pulse,
-      traffic_convention=traffic_convention,
-      features_buffer=features_buffer,
-    )
+    raw = []
+    for i in range(batch_size):
+      desire_pulse = np.zeros((1, *pulse_shape), dtype=np.float32)
+      desire_pulse[0, -1, :] = desire[i]
 
-    # Parse policy outputs
-    # Output shape is (1, 1000) - need to parse into structured predictions
-    outputs = policy_out.get("outputs", list(policy_out.values())[0])
+      out = self.model(
+        img=img[i : i + 1],
+        big_img=big_img[i : i + 1],
+        desire_pulse=desire_pulse,
+        traffic_convention=traffic_convention[i : i + 1],
+        features_buffer=features_buffer[i : i + 1],
+        action_t=action_t[i : i + 1],
+      )
+      raw.append(out.get("outputs", next(iter(out.values()))).reshape(1, -1))
 
+    raw_outputs = np.concatenate(raw, axis=0).astype(np.float32)
+    parsed = parse_supercombo_outputs(raw_outputs, self.output_slices)
+
+    plan = parsed["plan"]  # (batch, 33, 15)
+    plan_stds = parsed["plan_stds"]
     return {
-      "features": features,
-      "raw_outputs": outputs,
-      # TODO: Parse outputs into path_mean, path_std, path_prob
-      # This requires understanding the exact output format
+      **parsed,
+      "features": raw_outputs[:, self.output_slices["hidden_state"]],
+      "raw_outputs": raw_outputs,
+      "path_mean": plan[:, np.newaxis, :, Plan.POSITION],
+      "path_std": plan_stds[:, np.newaxis, :, Plan.POSITION],
+      "path_prob": np.ones((batch_size, 1), dtype=np.float32),
     }
 
 
@@ -199,31 +239,3 @@ def create_teacher(
 ) -> TeacherModel:
   """Factory function to create teacher model."""
   return TeacherModel(models_dir=models_dir, fp16=fp16)
-
-
-# Utility to parse model outputs
-def parse_policy_outputs(
-  raw_outputs: np.ndarray,
-  num_hypotheses: int = 5,
-  horizon: int = 33,
-) -> dict[str, np.ndarray]:
-  """Parse raw policy outputs into structured predictions.
-
-  The policy outputs 1000 values encoding:
-  - Path predictions for multiple hypotheses
-  - Lane lines
-  - Road edges
-  - Lead vehicle info
-
-  This is a placeholder - actual parsing requires reverse-engineering
-  the exact output format from openpilot's model metadata.
-  """
-  # TODO: Implement proper output parsing based on model metadata
-  # For now, return a simplified structure
-  batch_size = raw_outputs.shape[0]
-
-  return {
-    "path_mean": np.zeros((batch_size, num_hypotheses, horizon, 2)),
-    "path_std": np.ones((batch_size, num_hypotheses, horizon, 2)),
-    "path_prob": np.ones((batch_size, num_hypotheses)) / num_hypotheses,
-  }

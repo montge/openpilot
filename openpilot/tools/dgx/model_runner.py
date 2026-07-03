@@ -105,7 +105,7 @@ class ModelRunner:
 
   Usage:
     runner = ModelRunner(
-        model_path="openpilot/selfdrive/modeld/models/driving_policy.onnx",
+        model_path="openpilot/selfdrive/modeld/models/driving_supercombo.onnx",
         backend=Backend.TENSORRT,
         precision=Precision.FP16,
     )
@@ -333,28 +333,40 @@ class ModelRunner:
 
   def _create_dummy_inputs(self) -> dict[str, np.ndarray]:
     """Create dummy inputs for warmup."""
-    # Load metadata if available
-    metadata_path = self.model_path.with_name(self.model_path.stem + "_metadata.pkl")
-    if metadata_path.exists():
-      with open(metadata_path, "rb") as f:
-        metadata = pickle.load(f)
-        self.input_shapes = metadata.get("input_shapes", {})
+    # Driving models embed their metadata in the ONNX (there is no sidecar
+    # pkl for them anymore); dmonitoring still ships a *_metadata.pkl
+    if self.model_path.suffix == ".onnx":
+      try:
+        from openpilot.selfdrive.modeld.get_model_metadata import make_metadata_dict
+
+        self.input_shapes = make_metadata_dict(self.model_path)["input_shapes"]
+      except Exception:  # no embedded metadata / unparseable — fall through
+        pass
 
     if not self.input_shapes:
-      # Default shapes for openpilot models
-      if "vision" in str(self.model_path):
-        self.input_shapes = {
-          "input_img": (1, 12, 128, 256),
-          "calib": (1, 3),
-        }
-      elif "policy" in str(self.model_path):
-        self.input_shapes = {
-          "input": (1, 512),
-        }
-      else:
-        self.input_shapes = {"input": (1, 256)}
+      metadata_path = self.model_path.with_name(self.model_path.stem + "_metadata.pkl")
+      if metadata_path.exists():
+        with open(metadata_path, "rb") as f:
+          metadata = pickle.load(f)
+          self.input_shapes = metadata.get("input_shapes", {})
 
-    return {name: np.random.randn(*shape).astype(np.float32) for name, shape in self.input_shapes.items()}
+    if not self.input_shapes:
+      # Fallback: supercombo input spec
+      self.input_shapes = {
+        "img": (1, 12, 128, 256),
+        "big_img": (1, 12, 128, 256),
+        "desire_pulse": (1, 25, 8),
+        "traffic_convention": (1, 2),
+        "features_buffer": (1, 24, 512),
+        "action_t": (1, 2),
+      }
+
+    def dummy(name: str, shape: tuple[int, ...]) -> np.ndarray:
+      if "img" in name:  # camera inputs are uint8 YUV
+        return np.random.randint(0, 255, shape, dtype=np.uint8)
+      return np.random.randn(*shape).astype(np.float32)
+
+    return {name: dummy(name, shape) for name, shape in self.input_shapes.items()}
 
   def profile(
     self,

@@ -35,9 +35,11 @@ class LaplacianNLLLoss(nn.Module):
     """Compute Laplacian NLL loss.
 
     Args:
-      pred_mean: (batch, num_hypotheses, horizon, 2) predicted positions
-      pred_std: (batch, num_hypotheses, horizon, 2) predicted uncertainties
-      target: (batch, horizon, 2) ground truth positions
+      pred_mean: (batch, num_hypotheses, horizon, coords) predicted positions.
+        The supercombo plan head is a single-hypothesis MDN, so
+        num_hypotheses is 1 there (winner-takes-all degenerates gracefully).
+      pred_std: (batch, num_hypotheses, horizon, coords) predicted uncertainties
+      target: (batch, horizon, coords) ground truth positions
 
     Returns:
       Scalar loss value
@@ -122,9 +124,11 @@ class PathDistillationLoss(nn.Module):
 
     Args:
       pred: Dictionary with keys:
-        - 'path_mean': (batch, num_hyp, horizon, 2)
-        - 'path_std': (batch, num_hyp, horizon, 2)
-        - 'path_prob': (batch, num_hyp) hypothesis probabilities
+        - 'path_mean': (batch, num_hyp, horizon, coords); num_hyp=1 for the
+          single-hypothesis supercombo plan head
+        - 'path_std': (batch, num_hyp, horizon, coords)
+        - 'path_prob': (batch, num_hyp) optional; skipped when either side
+          omits it (no hypothesis weights in a single-hypothesis head)
         - 'lane_lines': (batch, num_lanes, horizon, 2) optional
         - 'road_edges': (batch, 2, horizon, 2) optional
       target: Dictionary with same structure from teacher
