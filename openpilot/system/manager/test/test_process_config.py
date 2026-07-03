@@ -221,7 +221,7 @@ class TestUblox:
 
     ublox(True, params, CP)
 
-    params.put_bool.assert_called_once_with("UbloxAvailable", True)
+    params.put_bool.assert_called_once_with("UbloxAvailable", True, block=True)
 
 
 class TestJoystick:
