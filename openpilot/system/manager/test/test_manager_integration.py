@@ -5,6 +5,7 @@ Uses mocks to avoid starting actual hardware-dependent processes.
 """
 
 import signal
+import sys
 import time
 from collections.abc import Callable
 from multiprocessing import Process
@@ -24,6 +25,11 @@ from openpilot.system.manager.process import (
 
 class DummyProcess(ManagerProcess):
   """A minimal test process for unit testing ManagerProcess behavior."""
+
+  # Stop children with SIGKILL: SIGINT raises KeyboardInterrupt inside the
+  # fork-started child, whose inherited pytest-xdist/execnet state can take
+  # down the whole test worker on Linux.
+  sigkill = True
 
   def __init__(self, name: str, should_run_fn: Callable | None = None, enabled: bool = True):
     self.name = name
@@ -51,6 +57,9 @@ class DummyProcess(ManagerProcess):
 
 def simple_target():
   """Target function for test processes."""
+  # Exit cleanly on SIGINT: a KeyboardInterrupt unwinding through state
+  # inherited from a fork-started pytest-xdist worker can crash the worker.
+  signal.signal(signal.SIGINT, lambda *_: sys.exit(0))
   time.sleep(60)
 
 
