@@ -30,6 +30,13 @@ def load_student_model(onnx_path: str, device: torch.device) -> nn.Module:
   """Load student model from ONNX and convert to PyTorch.
 
   Uses onnx2pytorch for conversion, then wraps for training.
+
+  KNOWN LIMITATION (validated on DGX Spark, 2026-07): neither onnx2pytorch
+  (0.5.3) nor onnx2torch can convert the opset-20 driving_supercombo.onnx —
+  they miss Cast v19, Gelu v20, Reshape allowzero=1, and the v18
+  axes-as-input Reduce* ops. Options until a converter catches up:
+  fine-tune in tinygrad (the model already runs there), or pin the last
+  split-model release (pre July 2026) for torch-based experiments.
   """
   try:
     import onnx
@@ -39,7 +46,14 @@ def load_student_model(onnx_path: str, device: torch.device) -> nn.Module:
 
   print(f"Loading student model from {onnx_path}...")
   onnx_model = onnx.load(onnx_path)
-  pytorch_model = ConvertModel(onnx_model)
+  try:
+    pytorch_model = ConvertModel(onnx_model)
+  except (KeyError, NotImplementedError) as e:
+    opsets = [(o.domain or "ai.onnx", o.version) for o in onnx_model.opset_import]
+    msg = f"onnx2pytorch cannot convert {onnx_path} (opsets {opsets}): {e!r}."
+    msg += " The combined driving_supercombo.onnx uses opset 20, which current ONNX->PyTorch converters do not support"
+    msg += " (Cast v19, Gelu v20, Reshape allowzero, Reduce* v18). See the load_student_model docstring for options."
+    raise RuntimeError(msg) from e
   pytorch_model = pytorch_model.to(device)
 
   return pytorch_model

@@ -63,7 +63,7 @@ July 2026 upstream restructure there is no separate vision stage: the combined
 `driving_supercombo.onnx` does vision + policy in a single forward pass.
 
 ```python
-# Teacher generates targets (800+ FPS measured historically on the split models)
+# Teacher generates targets (937 FPS measured on GB10, TensorRT 10.14, 2026-07)
 teacher = TensorRTEngine("driving_supercombo.onnx")
 
 # Model metadata (input_shapes, output_shapes, output_slices, model_checkpoint)
@@ -98,6 +98,13 @@ desire_state, pad) and parsed with `Parser().parse_outputs()` from
 - Lead vehicle detection
 
 ### 3. DoRA Fine-Tuning
+
+> **Known limitation (validated on DGX Spark, 2026-07)**: loading the student
+> currently fails — neither onnx2pytorch nor onnx2torch can convert the
+> opset-20 `driving_supercombo.onnx` to PyTorch (missing Cast v19, Gelu v20,
+> Reshape `allowzero`, and axes-as-input Reduce* v18). The TensorRT teacher
+> below works fully. Alternatives: fine-tune in tinygrad, or pin the last
+> split-model release for torch experiments.
 
 **DoRA** (Weight-Decomposed Low-Rank Adaptation):
 - Decomposes weights into magnitude and direction
@@ -260,7 +267,7 @@ openpilot/tools/dgx/
 
 DGX Spark advantages:
 - 128GB unified memory = large batch sizes
-- TensorRT teacher at 800+ FPS (historical split-model measurement) = fast pseudo-label generation
+- TensorRT teacher at 937 FPS (supercombo, measured on GB10 2026-07) = fast pseudo-label generation
 - Single device = no distributed training complexity
 
 ## Usage

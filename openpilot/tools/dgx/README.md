@@ -214,33 +214,29 @@ Options:
 - `--warmup N`: Number of warmup runs (default: 5)
 - `--beam N`: BEAM optimization level (default: 0, disabled)
 
-### Benchmark Results (2026-01, historical)
+### Benchmark Results
 
 Tested on DGX Spark (GB10, Blackwell, compute 12.1).
 
-**Note**: these numbers were measured against the pre-July-2026 split models
-(`driving_vision.onnx` / `driving_policy.onnx`), which have been replaced upstream
-by the combined `driving_supercombo.onnx`. The rows are kept as historical
-reference; supercombo numbers are pending re-validation on DGX hardware.
-
 #### TensorRT FP16 (Recommended)
 
-Historical measurements (pre-July-2026 split models):
+Measured 2026-07-03 (TensorRT 10.14, driver 580.159, combined model):
 
-| Model | Inference | FPS | vs tinygrad |
-|-------|-----------|-----|-------------|
-| driving_policy (historical) | 0.09ms | 11,355 | 659x faster |
-| driving_vision (historical) | 0.85ms | 1,181 | 432x faster |
-| dmonitoring | 0.28ms | 3,584 | 1,175x faster |
-| **Combined (historical)** | **1.21ms** | **824** | **620x faster** |
-| driving_supercombo | pending re-validation on DGX hardware | — | — |
+| Model | Inference | FPS |
+|-------|-----------|-----|
+| driving_supercombo | 1.07ms ± 0.10ms | 937 |
+| dmonitoring | 0.26ms ± 0.03ms | 3,891 |
+| **Combined pipeline** | **1.32ms** | **755** |
 
-**TensorRT was 41x faster than comma 3X** (1.2ms vs ~50ms) in the historical
-split-model benchmark.
+Engine build time: 23s (supercombo), 8s (dmonitoring). **TensorRT is ~38x
+faster than the comma 3X real-time budget** (1.3ms vs ~50ms).
+
+Historical split-model measurements (2026-01, pre-restructure): driving_policy
+0.09ms / driving_vision 0.85ms / combined 1.21ms (824 FPS, 620x over tinygrad).
 
 #### tinygrad CUDA (Not Optimized for Blackwell)
 
-Historical measurements (pre-July-2026 split models):
+Historical measurements (2026-01, pre-July-2026 split models):
 
 | Model | Inference | FPS |
 |-------|-----------|-----|
@@ -248,7 +244,7 @@ Historical measurements (pre-July-2026 split models):
 | driving_vision (historical) | 366ms | 2.7 |
 | dmonitoring | 328ms | 3.0 |
 | **Combined (historical)** | **514ms** | **1.9** |
-| driving_supercombo | pending re-validation on DGX hardware | — |
+| driving_supercombo | not yet measured (tinygrad's CPU-side compiler needs `clang` installed) |
 
 tinygrad's CUDA backend is not yet optimized for Blackwell architecture.
 Use TensorRT for production-level performance.
@@ -261,8 +257,15 @@ The DGX Spark is ideal for fine-tuning openpilot models using DoRA (Weight-Decom
 
 - **Parameter Efficient**: Only ~2-5% of parameters are trained
 - **Preserves Base Model**: Original weights are frozen, preventing catastrophic forgetting
-- **Fast Training**: With TensorRT teacher, pseudo-label generation ran at 800+ FPS (historical split-model measurement; supercombo pending re-validation)
+- **Fast Training**: With TensorRT teacher, pseudo-label generation runs at 937 FPS (supercombo, measured on GB10 2026-07)
 - **Easy Deployment**: DoRA weights can be merged back into the base model for inference
+
+> **Known limitation (2026-07)**: the student-model path is currently blocked —
+> neither onnx2pytorch nor onnx2torch can convert the opset-20
+> `driving_supercombo.onnx` to PyTorch (missing Cast v19, Gelu v20, Reshape
+> `allowzero`, and axes-as-input Reduce* v18 support). The TensorRT **teacher**
+> works fully. Until a converter catches up: fine-tune in tinygrad (the model
+> already runs there), or pin the last split-model release for torch experiments.
 
 ### Quick Start Training
 

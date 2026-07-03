@@ -61,11 +61,11 @@ print(f'EON: {HARDWARE.get_device_type()}')
 ```bash
 python openpilot/tools/dgx/benchmark_tensorrt.py --runs 50 --warmup 10
 ```
-Expected results (DGX Spark GB10):
-- [ ] driving_supercombo: < 2.5ms (target TBD on hardware; placeholder is the sum of the old split-model targets)
-- [ ] dmonitoring: < 1ms (>1000 FPS)
-- [ ] Combined: < 3.5ms (target TBD on hardware)
-- [ ] No CUDA errors or warnings
+Expected results (DGX Spark GB10; measured 2026-07-03, TensorRT 10.14):
+- [x] driving_supercombo: < 2.5ms (measured 1.07ms, 937 FPS)
+- [x] dmonitoring: < 1ms (measured 0.26ms, 3,891 FPS)
+- [x] Combined: < 3.5ms (measured 1.32ms, 755 FPS)
+- [x] No CUDA errors (two benign FP16 clamp precision warnings during engine build)
 
 ### 2.2 tinygrad CUDA Benchmark
 ```bash
