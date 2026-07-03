@@ -78,7 +78,6 @@ def test_download_ci_segment():
   assert path.stat().st_size > 0, f"Downloaded file is empty: {path}"
 
   print(f"Downloaded {path.stat().st_size / 1024 / 1024:.1f} MB to {path}")
-  return path
 
 
 def test_read_log():

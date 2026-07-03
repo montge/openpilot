@@ -676,6 +676,9 @@ class TestManagerThread:
     mocker.patch.dict('openpilot.system.manager.process_config.managed_processes', {})
     manager.manager_thread()
 
-    # IsOffroad starts True, flips to False after the onroad transition, and back to True after going offroad
-    assert offroad_values == [True, False, False, True]
+    # IsOffroad starts True, flips to False after the onroad transition, and back to True
+    # after going offroad. Loop iteration counts vary with timing, so assert on the
+    # deduplicated transition sequence rather than raw per-iteration samples.
+    transitions = [v for i, v in enumerate(offroad_values) if i == 0 or v != offroad_values[i - 1]]
+    assert transitions == [True, False, True]
     assert params.get_bool("IsOffroad") is True

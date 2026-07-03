@@ -26,7 +26,8 @@
 - [x] 5.1 Round 1: unit-test collection guards (stonesoup importorskip, fair hard_mining torch fallback); LFS checkout fix (git lfs pull honoring .lfsconfig, not fork GitHub LFS endpoint); harness PYTHONPATH
 - [x] 5.2 Round 2: uv sync --all-extras (imgui); harness dep closure (pycapnp/setproctitle/zstandard/requests/pyserial) + achievable gates (75 minimal / 85 pandas, measured 76/88); Build devel timeout 1->5 min; CodeQL fork-test alerts fixed with exact hostname/path assertions
 - [x] 5.3 CI rounds 3-4: clang for --coverage builds (upstream SConstruct defaults to gcc on x86); coverage gate aligned with workflow measurement + pandas (verified 90.2% locally); permissions blocks on fork workflows; lazy stonesoup package __init__ so test collection skips without the optional lib; SonarCloud scan skips gracefully when SONAR_TOKEN unset
-- [ ] 5.3b Confirm round-4 CI green; USER: if SonarCloud analysis is wanted, set/refresh the SONAR_TOKEN repo secret (scan currently skips without it)
+- [x] 5.3b Round 5: manager transition test asserts deduplicated transitions (loop-count varies on CI); dgx test_dataloader no longer returns a value; docs job timeout 60->180s (stock runners); Sonar scan non-blocking
+- [ ] 5.3c Confirm round-5 CI green
 - [x] 5.4 CodeQL: fork-test alerts fixed (exact assertions); 18 upstream-owned alerts dismissed as won't-fix with provenance comments (reversible in the scanning UI); fork workflows got permissions blocks
 
 ## 6. Land on develop
@@ -41,3 +42,4 @@
 - [ ] 7.4 Update remaining pre-restructure path references in openspec/ docs (~38 files, cosmetic); fix 3 pre-existing failing specs: `openspec validate algorithm-comparison|fair-integration|shadow-device --type spec` (config.yaml context block already updated in this change)
 - [ ] 7.5 Verify CUDA build-time selection on the DGX box (upstream modeld SConscript auto-probes; replaces the fork's dropped runtime DEV=CUDA hook)
 - [ ] 7.6 Consider raising algorithm-harness coverage back toward 90% (scenarios.py at 24%, shadow_adapter.py pandas-gated)
+- [ ] 7.7 SonarCloud: SONAR_TOKEN secret exists but is rejected — regenerate at sonarcloud.io, and migrate from deprecated sonarcloud-github-action@master to sonarqube-scan-action; then remove continue-on-error from the scan step

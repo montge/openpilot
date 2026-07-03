@@ -112,6 +112,11 @@ jobs:
 
       - name: SonarCloud Scan
         if: steps.sonar_token.outputs.available == 'true'
+        # fork: token currently rejected by SonarCloud (regenerate) and the
+        # @master action is deprecated -> migrate to sonarqube-scan-action;
+        # tracked in openspec sync-upstream-2026-07 task 7.7. Non-blocking
+        # until then.
+        continue-on-error: true
         uses: SonarSource/sonarcloud-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
