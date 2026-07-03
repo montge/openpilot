@@ -4,20 +4,20 @@ context: |
   Purpose: openpilot is an open-source driver assistance system for supported vehicles,
   providing adaptive cruise control and lane-keeping with a focus on safety-critical development.
 
-  Tech stack: Python 3.11+, C++17, Cap'n Proto (messaging), SCons (build), pytest, raylib (UI)
-  Code style: 2-space indent, 160 char lines, ruff (Python), clang-format/clang-tidy (C++)
+  Tech stack: Python 3.12, C++17, Cap'n Proto (messaging), SCons (build), pytest, raylib (UI)
+  Code style: 2-space indent, 160 char lines, ruff + ty (Python), clang-format/clang-tidy (C++)
   Imports: fully qualified from openpilot.* (e.g. from openpilot.selfdrive.controls.controlsd import ...)
   Time: use time.monotonic(), never time.time()
 
-  Architecture: process-based, managed by system/manager/manager.py
-  Messaging: ZeroMQ pub/sub defined in cereal/services.py
-  Hardware abstraction: system/hardware/
-  Car abstraction: selfdrive/car/
+  Architecture: process-based, managed by openpilot/system/manager/manager.py
+  Messaging: ZeroMQ pub/sub defined in openpilot/cereal/services.py
+  Hardware abstraction: openpilot/common/hardware/ (HAL); device services in openpilot/system/hardware/
+  Car abstraction: openpilot/selfdrive/car/
 
   Coverage: 80% per-component minimum, 85% safety-critical (monitoring), 80% patch minimum
   See codecov.yml for detailed component targets.
   Testing: pytest with OpenpilotPrefix isolation, markers @pytest.mark.tici (device), @pytest.mark.slow
-  Pre-commit hooks: ruff, mypy, codespell, openspec-validate
+  Pre-commit hooks: ruff, codespell, openspec-validate (type checking via ty in lint.sh)
 
   Git workflow: fork origin=montge/openpilot (push OK), upstream=commaai/openpilot (never push)
   Branches: git flow with master (production), develop (integration), feature/, bugfix/, release/, hotfix/
