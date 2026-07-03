@@ -13,6 +13,9 @@
 
 name: SPIN Protocol Verification
 
+permissions:
+  contents: read
+
 on:
   pull_request:
     paths:

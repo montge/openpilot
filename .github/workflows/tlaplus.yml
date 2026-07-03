@@ -11,6 +11,9 @@
 
 name: TLA+ Verification
 
+permissions:
+  contents: read
+
 on:
   pull_request:
     paths:

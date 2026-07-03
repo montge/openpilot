@@ -354,7 +354,7 @@ jobs:
       - name: Install Python dependencies
         run: |
           uv sync --frozen --all-extras
-          uv pip install pytest-cov coverage
+          uv pip install pytest-cov coverage pandas pyarrow
 
       - name: Build minimal project
         run: |

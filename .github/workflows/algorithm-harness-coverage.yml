@@ -3,6 +3,9 @@
 
 name: Algorithm Harness Coverage
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [develop, master]
