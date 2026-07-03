@@ -45,17 +45,15 @@ class TestCachePathForFilePath:
     with tempfile.TemporaryDirectory() as tmpdir:
       result = cache_path_for_file_path("https://example.com/path/to/file.txt", cache_dir=tmpdir)
 
-      assert "local" in result
-      assert "example.com" in result
-      assert "_path_to_file.txt" in result
+      assert os.path.basename(result) == "example.com__path_to_file.txt"
+      assert os.path.basename(os.path.dirname(result)) == "local"
 
   def test_http_url(self):
     """Test cache path for HTTP URL."""
     with tempfile.TemporaryDirectory() as tmpdir:
       result = cache_path_for_file_path("http://cdn.example.org/data/file.zst", cache_dir=tmpdir)
 
-      assert "cdn.example.org" in result
-      assert "_data_file.zst" in result
+      assert os.path.basename(result) == "cdn.example.org__data_file.zst"
 
   def test_different_files_different_paths(self):
     """Test different files produce different cache paths."""

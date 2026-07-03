@@ -1,6 +1,8 @@
 """Tests for openpilot/tools/lib/auth.py - OAuth authentication utilities."""
 
 import io
+from urllib.parse import urlparse
+
 import pytest
 
 from openpilot.tools.lib.auth import (
@@ -17,7 +19,7 @@ class TestAuthRedirectLink:
     """Test Google OAuth redirect URL."""
     url = auth_redirect_link('google')
 
-    assert 'accounts.google.com' in url
+    assert urlparse(url).hostname == 'accounts.google.com'
     assert 'client_id=' in url
     assert 'scope=' in url
     assert 'redirect_uri=' in url

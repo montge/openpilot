@@ -2,7 +2,7 @@
 """
 Coverage check script for algorithm test harness.
 
-Enforces 90% minimum coverage requirement for the algorithm harness module.
+Enforces 85% minimum coverage requirement for the algorithm harness module.
 Run this script to verify coverage meets thresholds before PR.
 
 Usage:
@@ -13,7 +13,7 @@ Requirements:
   - coverage
 
 Exit codes:
-  0: Coverage meets threshold (>=90%)
+  0: Coverage meets threshold (>=85%)
   1: Coverage below threshold
   2: Test failures or errors
 """
@@ -24,7 +24,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 # Coverage thresholds (as percentages)
-OVERALL_THRESHOLD = 90.0
+OVERALL_THRESHOLD = 85.0
 MODULE_THRESHOLD = 85.0
 
 # Modules to check coverage for

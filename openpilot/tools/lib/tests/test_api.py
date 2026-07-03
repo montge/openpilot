@@ -1,6 +1,7 @@
 """Tests for openpilot/tools/lib/api.py - CommaApi client."""
 
 import pytest
+from urllib.parse import urlparse
 
 from openpilot.tools.lib.api import (
   API_HOST,
@@ -322,7 +323,7 @@ class TestAPIHost:
   def test_default_host(self):
     """Test API_HOST has default value."""
     # Note: API_HOST is set at module load time from env
-    assert 'commadotai.com' in API_HOST
+    assert urlparse(API_HOST).hostname == 'api.commadotai.com'
 
   def test_host_is_https(self):
     """Test default API_HOST uses HTTPS."""

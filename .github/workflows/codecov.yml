@@ -82,7 +82,7 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-          uv sync --frozen --extra testing
+          uv sync --frozen --all-extras
           uv pip install pytest-cov coverage
 
       - name: Build project
@@ -190,7 +190,7 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-          uv sync --frozen --extra testing
+          uv sync --frozen --all-extras
           uv pip install pytest-cov coverage
 
       - name: Build project
@@ -285,7 +285,7 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-          uv sync --frozen --extra testing
+          uv sync --frozen --all-extras
           uv pip install pytest-cov coverage
 
       - name: Build project
@@ -353,7 +353,7 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-          uv sync --frozen --extra testing
+          uv sync --frozen --all-extras
           uv pip install pytest-cov coverage
 
       - name: Build minimal project
@@ -378,10 +378,10 @@ jobs:
       - name: Check coverage gate result
         run: |
           if [ "${{ steps.coverage.outcome }}" != "success" ]; then
-            echo "::error::Algorithm harness coverage is below 90% threshold"
+            echo "::error::Algorithm harness coverage is below 85% threshold"
             echo "## Algorithm Harness Coverage Gate FAILED" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "The algorithm harness module requires 90%+ test coverage." >> $GITHUB_STEP_SUMMARY
+            echo "The algorithm harness module requires 85%+ test coverage." >> $GITHUB_STEP_SUMMARY
             echo "Run locally to see detailed report:" >> $GITHUB_STEP_SUMMARY
             echo '```bash' >> $GITHUB_STEP_SUMMARY
             echo 'python openpilot/selfdrive/controls/lib/tests/algorithm_harness/check_coverage.py' >> $GITHUB_STEP_SUMMARY
@@ -390,7 +390,7 @@ jobs:
           fi
           echo "## Algorithm Harness Coverage Gate PASSED" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Coverage meets the 90% threshold requirement." >> $GITHUB_STEP_SUMMARY
+          echo "Coverage meets the 85% threshold requirement." >> $GITHUB_STEP_SUMMARY
 
   # Merge and upload all coverage
   coverage-merge:

@@ -1,6 +1,7 @@
 """Tests for common/api.py - API utilities."""
 
 import os
+from urllib.parse import urlparse
 import tempfile
 
 
@@ -18,7 +19,7 @@ class TestApiConstants:
 
   def test_api_host_default(self):
     """Test API_HOST has a default value."""
-    assert "commadotai.com" in API_HOST
+    assert urlparse(API_HOST).hostname == 'api.commadotai.com'
 
   def test_keys_contains_rsa(self):
     """Test KEYS contains RSA algorithm."""

@@ -77,7 +77,7 @@ jobs:
             libavfilter-dev
 
       - name: Install Python dependencies
-        run: uv sync --frozen --extra testing
+        run: uv sync --frozen --all-extras
 
       - name: Build C++ with coverage
         run: |

@@ -82,7 +82,7 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-          uv sync --frozen --extra testing
+          uv sync --frozen --all-extras
           # Install coverage tools (may not be in frozen lockfile)
           uv pip install pytest-cov coverage
 
