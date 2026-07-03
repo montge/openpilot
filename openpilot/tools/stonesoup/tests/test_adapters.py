@@ -4,6 +4,10 @@ import numpy as np
 from stonesoup.types.array import StateVector
 from stonesoup.types.state import GaussianState
 
+import pytest
+
+pytest.importorskip("stonesoup")
+
 from openpilot.tools.stonesoup.adapters import OpenpilotAdapter
 
 

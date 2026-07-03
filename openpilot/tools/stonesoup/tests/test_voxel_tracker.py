@@ -1,6 +1,10 @@
 """Tests for voxel grid tracker."""
 import numpy as np
 
+import pytest
+
+pytest.importorskip("stonesoup")
+
 from openpilot.tools.stonesoup.voxel_tracker import (
   GPUVoxelGrid,
   SparseVoxelGrid,

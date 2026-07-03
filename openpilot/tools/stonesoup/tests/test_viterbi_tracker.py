@@ -1,6 +1,10 @@
 """Tests for Viterbi track association."""
 import numpy as np
 
+import pytest
+
+pytest.importorskip("stonesoup")
+
 from openpilot.tools.stonesoup.viterbi_tracker import (
   Detection,
   HungarianTracker,

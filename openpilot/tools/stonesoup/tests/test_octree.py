@@ -1,6 +1,10 @@
 """Tests for octree spatial index."""
 import numpy as np
 
+import pytest
+
+pytest.importorskip("stonesoup")
+
 from openpilot.tools.stonesoup.octree import (
   BenchmarkResult,
   BoundingBox,

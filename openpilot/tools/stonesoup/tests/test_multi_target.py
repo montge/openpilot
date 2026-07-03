@@ -1,5 +1,9 @@
 """Tests for multi-target tracking comparison."""
 
+import pytest
+
+pytest.importorskip("stonesoup")
+
 from openpilot.tools.stonesoup.multi_target import (
   GNNTrackerWrapper,
   JPDATrackerWrapper,

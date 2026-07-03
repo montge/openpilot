@@ -1,6 +1,10 @@
 """Tests for track-to-track fusion."""
 import numpy as np
 
+import pytest
+
+pytest.importorskip("stonesoup")
+
 from openpilot.tools.stonesoup.track_fusion import (
   FusedState,
   FusionMetrics,
