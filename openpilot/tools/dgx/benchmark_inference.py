@@ -45,7 +45,7 @@ def main():
     os.environ["BEAM"] = str(args.beam)
 
   from tinygrad import Device, Tensor
-  from tinygrad.frontend.onnx import OnnxRunner  # type: ignore[import-not-found]
+  from tinygrad.nn.onnx import OnnxRunner  # type: ignore[import-not-found]
 
   Device.DEFAULT = "CUDA"
   print(f"Device: {Device.DEFAULT}")
