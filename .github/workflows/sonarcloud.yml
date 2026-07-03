@@ -100,7 +100,18 @@ jobs:
             --ignore=tinygrad_repo --ignore=third_party \
             -x -n auto --timeout=300 || true
 
+      - name: Check for SonarCloud token
+        id: sonar_token
+        run: |
+          if [ -n "${{ secrets.SONAR_TOKEN }}" ]; then
+            echo "available=true" >> $GITHUB_OUTPUT
+          else
+            echo "available=false" >> $GITHUB_OUTPUT
+            echo "::warning::SONAR_TOKEN secret not set; skipping SonarCloud scan"
+          fi
+
       - name: SonarCloud Scan
+        if: steps.sonar_token.outputs.available == 'true'
         uses: SonarSource/sonarcloud-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

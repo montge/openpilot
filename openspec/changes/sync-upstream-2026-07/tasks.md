@@ -25,8 +25,9 @@
 ## 5. CI Green on PR #46  <-- PICKUP HERE
 - [x] 5.1 Round 1: unit-test collection guards (stonesoup importorskip, fair hard_mining torch fallback); LFS checkout fix (git lfs pull honoring .lfsconfig, not fork GitHub LFS endpoint); harness PYTHONPATH
 - [x] 5.2 Round 2: uv sync --all-extras (imgui); harness dep closure (pycapnp/setproctitle/zstandard/requests/pyserial) + achievable gates (75 minimal / 85 pandas, measured 76/88); Build devel timeout 1->5 min; CodeQL fork-test alerts fixed with exact hostname/path assertions
-- [ ] 5.3 Review round-2 CI results (`gh pr checks 46 --repo montge/openpilot`); triage any remaining failures
-- [ ] 5.4 Decide on 5 remaining CodeQL alerts in upstream-owned code (dismiss as upstream, or leave open)
+- [x] 5.3 CI rounds 3-4: clang for --coverage builds (upstream SConstruct defaults to gcc on x86); coverage gate aligned with workflow measurement + pandas (verified 90.2% locally); permissions blocks on fork workflows; lazy stonesoup package __init__ so test collection skips without the optional lib; SonarCloud scan skips gracefully when SONAR_TOKEN unset
+- [ ] 5.3b Confirm round-4 CI green; USER: if SonarCloud analysis is wanted, set/refresh the SONAR_TOKEN repo secret (scan currently skips without it)
+- [x] 5.4 CodeQL: fork-test alerts fixed (exact assertions); 18 upstream-owned alerts dismissed as won't-fix with provenance comments (reversible in the scanning UI); fork workflows got permissions blocks
 
 ## 6. Land on develop
 - [ ] 6.1 Merge PR #46 (GitHub UI) OR fast-forward-push local develop (`git push --no-verify origin develop`) which auto-marks the PR merged with identical SHAs
