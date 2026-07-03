@@ -38,7 +38,7 @@ The test harness will have three layers:
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│            CLI / Reporting (tools/algo_bench.py)    │
+│            CLI / Reporting (openpilot/tools/algo_bench.py)    │
 ├─────────────────────────────────────────────────────┤
 │    Scenario Runner (algorithm_harness/runner.py)    │
 ├─────────────────────────────────────────────────────┤

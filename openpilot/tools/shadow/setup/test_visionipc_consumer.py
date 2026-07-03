@@ -10,10 +10,10 @@ Usage:
   python3 ~/termux_camera_server.py --port 8080
 
   # Terminal 2: Start camera bridge (in proot)
-  python3 tools/shadow/setup/camera_bridge.py --url http://<ip>:8080
+  python3 openpilot/tools/shadow/setup/camera_bridge.py --url http://<ip>:8080
 
   # Terminal 3: Run this consumer test (in proot)
-  python3 tools/shadow/setup/test_visionipc_consumer.py
+  python3 openpilot/tools/shadow/setup/test_visionipc_consumer.py
 """
 
 import os
@@ -22,13 +22,13 @@ import time
 
 # Ensure openpilot root is in path
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-_OPENPILOT_ROOT = os.path.abspath(os.path.join(_SCRIPT_DIR, "..", "..", ".."))
+_OPENPILOT_ROOT = os.path.abspath(os.path.join(_SCRIPT_DIR, "..", "..", "..", ".."))
 if _OPENPILOT_ROOT not in sys.path:
     sys.path.insert(0, _OPENPILOT_ROOT)
 
 try:
     from msgq.visionipc import VisionIpcClient, VisionStreamType
-    from cereal import messaging
+    from openpilot.cereal import messaging
 except ImportError as e:
     print(f"Import error: {e}")
     print("Make sure msgq is built: cd msgq_repo && scons -j2")
@@ -135,7 +135,7 @@ def main():
     if not available:
         print("\nNo VisionIPC server running.")
         print("Start camera_bridge.py first:")
-        print("  python3 tools/shadow/setup/camera_bridge.py --url http://<ip>:8080")
+        print("  python3 openpilot/tools/shadow/setup/camera_bridge.py --url http://<ip>:8080")
         return 1
 
     # Test 2: Frame reception

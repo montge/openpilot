@@ -7,7 +7,7 @@ complementing the unit tests with broader coverage.
 from hypothesis import given, settings, HealthCheck
 from hypothesis import strategies as st
 
-from cereal import log
+from openpilot.cereal import log
 
 from openpilot.selfdrive.controls.lib.desire_helper import (
   DesireHelper,

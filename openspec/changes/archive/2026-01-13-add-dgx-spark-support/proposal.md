@@ -28,7 +28,7 @@ The DGX Spark's specifications make it well-suited:
   - Memory-efficient model loading for unified memory
   - Optional FP4/NVFP4 precision support
 
-- **Add Development Mode** (`tools/dgx/`):
+- **Add Development Mode** (`openpilot/tools/dgx/`):
   - Model inference benchmarking
   - Training/fine-tuning utilities (DoRA integration)
   - Simulation acceleration hooks

@@ -68,7 +68,7 @@ openpilot is an operating system for robotics, currently used as a driver assist
 
 ### Messaging System
 
-Processes communicate via ZeroMQ-based pub/sub defined in `cereal/`. Each service has a defined frequency in `cereal/services.py`. Use `cereal.messaging` for publishing/subscribing.
+Processes communicate via ZeroMQ-based pub/sub defined in `openpilot/cereal/`. Each service has a defined frequency in `openpilot/cereal/services.py`. Use `openpilot.cereal.messaging` for publishing/subscribing.
 
 ### Build System
 
@@ -83,7 +83,7 @@ Use fully qualified imports starting with `openpilot.`:
 ```python
 from openpilot.selfdrive.controls.controlsd import ...
 from openpilot.common.params import Params
-from openpilot.system.hardware import HARDWARE
+from openpilot.common.hardware import HARDWARE
 ```
 
 Banned imports (enforced by ruff): `selfdrive`, `common`, `system`, `tools`, `third_party` without `openpilot.` prefix.
@@ -117,44 +117,44 @@ Remotes:
 ## Safety Critical Code
 
 The safety model is enforced in panda firmware (see `opendbc/safety/`). Never disable or weaken:
-- Driver monitoring in `selfdrive/monitoring/`
-- Actuation limits in `selfdrive/selfdrived/helpers.py`
+- Driver monitoring in `openpilot/selfdrive/monitoring/`
+- Actuation limits in `openpilot/selfdrive/selfdrived/helpers.py`
 
 ## NVIDIA / DGX Spark Development
 
-The `tools/dgx/` directory contains utilities for developing on NVIDIA hardware:
+The `openpilot/tools/dgx/` directory contains utilities for developing on NVIDIA hardware:
 
 ### Quick Start
 ```bash
 # Run setup and GPU check
-python tools/dgx/setup.py --check
+python openpilot/tools/dgx/setup.py --check
 
 # Benchmark with TensorRT (recommended - 800+ FPS)
 pip install tensorrt
-python tools/dgx/benchmark_tensorrt.py
+python openpilot/tools/dgx/benchmark_tensorrt.py
 
 # Monitor GPU during development
-python tools/dgx/gpu_monitor.py --monitor
+python openpilot/tools/dgx/gpu_monitor.py --monitor
 ```
 
 ### Key Files
-- `tools/dgx/setup.py` - Environment setup and GPU detection
-- `tools/dgx/benchmark_tensorrt.py` - TensorRT performance benchmark
-- `tools/dgx/gpu_monitor.py` - Memory and utilization monitoring
-- `tools/dgx/training/` - DoRA fine-tuning pipeline
+- `openpilot/tools/dgx/setup.py` - Environment setup and GPU detection
+- `openpilot/tools/dgx/benchmark_tensorrt.py` - TensorRT performance benchmark
+- `openpilot/tools/dgx/gpu_monitor.py` - Memory and utilization monitoring
+- `openpilot/tools/dgx/training/` - DoRA fine-tuning pipeline
 
 ### DoRA Fine-Tuning
 For model fine-tuning on DGX Spark:
 ```bash
 pip install torch onnx2pytorch tensorrt
-python tools/dgx/training/train.py --data ci --epochs 5
+python openpilot/tools/dgx/training/train.py --data ci --epochs 5
 ```
 
-See `tools/dgx/README.md` for complete documentation.
+See `openpilot/tools/dgx/README.md` for complete documentation.
 
 ### Hardware Detection
 ```python
-from openpilot.system.hardware.nvidia.gpu import (
+from openpilot.common.hardware.nvidia.gpu import (
     is_nvidia_available, get_best_gpu, get_recommended_precision
 )
 
@@ -167,4 +167,4 @@ if is_nvidia_available():
 - TensorRT achieves 620x speedup over tinygrad on Blackwell GPUs
 - tinygrad CUDA backend is not optimized for Blackwell architecture
 - Training code requires PyTorch (not included in base openpilot env)
-- Models are split: `driving_policy.onnx`, `driving_vision.onnx`, `dmonitoring_model.onnx`
+- Models: `driving_supercombo.onnx` (combined vision+policy), `big_driving_supercombo.onnx`, `dmonitoring_model.onnx`

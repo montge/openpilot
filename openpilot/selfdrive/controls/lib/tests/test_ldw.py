@@ -1,6 +1,6 @@
 """Tests for selfdrive/controls/lib/ldw.py - Lane Departure Warning."""
 
-from cereal import log
+from openpilot.cereal import log
 
 from openpilot.common.constants import CV
 from openpilot.selfdrive.controls.lib.ldw import (

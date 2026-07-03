@@ -1,4 +1,4 @@
-"""Tests for tools/lib/sanitizer.py - route sanitization utilities."""
+"""Tests for openpilot/tools/lib/sanitizer.py - route sanitization utilities."""
 
 from openpilot.tools.lib.sanitizer import (
   sanitize_vin,

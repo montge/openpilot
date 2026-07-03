@@ -25,7 +25,7 @@ from typing import Optional
 
 # Ensure openpilot root is in path for msgq/cereal imports
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-_OPENPILOT_ROOT = os.path.abspath(os.path.join(_SCRIPT_DIR, "..", "..", ".."))
+_OPENPILOT_ROOT = os.path.abspath(os.path.join(_SCRIPT_DIR, "..", "..", "..", ".."))
 if _OPENPILOT_ROOT not in sys.path:
     sys.path.insert(0, _OPENPILOT_ROOT)
 
@@ -42,7 +42,7 @@ VIPC_AVAILABLE = False
 try:
     import av
     from msgq.visionipc import VisionIpcServer, VisionStreamType
-    from cereal import messaging
+    from openpilot.cereal import messaging
     VIPC_AVAILABLE = True
 except ImportError:
     pass

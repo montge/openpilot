@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from cereal import car
+from opendbc.car.structs import car
 from opendbc.car.interfaces import ACCEL_MIN, ACCEL_MAX
 from openpilot.selfdrive.controls.lib.longitudinal_planner import (
   LongitudinalPlanner,

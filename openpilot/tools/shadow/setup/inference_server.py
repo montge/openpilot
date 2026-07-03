@@ -39,7 +39,7 @@ from typing import Optional
 
 # Ensure openpilot root is in path
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-_OPENPILOT_ROOT = os.path.abspath(os.path.join(_SCRIPT_DIR, "..", "..", ".."))
+_OPENPILOT_ROOT = os.path.abspath(os.path.join(_SCRIPT_DIR, "..", "..", "..", ".."))
 if _OPENPILOT_ROOT not in sys.path:
   sys.path.insert(0, _OPENPILOT_ROOT)
 
@@ -57,7 +57,7 @@ VIPC_AVAILABLE = False
 try:
   import av  # type: ignore[import-not-found]
   from msgq.visionipc import VisionIpcServer, VisionStreamType
-  from cereal import messaging
+  from openpilot.cereal import messaging
 
   VIPC_AVAILABLE = True
 except ImportError:
@@ -166,10 +166,10 @@ class InferenceServer:
       print("WARNING: Cannot start modeld without VisionIPC")
       return False
 
-    modeld_path = os.path.join(_OPENPILOT_ROOT, "selfdrive", "modeld", "modeld")
+    modeld_path = os.path.join(_OPENPILOT_ROOT, "openpilot", "selfdrive", "modeld", "modeld")
     if not os.path.exists(modeld_path):
       # Try Python entry point
-      modeld_path = os.path.join(_OPENPILOT_ROOT, "selfdrive", "modeld", "modeld.py")
+      modeld_path = os.path.join(_OPENPILOT_ROOT, "openpilot", "selfdrive", "modeld", "modeld.py")
       if not os.path.exists(modeld_path):
         print("WARNING: modeld not found at selfdrive/modeld/modeld[.py]")
         print("Run 'scons -u -j$(nproc)' to build modeld first")

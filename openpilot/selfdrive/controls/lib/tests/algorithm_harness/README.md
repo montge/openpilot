@@ -44,16 +44,16 @@ print(f"Mean Latency: {result.metrics.latency_mean_ms:.2f}ms")
 
 ```bash
 # Generate seed scenarios
-python tools/algo_bench.py generate-scenarios --output ./scenarios
+python openpilot/tools/algo_bench.py generate-scenarios --output ./scenarios
 
 # List available scenarios
-python tools/algo_bench.py list --scenarios ./scenarios
+python openpilot/tools/algo_bench.py list --scenarios ./scenarios
 
 # Run benchmark
-python tools/algo_bench.py run --algorithm lateral_pid --scenarios ./scenarios
+python openpilot/tools/algo_bench.py run --algorithm lateral_pid --scenarios ./scenarios
 
 # Compare algorithms
-python tools/algo_bench.py compare \
+python openpilot/tools/algo_bench.py compare \
     --baseline lateral_pid \
     --candidate lateral_torque \
     --scenarios ./scenarios
@@ -131,7 +131,7 @@ def test_my_algorithm(scenario_runner, highway_straight_scenario):
 This module maintains **90%+ test coverage**. Run coverage locally:
 
 ```bash
-pytest selfdrive/controls/lib/tests/algorithm_harness/ \
+pytest openpilot/selfdrive/controls/lib/tests/algorithm_harness/ \
     --cov=selfdrive.controls.lib.tests.algorithm_harness \
     --cov-report=html
 ```
@@ -232,14 +232,14 @@ print(f'Loaded: {scenario.name}, {len(scenario)} steps')
 "
 
 # Run benchmark
-python tools/algo_bench.py run \
+python openpilot/tools/algo_bench.py run \
     --algorithm lateral_pid \
     --scenarios path/to/scenarios/
 ```
 
 ### Submitting Scenarios
 
-1. Place scenario files in `tools/lib/test_scenarios/`
+1. Place scenario files in `openpilot/tools/lib/test_scenarios/`
 2. Add an entry to the scenario catalog (if applicable)
 3. Include a test that validates the scenario loads correctly
 4. Document any special characteristics in the PR description
@@ -271,7 +271,7 @@ The algorithm harness maintains a **90%+ code coverage** target for source files
 
 ```bash
 # Navigate to harness directory
-cd selfdrive/controls/lib/tests/algorithm_harness
+cd openpilot/selfdrive/controls/lib/tests/algorithm_harness
 
 # Run tests with coverage (basic - no pandas/pyarrow)
 pytest . -n0 --cov=. --cov-config=.coveragerc --cov-report=term-missing
@@ -338,10 +338,10 @@ For lightweight algorithms (<1ms per step), sequential execution is often faster
 
 ```bash
 # Run parallel benchmark
-python tools/dgx/benchmark_parallel.py --scenarios 100 --steps 5000
+python openpilot/tools/dgx/benchmark_parallel.py --scenarios 100 --steps 5000
 
 # With algorithm harness scenarios
-python tools/dgx/algorithm_harness_gpu.py
+python openpilot/tools/dgx/algorithm_harness_gpu.py
 ```
 
 ### GPU Metrics Acceleration
@@ -356,4 +356,4 @@ latencies = np.array([...])  # 10000+ samples
 p50, p95, p99 = accelerator.percentiles(latencies, [50, 95, 99])
 ```
 
-See `tools/dgx/README.md` for full GPU acceleration documentation.
+See `openpilot/tools/dgx/README.md` for full GPU acceleration documentation.

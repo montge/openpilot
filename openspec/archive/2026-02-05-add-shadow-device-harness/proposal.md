@@ -16,13 +16,13 @@ The OnePlus 6 is ideal because:
 
 ## What Changes
 
-- **Add Shadow Device Mode** (`system/hardware/shadow_mode.py`):
+- **Add Shadow Device Mode** (`openpilot/common/hardware/shadow_mode.py`):
   - Detect when running as shadow device (not connected to panda)
   - Disable all actuator outputs (steering, gas, brake)
   - Enable full sensor pipeline (cameras, GPS, IMU)
   - Log all control outputs for comparison
 
-- **Add Comparison Logger** (`tools/shadow/comparison_logger.py`):
+- **Add Comparison Logger** (`openpilot/tools/shadow/comparison_logger.py`):
   - Capture model outputs, planned trajectories, control commands
   - Timestamp synchronization between shadow and primary device
   - Export format for offline analysis
@@ -32,7 +32,7 @@ The OnePlus 6 is ideal because:
   - Power supply considerations
   - WiFi/USB tethering for log sync
 
-- **Add Comparison Analysis Tools** (`tools/shadow/analyze.py`):
+- **Add Comparison Analysis Tools** (`openpilot/tools/shadow/analyze.py`):
   - Align logs from shadow and primary device
   - Compute divergence metrics (model outputs, control commands)
   - Visualize differences over time

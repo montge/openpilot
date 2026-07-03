@@ -15,8 +15,8 @@ on:
   pull_request:
     paths:
       - 'verification/tlaplus/**'
-      - 'selfdrive/selfdrived/state.py'
-      - 'selfdrive/selfdrived/events.py'
+      - 'openpilot/selfdrive/selfdrived/state.py'
+      - 'openpilot/selfdrive/selfdrived/events.py'
       - '.github/workflows/tlaplus.yml'
   push:
     branches:
@@ -24,8 +24,8 @@ on:
       - develop
     paths:
       - 'verification/tlaplus/**'
-      - 'selfdrive/selfdrived/state.py'
-      - 'selfdrive/selfdrived/events.py'
+      - 'openpilot/selfdrive/selfdrived/state.py'
+      - 'openpilot/selfdrive/selfdrived/events.py'
 
 jobs:
   tlaplus:

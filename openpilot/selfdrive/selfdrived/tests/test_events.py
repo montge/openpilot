@@ -1,6 +1,8 @@
 """Tests for selfdrive/selfdrived/events.py - event types and alerts."""
 
-from cereal import log, car
+from opendbc.car.structs import car
+
+from openpilot.cereal import log
 from openpilot.selfdrive.selfdrived.events import (
   Priority,
   ET,

@@ -25,35 +25,35 @@ coverage:
         target: 95%
         threshold: 0.5%
         paths:
-          - "selfdrive/controls/"
+          - "openpilot/selfdrive/controls/"
         informational: false
 
       car:
         target: 90%
         threshold: 1%
         paths:
-          - "selfdrive/car/"
+          - "openpilot/selfdrive/car/"
         informational: false
 
       selfdrived:
         target: 90%
         threshold: 1%
         paths:
-          - "selfdrive/selfdrived/"
+          - "openpilot/selfdrive/selfdrived/"
         informational: false
 
       monitoring:
         target: 85%
         threshold: 1%
         paths:
-          - "selfdrive/monitoring/"
+          - "openpilot/selfdrive/monitoring/"
         informational: false
 
       locationd:
         target: 85%
         threshold: 1%
         paths:
-          - "selfdrive/locationd/"
+          - "openpilot/selfdrive/locationd/"
         informational: false
 
       # System modules
@@ -61,7 +61,7 @@ coverage:
         target: 80%
         threshold: 2%
         paths:
-          - "system/"
+          - "openpilot/system/"
         informational: false
 
       # Tools
@@ -69,14 +69,14 @@ coverage:
         target: 80%
         threshold: 2%
         paths:
-          - "tools/"
+          - "openpilot/tools/"
         informational: false
 
       common:
         target: 85%
         threshold: 1%
         paths:
-          - "common/"
+          - "openpilot/common/"
         informational: false
 
       # C++ coverage targets
@@ -115,14 +115,13 @@ comment:
 
 # Ignore generated code, third-party, and submodules
 ignore:
-  - "third_party/**"
   - "msgq_repo/**"
   - "opendbc_repo/**"
   - "panda/**"
   - "rednose_repo/**"
   - "tinygrad_repo/**"
   - "teleoprtc_repo/**"
-  - "cereal/**"
+  - "openpilot/cereal/gen/**"
   - "**/c_generated_code/**"
   - "**/generated/**"
   - "**/*.capnp"
@@ -130,33 +129,33 @@ ignore:
 flags:
   unittests:
     paths:
-      - "selfdrive/"
-      - "system/"
-      - "common/"
-      - "tools/"
+      - "openpilot/selfdrive/"
+      - "openpilot/system/"
+      - "openpilot/common/"
+      - "openpilot/tools/"
     carryforward: true
 
   # C++ coverage flags
   cpp:
     paths:
-      - "common/"
-      - "system/"
-      - "selfdrive/pandad/"
-      - "tools/cabana/"
-      - "tools/replay/"
+      - "openpilot/common/"
+      - "openpilot/system/"
+      - "openpilot/selfdrive/pandad/"
+      - "openpilot/tools/cabana/"
+      - "openpilot/tools/replay/"
     carryforward: true
 
   cpp-core:
     paths:
-      - "common/"
-      - "system/"
-      - "selfdrive/pandad/"
+      - "openpilot/common/"
+      - "openpilot/system/"
+      - "openpilot/selfdrive/pandad/"
     carryforward: true
 
   cpp-tools:
     paths:
-      - "tools/cabana/"
-      - "tools/replay/"
+      - "openpilot/tools/cabana/"
+      - "openpilot/tools/replay/"
     carryforward: true
 
 component_management:
@@ -168,49 +167,49 @@ component_management:
     - component_id: controls
       name: Controls (Safety Critical)
       paths:
-        - selfdrive/controls/**
+        - openpilot/selfdrive/controls/**
     - component_id: car
       name: Car Interface
       paths:
-        - selfdrive/car/**
+        - openpilot/selfdrive/car/**
     - component_id: selfdrived
       name: Self-Driving State Machine
       paths:
-        - selfdrive/selfdrived/**
+        - openpilot/selfdrive/selfdrived/**
     - component_id: monitoring
       name: Driver Monitoring
       paths:
-        - selfdrive/monitoring/**
+        - openpilot/selfdrive/monitoring/**
     - component_id: locationd
       name: Localization
       paths:
-        - selfdrive/locationd/**
+        - openpilot/selfdrive/locationd/**
     - component_id: system
       name: System Services
       paths:
-        - system/**
+        - openpilot/system/**
     - component_id: tools
       name: Development Tools
       paths:
-        - tools/**
+        - openpilot/tools/**
     - component_id: common
       name: Common Utilities
       paths:
-        - common/**
+        - openpilot/common/**
     # C++ specific components
     - component_id: cpp-core
       name: C++ Core (common, system, pandad)
       paths:
-        - common/**/*.cc
-        - common/**/*.h
-        - system/**/*.cc
-        - system/**/*.h
-        - selfdrive/pandad/**/*.cc
-        - selfdrive/pandad/**/*.h
+        - openpilot/common/**/*.cc
+        - openpilot/common/**/*.h
+        - openpilot/system/**/*.cc
+        - openpilot/system/**/*.h
+        - openpilot/selfdrive/pandad/**/*.cc
+        - openpilot/selfdrive/pandad/**/*.h
     - component_id: cpp-tools
       name: C++ Tools (cabana, replay)
       paths:
-        - tools/cabana/**/*.cc
-        - tools/cabana/**/*.h
-        - tools/replay/**/*.cc
-        - tools/replay/**/*.h
+        - openpilot/tools/cabana/**/*.cc
+        - openpilot/tools/cabana/**/*.h
+        - openpilot/tools/replay/**/*.cc
+        - openpilot/tools/replay/**/*.h

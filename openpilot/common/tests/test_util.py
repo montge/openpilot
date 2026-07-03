@@ -6,7 +6,7 @@ import os
 
 import pytest
 
-from openpilot.common.util import MovingAverage
+from openpilot.common.utils import MovingAverage
 
 
 class TestMovingAverage:
@@ -215,7 +215,7 @@ class TestSudoWrite:
   def test_sudo_write_success(self, mocker):
     """Test sudo_write with writable file."""
     mocker.patch('openpilot.common.util.os.system')
-    from openpilot.common.util import sudo_write
+    from openpilot.common.utils import sudo_write
 
     with tempfile.NamedTemporaryFile(mode='w', delete=False) as f:
       path = f.name
@@ -231,7 +231,7 @@ class TestSudoWrite:
   def test_sudo_write_permission_error_handled(self, mocker):
     """Test sudo_write handles PermissionError."""
     mocker.patch('openpilot.common.util.os.system')
-    from openpilot.common.util import sudo_write
+    from openpilot.common.utils import sudo_write
 
     with tempfile.TemporaryDirectory() as tmpdir:
       path = os.path.join(tmpdir, "test.txt")
@@ -257,7 +257,7 @@ class TestSudoWrite:
       return real_open(path, mode, *args, **kwargs)
 
     mocker.patch('builtins.open', mock_open_fn)
-    from openpilot.common.util import sudo_write
+    from openpilot.common.utils import sudo_write
 
     with tempfile.TemporaryDirectory() as tmpdir:
       path = os.path.join(tmpdir, "test.txt")
@@ -282,7 +282,7 @@ class TestSudoWrite:
       return open.__class__(path, mode, *args, **kwargs)
 
     mocker.patch('builtins.open', mock_open_fn)
-    from openpilot.common.util import sudo_write
+    from openpilot.common.utils import sudo_write
 
     sudo_write("testval", "/some/path")
 
@@ -298,7 +298,7 @@ class TestSudoRead:
   def test_sudo_read_success(self, mocker):
     """Test sudo_read returns content."""
     mock_check_output = mocker.patch('openpilot.common.util.subprocess.check_output')
-    from openpilot.common.util import sudo_read
+    from openpilot.common.utils import sudo_read
 
     mock_check_output.return_value = "file content\n"
 
@@ -310,7 +310,7 @@ class TestSudoRead:
   def test_sudo_read_failure_returns_empty(self, mocker):
     """Test sudo_read returns empty on failure."""
     mock_check_output = mocker.patch('openpilot.common.util.subprocess.check_output')
-    from openpilot.common.util import sudo_read
+    from openpilot.common.utils import sudo_read
 
     mock_check_output.side_effect = Exception("command failed")
 

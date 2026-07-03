@@ -274,7 +274,7 @@ params.put("ShadowCalibrationParams", json.dumps({
 ### Using Calibration in Shadow Mode
 
 ```python
-from openpilot.system.hardware.shadow_mode import is_shadow_mode
+from openpilot.common.hardware.shadow_mode import is_shadow_mode
 
 if is_shadow_mode():
     # Load shadow device calibration
@@ -313,4 +313,4 @@ else:
 3. Capture validation dataset
 4. Run comparison tests
 
-See [comparison testing](../../tools/shadow/README.md) for next steps.
+See [comparison testing](../../openpilot/tools/shadow/README.md) for next steps.

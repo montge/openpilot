@@ -6,7 +6,7 @@ Enforces 90% minimum coverage requirement for the algorithm harness module.
 Run this script to verify coverage meets thresholds before PR.
 
 Usage:
-  python selfdrive/controls/lib/tests/algorithm_harness/check_coverage.py
+  python openpilot/selfdrive/controls/lib/tests/algorithm_harness/check_coverage.py
 
 Requirements:
   - pytest-cov
@@ -38,7 +38,7 @@ ALGORITHM_HARNESS_MODULES = [
   "scenario_generator",
 ]
 
-HARNESS_PATH = "selfdrive/controls/lib/tests/algorithm_harness"
+HARNESS_PATH = "openpilot/selfdrive/controls/lib/tests/algorithm_harness"
 
 
 def run_tests_with_coverage() -> tuple[bool, str]:

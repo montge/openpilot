@@ -105,7 +105,7 @@ class ModelRunner:
 
   Usage:
     runner = ModelRunner(
-        model_path="selfdrive/modeld/models/driving_policy.onnx",
+        model_path="openpilot/selfdrive/modeld/models/driving_policy.onnx",
         backend=Backend.TENSORRT,
         precision=Precision.FP16,
     )
@@ -420,7 +420,7 @@ def get_recommended_backend() -> Backend:
 
   # Check for NVIDIA GPU
   try:
-    from openpilot.system.hardware.nvidia.gpu import is_nvidia_available
+    from openpilot.common.hardware.nvidia.gpu import is_nvidia_available
 
     if is_nvidia_available():
       return Backend.TINYGRAD_CUDA
@@ -439,7 +439,7 @@ def get_recommended_precision(backend: Backend) -> Precision:
   if backend == Backend.TINYGRAD_CUDA:
     # Check GPU compute capability
     try:
-      from openpilot.system.hardware.nvidia.gpu import get_best_gpu
+      from openpilot.common.hardware.nvidia.gpu import get_best_gpu
 
       gpu = get_best_gpu()
       if gpu:

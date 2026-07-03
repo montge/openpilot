@@ -16,7 +16,7 @@ Additionally, emerging algorithms not yet in Stone Soup warrant investigation:
 
 ## What Changes
 
-- **Add Stone Soup Integration** (`tools/stonesoup/`):
+- **Add Stone Soup Integration** (`openpilot/tools/stonesoup/`):
   - Adapter layer to convert openpilot messages to Stone Soup types
   - Benchmarking harness using algorithm test framework
   - Side-by-side comparison utilities
@@ -26,7 +26,7 @@ Additionally, emerging algorithms not yet in Stone Soup warrant investigation:
   - Viterbi decoder for track association
   - Octree spatial index for efficient queries
 
-- **Add Comparison Benchmarks** (`tools/stonesoup/benchmarks/`):
+- **Add Comparison Benchmarks** (`openpilot/tools/stonesoup/benchmarks/`):
   - EKF vs UKF vs Cubature KF for localization
   - KF1D vs JPDA vs MHT for multi-target tracking
   - Current radar fusion vs Covariance Intersection
@@ -39,7 +39,7 @@ Additionally, emerging algorithms not yet in Stone Soup warrant investigation:
 
 - Affected specs: New `algorithm-comparison` capability
 - Affected code:
-  - `tools/stonesoup/` - New comparison framework
+  - `openpilot/tools/stonesoup/` - New comparison framework
   - `selfdrive/controls/lib/trackers/` - New algorithm implementations
 - Dependencies: stonesoup (new), scipy (existing), numpy (existing)
 - **No changes to production code paths** (research/comparison only)

@@ -36,7 +36,7 @@ Target: **90%+ code coverage** for all algorithm harness modules.
 
 - Affected specs: New `test-coverage` capability
 - Affected code:
-  - `selfdrive/controls/lib/tests/algorithm_harness/` - All modules
+  - `openpilot/selfdrive/controls/lib/tests/algorithm_harness/` - All modules
   - `.github/workflows/` - New CI job
   - `pyproject.toml` or `.coveragerc` - Coverage configuration
 - Dependencies: coverage.py, pytest-cov

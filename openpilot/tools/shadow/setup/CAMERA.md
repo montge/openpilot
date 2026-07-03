@@ -33,13 +33,13 @@ pkg install termux-api
 # Also install Termux:API app from F-Droid
 
 # Start the camera server (in Termux)
-python3 tools/shadow/setup/termux_camera_server.py --port 8080
+python3 openpilot/tools/shadow/setup/termux_camera_server.py --port 8080
 
 # Test from proot Ubuntu
 proot-distro login ubuntu
 source ~/openpilot/.venv/bin/activate
 cd ~/openpilot
-python3 tools/shadow/setup/camera_bridge.py --url http://<phone-ip>:8080 --test
+python3 openpilot/tools/shadow/setup/camera_bridge.py --url http://<phone-ip>:8080 --test
 ```
 
 **Limitations**:
@@ -80,10 +80,10 @@ source ~/openpilot/.venv/bin/activate
 cd ~/openpilot
 
 # Test connection
-python3 tools/shadow/setup/camera_bridge.py --url http://localhost:8080 --test
+python3 openpilot/tools/shadow/setup/camera_bridge.py --url http://localhost:8080 --test
 
 # Run full bridge (with VisionIPC if msgq is built)
-python3 tools/shadow/setup/camera_bridge.py --url http://localhost:8080
+python3 openpilot/tools/shadow/setup/camera_bridge.py --url http://localhost:8080
 ```
 
 **Manual Python capture**:
@@ -171,7 +171,7 @@ vipc.send(VisionStreamType.VISION_STREAM_ROAD, nv12_data, frame_id, timestamp)
 ### Cereal Messaging (Metadata)
 
 ```python
-from cereal import messaging
+from openpilot.cereal import messaging
 
 pm = messaging.PubMaster(['roadCameraState'])
 

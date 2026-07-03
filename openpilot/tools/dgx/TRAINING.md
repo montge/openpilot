@@ -199,7 +199,7 @@ def export_to_onnx(model, path):
 ## File Structure
 
 ```
-tools/dgx/
+openpilot/tools/dgx/
 ├── training/
 │   ├── __init__.py
 │   ├── dataloader.py      # Route log → training batches
@@ -232,10 +232,10 @@ DGX Spark advantages:
 
 ```bash
 # 1. Prepare data from route logs
-python tools/dgx/training/dataloader.py --routes /path/to/routes --output /data/training
+python openpilot/tools/dgx/training/dataloader.py --routes /path/to/routes --output /data/training
 
 # 2. Train with DoRA
-python tools/dgx/training/train.py \
+python openpilot/tools/dgx/training/train.py \
     --data /data/training \
     --epochs 10 \
     --batch-size 32 \
@@ -243,7 +243,7 @@ python tools/dgx/training/train.py \
     --lr 1e-4
 
 # 3. Export to ONNX
-python tools/dgx/training/export.py \
+python openpilot/tools/dgx/training/export.py \
     --checkpoint best_model.pt \
     --output custom_driving_policy.onnx
 ```

@@ -1,7 +1,7 @@
 """Tests for FrequencyTracker class in cereal/messaging."""
 import pytest
 
-from cereal.messaging import FrequencyTracker
+from openpilot.cereal.messaging import FrequencyTracker
 
 
 class TestFrequencyTrackerInit:

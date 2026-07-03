@@ -1,4 +1,4 @@
-"""Tests for tools/lib/log_time_series.py - log message time series utilities."""
+"""Tests for openpilot/tools/lib/log_time_series.py - log message time series utilities."""
 
 import numpy as np
 

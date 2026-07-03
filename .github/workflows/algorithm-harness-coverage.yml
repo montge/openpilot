@@ -7,12 +7,12 @@ on:
   push:
     branches: [develop, master]
     paths:
-      - 'selfdrive/controls/lib/tests/algorithm_harness/**'
+      - 'openpilot/selfdrive/controls/lib/tests/algorithm_harness/**'
       - '.github/workflows/algorithm-harness-coverage.yml'
   pull_request:
     branches: [develop, master]
     paths:
-      - 'selfdrive/controls/lib/tests/algorithm_harness/**'
+      - 'openpilot/selfdrive/controls/lib/tests/algorithm_harness/**'
       - '.github/workflows/algorithm-harness-coverage.yml'
 
 jobs:
@@ -38,7 +38,7 @@ jobs:
           pip install pytest pytest-cov numpy
 
       - name: Run coverage
-        working-directory: selfdrive/controls/lib/tests/algorithm_harness
+        working-directory: openpilot/selfdrive/controls/lib/tests/algorithm_harness
         run: |
           pytest . -n0 \
             --cov=. \
@@ -52,12 +52,12 @@ jobs:
         if: always()
         with:
           name: coverage-report
-          path: selfdrive/controls/lib/tests/algorithm_harness/coverage.xml
+          path: openpilot/selfdrive/controls/lib/tests/algorithm_harness/coverage.xml
           retention-days: 7
 
       - name: Coverage summary
         if: always()
-        working-directory: selfdrive/controls/lib/tests/algorithm_harness
+        working-directory: openpilot/selfdrive/controls/lib/tests/algorithm_harness
         run: |
           echo "## Coverage Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -87,7 +87,7 @@ jobs:
           pip install pytest pytest-cov numpy pandas pyarrow
 
       - name: Run full coverage
-        working-directory: selfdrive/controls/lib/tests/algorithm_harness
+        working-directory: openpilot/selfdrive/controls/lib/tests/algorithm_harness
         run: |
           pytest . -n0 \
             --cov=. \
@@ -101,5 +101,5 @@ jobs:
         if: always()
         with:
           name: coverage-report-full
-          path: selfdrive/controls/lib/tests/algorithm_harness/coverage-full.xml
+          path: openpilot/selfdrive/controls/lib/tests/algorithm_harness/coverage-full.xml
           retention-days: 7

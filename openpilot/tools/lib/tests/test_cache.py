@@ -1,4 +1,4 @@
-"""Tests for tools/lib/cache.py - cache path utilities."""
+"""Tests for openpilot/tools/lib/cache.py - cache path utilities."""
 
 import os
 import tempfile

@@ -1,5 +1,5 @@
 """Tests for cereal/services.py - service definitions."""
-from cereal.services import (
+from openpilot.cereal.services import (
   QueueSize, Service, SERVICE_LIST, build_header,
 )
 

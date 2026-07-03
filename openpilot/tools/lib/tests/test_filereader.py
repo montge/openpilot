@@ -1,4 +1,4 @@
-"""Tests for tools/lib/filereader.py."""
+"""Tests for openpilot/tools/lib/filereader.py."""
 
 import os
 import tempfile

@@ -15,7 +15,7 @@ class TestControlsdShadowMode:
   def setup_method(self):
     """Set up test environment."""
     # Clear any cached shadow mode state
-    from openpilot.system.hardware.shadow_mode import clear_shadow_mode_cache
+    from openpilot.common.hardware.shadow_mode import clear_shadow_mode_cache
 
     clear_shadow_mode_cache()
 
@@ -29,20 +29,20 @@ class TestControlsdShadowMode:
     """Test that actuator values are zeroed before publishing in shadow mode."""
     os.environ["SHADOW_MODE"] = "1"
 
-    from openpilot.system.hardware.shadow_mode import clear_shadow_mode_cache
+    from openpilot.common.hardware.shadow_mode import clear_shadow_mode_cache
 
     clear_shadow_mode_cache()
 
     # Re-import to pick up new SHADOW_MODE value
     import importlib
 
-    import openpilot.system.hardware
-    import openpilot.system.hardware.shadow_mode
+    import openpilot.common.hardware
+    import openpilot.common.hardware.shadow_mode
 
-    importlib.reload(openpilot.system.hardware.shadow_mode)
-    importlib.reload(openpilot.system.hardware)
+    importlib.reload(openpilot.common.hardware.shadow_mode)
+    importlib.reload(openpilot.common.hardware)
 
-    from openpilot.system.hardware import SHADOW_MODE
+    from openpilot.common.hardware import SHADOW_MODE
 
     assert SHADOW_MODE is True
 
@@ -50,12 +50,12 @@ class TestControlsdShadowMode:
     """Test that latActive, longActive, and enabled are set to False."""
     os.environ["SHADOW_MODE"] = "1"
 
-    from openpilot.system.hardware.shadow_mode import clear_shadow_mode_cache
+    from openpilot.common.hardware.shadow_mode import clear_shadow_mode_cache
 
     clear_shadow_mode_cache()
 
     # Verify the shadow mode flag behavior
-    from openpilot.system.hardware.shadow_mode import is_shadow_mode
+    from openpilot.common.hardware.shadow_mode import is_shadow_mode
 
     assert is_shadow_mode() is True
 
@@ -65,7 +65,7 @@ class TestCardShadowMode:
 
   def setup_method(self):
     """Set up test environment."""
-    from openpilot.system.hardware.shadow_mode import clear_shadow_mode_cache
+    from openpilot.common.hardware.shadow_mode import clear_shadow_mode_cache
 
     clear_shadow_mode_cache()
 
@@ -79,12 +79,12 @@ class TestCardShadowMode:
     """Test that CAN messages are blocked by card.py in shadow mode."""
     os.environ["SHADOW_MODE"] = "1"
 
-    from openpilot.system.hardware.shadow_mode import clear_shadow_mode_cache
+    from openpilot.common.hardware.shadow_mode import clear_shadow_mode_cache
 
     clear_shadow_mode_cache()
 
     # Verify shadow mode is active
-    from openpilot.system.hardware.shadow_mode import is_shadow_mode
+    from openpilot.common.hardware.shadow_mode import is_shadow_mode
 
     assert is_shadow_mode() is True
 
@@ -94,7 +94,7 @@ class TestShadowModeEnvironment:
 
   def setup_method(self):
     """Clear caches before each test."""
-    from openpilot.system.hardware.shadow_mode import clear_shadow_mode_cache
+    from openpilot.common.hardware.shadow_mode import clear_shadow_mode_cache
 
     clear_shadow_mode_cache()
 
@@ -111,7 +111,7 @@ class TestShadowModeEnvironment:
       if var in os.environ:
         del os.environ[var]
 
-    from openpilot.system.hardware.shadow_mode import _compute_shadow_mode
+    from openpilot.common.hardware.shadow_mode import _compute_shadow_mode
 
     _compute_shadow_mode.cache_clear()
 
@@ -121,26 +121,26 @@ class TestShadowModeEnvironment:
     # Result depends on whether test machine is detected as shadow device
     assert isinstance(result, bool)
 
-  @patch("openpilot.system.hardware.shadow_mode.panda_connected")
-  @patch("openpilot.system.hardware.shadow_mode.is_shadow_device")
+  @patch("openpilot.common.hardware.shadow_mode.panda_connected")
+  @patch("openpilot.common.hardware.shadow_mode.is_shadow_device")
   def test_shadow_device_without_panda_activates_shadow_mode(self, mock_is_shadow_device, mock_panda_connected):
     """Test that a shadow device without panda activates shadow mode."""
     mock_is_shadow_device.return_value = True
     mock_panda_connected.return_value = False
 
-    from openpilot.system.hardware.shadow_mode import _compute_shadow_mode
+    from openpilot.common.hardware.shadow_mode import _compute_shadow_mode
 
     _compute_shadow_mode.cache_clear()
     assert _compute_shadow_mode() is True
 
-  @patch("openpilot.system.hardware.shadow_mode.panda_connected")
-  @patch("openpilot.system.hardware.shadow_mode.is_shadow_device")
+  @patch("openpilot.common.hardware.shadow_mode.panda_connected")
+  @patch("openpilot.common.hardware.shadow_mode.is_shadow_device")
   def test_shadow_device_with_panda_not_shadow_mode(self, mock_is_shadow_device, mock_panda_connected):
     """Test that a shadow device WITH panda is NOT shadow mode."""
     mock_is_shadow_device.return_value = True
     mock_panda_connected.return_value = True
 
-    from openpilot.system.hardware.shadow_mode import _compute_shadow_mode
+    from openpilot.common.hardware.shadow_mode import _compute_shadow_mode
 
     _compute_shadow_mode.cache_clear()
     assert _compute_shadow_mode() is False

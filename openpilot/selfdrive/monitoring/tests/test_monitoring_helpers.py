@@ -817,7 +817,7 @@ class TestDriverMonitoringUpdateEventsEdgeCases:
     dm._update_events(driver_engaged=False, op_engaged=True, standstill=False, wrong_gear=False, car_speed=20.0)
 
     # Should have tooDistracted event (event ID 45)
-    from cereal import log
+    from openpilot.cereal import log
 
     assert log.OnroadEvent.EventName.tooDistracted in dm.current_events.events
 
@@ -893,7 +893,7 @@ class TestDriverMonitoringUpdateEventsEdgeCases:
     dm._update_events(driver_engaged=False, op_engaged=True, standstill=False, wrong_gear=False, car_speed=20.0)
 
     # Should have pre-alert event (preDriverDistracted=33 or preDriverUnresponsive=35)
-    from cereal import log
+    from openpilot.cereal import log
 
     pre_events = [log.OnroadEvent.EventName.preDriverDistracted, log.OnroadEvent.EventName.preDriverUnresponsive]
     assert any(e in dm.current_events.events for e in pre_events)

@@ -92,7 +92,7 @@ class UnifiedMemoryManager:
   def _detect_unified_memory(self) -> bool:
     """Detect if running on unified memory architecture."""
     try:
-      from openpilot.system.hardware.nvidia.gpu import get_best_gpu
+      from openpilot.common.hardware.nvidia.gpu import get_best_gpu
 
       gpu = get_best_gpu()
       if gpu and gpu.is_unified_memory:

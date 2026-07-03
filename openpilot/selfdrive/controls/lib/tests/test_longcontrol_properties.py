@@ -9,7 +9,7 @@ from hypothesis import strategies as st
 
 from openpilot.selfdrive.controls.lib.longcontrol import LongControl, long_control_state_trans
 
-from cereal import car
+from opendbc.car.structs import car
 
 LongCtrlState = car.CarControl.Actuators.LongControlState
 

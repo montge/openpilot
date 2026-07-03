@@ -10,8 +10,8 @@ This module enables GPU-accelerated inference and training
 for development and experimentation.
 """
 
-from openpilot.system.hardware.nvidia.hardware import NvidiaPC
-from openpilot.system.hardware.nvidia.gpu import (
+from openpilot.common.hardware.nvidia.hardware import NvidiaPC
+from openpilot.common.hardware.nvidia.gpu import (
   get_nvidia_gpus,
   is_nvidia_available,
   is_dgx_spark,

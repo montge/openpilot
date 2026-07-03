@@ -1,6 +1,6 @@
 ## 1. Setup Scripts
 
-- [x] 1.1 Create `tools/shadow/setup/` directory structure
+- [x] 1.1 Create `openpilot/tools/shadow/setup/` directory structure
 - [x] 1.2 Create `termux-setup.sh` script
   - [x] 1.2.1 Update Termux packages
   - [x] 1.2.2 Install wget, curl, git, python, proot-distro
@@ -21,19 +21,19 @@
 
 ## 2. Documentation
 
-- [x] 2.1 Create `tools/shadow/setup/README.md`
+- [x] 2.1 Create `openpilot/tools/shadow/setup/README.md`
   - [x] 2.1.1 Document prerequisites (OnePlus 6, unlocked bootloader)
   - [x] 2.1.2 Document LineageOS flashing procedure
   - [x] 2.1.3 Document Termux installation from F-Droid
   - [x] 2.1.4 Document script execution order
   - [x] 2.1.5 Document SSH remote development setup
   - [x] 2.1.6 Document shadow mode verification
-- [x] 2.2 Create `tools/shadow/setup/FLASHING.md`
+- [x] 2.2 Create `openpilot/tools/shadow/setup/FLASHING.md`
   - [x] 2.2.1 Document firmware version requirements (Android 11)
   - [x] 2.2.2 Document required downloads (boot.img, dtbo.img, lineage.zip)
   - [x] 2.2.3 Document fastboot flashing commands
   - [x] 2.2.4 Document recovery mode sideload procedure
-- [x] 2.3 Create `tools/shadow/setup/TROUBLESHOOTING.md`
+- [x] 2.3 Create `openpilot/tools/shadow/setup/TROUBLESHOOTING.md`
   - [x] 2.3.1 Document common proot issues
   - [x] 2.3.2 Document SSH connection issues
   - [x] 2.3.3 Document device detection issues

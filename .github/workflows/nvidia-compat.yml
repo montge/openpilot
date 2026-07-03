@@ -6,15 +6,15 @@ on:
       - master
       - develop
     paths:
-      - 'system/hardware/nvidia/**'
-      - 'tools/dgx/**'
+      - 'openpilot/common/hardware/nvidia/**'
+      - 'openpilot/tools/dgx/**'
   pull_request:
     branches:
       - master
       - develop
     paths:
-      - 'system/hardware/nvidia/**'
-      - 'tools/dgx/**'
+      - 'openpilot/common/hardware/nvidia/**'
+      - 'openpilot/tools/dgx/**'
 
 permissions:
   contents: read
@@ -60,11 +60,11 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
 
           # Run ruff on NVIDIA-related files
-          ruff check system/hardware/nvidia/ tools/dgx/ --output-format=github
+          ruff check openpilot/common/hardware/nvidia/ openpilot/tools/dgx/ --output-format=github
           echo "- Ruff: PASSED" >> $GITHUB_STEP_SUMMARY
 
           # Run mypy on NVIDIA-related files
-          mypy system/hardware/nvidia/ tools/dgx/ --ignore-missing-imports || true
+          mypy openpilot/common/hardware/nvidia/ openpilot/tools/dgx/ --ignore-missing-imports || true
           echo "- MyPy: PASSED (with --ignore-missing-imports)" >> $GITHUB_STEP_SUMMARY
 
       - name: Validate imports
@@ -75,8 +75,8 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
 
           # Test that hardware abstraction imports correctly
-          python -c "from openpilot.system.hardware.nvidia import NvidiaPC; print('NvidiaPC: OK')"
-          python -c "from openpilot.system.hardware.nvidia.gpu import is_nvidia_available, get_nvidia_gpus; print('GPU module: OK')"
+          python -c "from openpilot.common.hardware.nvidia import NvidiaPC; print('NvidiaPC: OK')"
+          python -c "from openpilot.common.hardware.nvidia.gpu import is_nvidia_available, get_nvidia_gpus; print('GPU module: OK')"
           echo "- Hardware abstraction imports: OK" >> $GITHUB_STEP_SUMMARY
 
           # Test that training module imports correctly (even without torch in some configs)
@@ -96,14 +96,14 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
 
           # Run hardware tests (use mocking, no real GPU needed)
-          pytest system/hardware/nvidia/tests/ -v --tb=short 2>&1 | tee test-output.txt
+          pytest openpilot/common/hardware/nvidia/tests/ -v --tb=short 2>&1 | tee test-output.txt
           echo "- Hardware abstraction tests: PASSED" >> $GITHUB_STEP_SUMMARY
 
       - name: Run DoRA tests
         run: |
           source .venv/bin/activate
           # Run DoRA tests (uses CPU torch, no GPU needed)
-          pytest tools/dgx/training/test_dora.py -v --tb=short 2>&1 | tee -a test-output.txt
+          pytest openpilot/tools/dgx/training/test_dora.py -v --tb=short 2>&1 | tee -a test-output.txt
           echo "- DoRA unit tests: PASSED" >> $GITHUB_STEP_SUMMARY
 
       - name: Summary
@@ -115,4 +115,4 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Note**: These checks validate code structure and logic." >> $GITHUB_STEP_SUMMARY
           echo "Hardware validation requires running on actual NVIDIA GPU hardware." >> $GITHUB_STEP_SUMMARY
-          echo "See \`tools/dgx/README.md\` for manual hardware testing instructions." >> $GITHUB_STEP_SUMMARY
+          echo "See \`openpilot/tools/dgx/README.md\` for manual hardware testing instructions." >> $GITHUB_STEP_SUMMARY

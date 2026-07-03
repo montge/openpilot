@@ -10,7 +10,7 @@ from collections.abc import Callable
 from multiprocessing import Process
 
 
-from cereal import car
+from opendbc.car.structs import car
 from openpilot.common.params import Params
 from openpilot.system.manager.process import (
   ManagerProcess,

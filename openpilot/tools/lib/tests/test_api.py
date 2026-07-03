@@ -1,4 +1,4 @@
-"""Tests for tools/lib/api.py - CommaApi client."""
+"""Tests for openpilot/tools/lib/api.py - CommaApi client."""
 
 import pytest
 

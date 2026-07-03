@@ -48,10 +48,10 @@ ComparisonLogger
 # Start IP Webcam app on phone, then:
 ssh -p 8022 <device-ip> "proot-distro login ubuntu -- bash -c '
 cd ~/openpilot && source .venv/bin/activate
-python3 tools/shadow/setup/camera_bridge.py --url http://localhost:8080'"
+python3 openpilot/tools/shadow/setup/camera_bridge.py --url http://localhost:8080'"
 
 # Option B: termux-api (slow - ~0.4 FPS, for testing only)
-ssh -p 8022 <device-ip> "python3 tools/shadow/setup/termux_camera_server.py"
+ssh -p 8022 <device-ip> "python3 openpilot/tools/shadow/setup/termux_camera_server.py"
 ```
 
 ### 2. Start frame streamer on shadow device
@@ -59,7 +59,7 @@ ssh -p 8022 <device-ip> "python3 tools/shadow/setup/termux_camera_server.py"
 ```bash
 ssh -p 8022 <device-ip> "proot-distro login ubuntu -- bash -c '
 cd ~/openpilot && source .venv/bin/activate
-python3 tools/shadow/setup/frame_streamer.py --server tcp://<desktop-ip>:5555 --fps 20'"
+python3 openpilot/tools/shadow/setup/frame_streamer.py --server tcp://<desktop-ip>:5555 --fps 20'"
 ```
 
 ### 3. Start inference server on desktop
@@ -67,7 +67,7 @@ python3 tools/shadow/setup/frame_streamer.py --server tcp://<desktop-ip>:5555 --
 ```bash
 cd /path/to/openpilot
 source .venv/bin/activate
-python3 tools/shadow/setup/inference_server.py --port 5555 --result-port 5556
+python3 openpilot/tools/shadow/setup/inference_server.py --port 5555 --result-port 5556
 ```
 
 This will:
@@ -80,7 +80,7 @@ This will:
 ```bash
 ssh -p 8022 <device-ip> "proot-distro login ubuntu -- bash -c '
 cd ~/openpilot && source .venv/bin/activate
-python3 tools/shadow/setup/result_receiver.py --server tcp://<desktop-ip>:5556'"
+python3 openpilot/tools/shadow/setup/result_receiver.py --server tcp://<desktop-ip>:5556'"
 ```
 
 ## Configuration
@@ -153,7 +153,7 @@ If VisionIPC is not built on the shadow device, use the MJPEG-to-ZMQ streamer to
 
 ```bash
 # On shadow device (no VisionIPC needed)
-python3 tools/shadow/setup/mjpeg_zmq_streamer.py \
+python3 openpilot/tools/shadow/setup/mjpeg_zmq_streamer.py \
     --camera http://localhost:8080 \
     --server tcp://<desktop-ip>:5555 \
     --fps 15
@@ -167,7 +167,7 @@ If you prefer to manage modeld yourself (e.g., for debugging):
 
 ```bash
 # Terminal 1: Start inference server without modeld
-python3 tools/shadow/setup/inference_server.py --no-modeld
+python3 openpilot/tools/shadow/setup/inference_server.py --no-modeld
 
 # Terminal 2: Start modeld manually
 cd /path/to/openpilot

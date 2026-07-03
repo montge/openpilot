@@ -7,7 +7,7 @@ the actual hardware may not be available in CI.
 
 from unittest.mock import patch  # noqa: TID251
 
-from openpilot.system.hardware.nvidia.gpu import (
+from openpilot.common.hardware.nvidia.gpu import (
   GPUInfo,
   is_nvidia_available,
   get_nvidia_gpus,
@@ -241,7 +241,7 @@ class TestNvidiaDetection:
   def test_is_nvidia_available_with_gpu(self):
     """Test detection when GPU is available."""
     with patch('shutil.which', return_value='/usr/bin/nvidia-smi'):
-      with patch('openpilot.system.hardware.nvidia.gpu._run_nvidia_smi', return_value="NVIDIA GeForce RTX 3090"):
+      with patch('openpilot.common.hardware.nvidia.gpu._run_nvidia_smi', return_value="NVIDIA GeForce RTX 3090"):
         is_nvidia_available.cache_clear()
         assert is_nvidia_available() is True
 
@@ -250,7 +250,7 @@ class TestNvidiaDetection:
     mock_output = "0, NVIDIA GeForce RTX 3090, GPU-12345, 24576, 20000, 535.104.05"
 
     with patch('shutil.which', return_value='/usr/bin/nvidia-smi'):
-      with patch('openpilot.system.hardware.nvidia.gpu._run_nvidia_smi') as mock_smi:
+      with patch('openpilot.common.hardware.nvidia.gpu._run_nvidia_smi') as mock_smi:
         mock_smi.side_effect = lambda args: {
           '--query-gpu=name --format=csv,noheader': "RTX 3090",
           '--query-gpu=index,name,uuid,memory.total,memory.free,driver_version --format=csv,noheader,nounits': mock_output,
@@ -347,19 +347,19 @@ class TestTinygradDevice:
 
   def test_returns_cuda_when_nvidia_available(self):
     """Test returns CUDA when NVIDIA GPU is available."""
-    with patch('openpilot.system.hardware.nvidia.gpu.is_nvidia_available', return_value=True):
+    with patch('openpilot.common.hardware.nvidia.gpu.is_nvidia_available', return_value=True):
       with patch.dict('os.environ', {}, clear=True):
         assert get_tinygrad_device() == 'CUDA'
 
   def test_returns_cpu_when_no_nvidia(self):
     """Test returns CPU when no NVIDIA GPU."""
-    with patch('openpilot.system.hardware.nvidia.gpu.is_nvidia_available', return_value=False):
+    with patch('openpilot.common.hardware.nvidia.gpu.is_nvidia_available', return_value=False):
       with patch.dict('os.environ', {}, clear=True):
         assert get_tinygrad_device() == 'CPU'
 
   def test_respects_dev_env_override(self):
     """Test respects DEV environment variable."""
-    with patch('openpilot.system.hardware.nvidia.gpu.is_nvidia_available', return_value=True):
+    with patch('openpilot.common.hardware.nvidia.gpu.is_nvidia_available', return_value=True):
       with patch.dict('os.environ', {'DEV': 'AMD'}, clear=True):
         assert get_tinygrad_device() == 'AMD'
 
@@ -369,7 +369,7 @@ class TestDGXSparkDetection:
 
   def test_dgx_spark_detected_from_name(self):
     """Test DGX Spark detection from GPU name."""
-    with patch('openpilot.system.hardware.nvidia.gpu.get_nvidia_gpus') as mock_gpus:
+    with patch('openpilot.common.hardware.nvidia.gpu.get_nvidia_gpus') as mock_gpus:
       mock_gpus.return_value = [
         GPUInfo(
           index=0,
@@ -388,7 +388,7 @@ class TestDGXSparkDetection:
 
   def test_rtx_not_dgx_spark(self):
     """Test RTX cards are not DGX Spark."""
-    with patch('openpilot.system.hardware.nvidia.gpu.get_nvidia_gpus') as mock_gpus:
+    with patch('openpilot.common.hardware.nvidia.gpu.get_nvidia_gpus') as mock_gpus:
       mock_gpus.return_value = [
         GPUInfo(
           index=0,

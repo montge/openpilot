@@ -5,8 +5,8 @@ Measures speedup from using GPUScenarioRunner with multiprocessing
 compared to sequential execution.
 
 Usage:
-  python tools/dgx/benchmark_parallel.py
-  python tools/dgx/benchmark_parallel.py --workers 8 --scenarios 50
+  python openpilot/tools/dgx/benchmark_parallel.py
+  python openpilot/tools/dgx/benchmark_parallel.py --workers 8 --scenarios 50
 """
 
 from __future__ import annotations

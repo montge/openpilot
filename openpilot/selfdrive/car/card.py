@@ -11,7 +11,7 @@ from opendbc.car.structs import car
 from openpilot.common.params import Params
 from openpilot.common.realtime import config_realtime_process, Priority, Ratekeeper
 from openpilot.common.swaglog import cloudlog, ForwardingHandler
-from openpilot.system.hardware import SHADOW_MODE
+from openpilot.common.hardware import SHADOW_MODE
 
 from opendbc.car import DT_CTRL, structs
 from opendbc.car.can_definitions import CanData, CanRecvCallable, CanSendCallable

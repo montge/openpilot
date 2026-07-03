@@ -132,7 +132,7 @@ class GPUScenarioRunner:
   def _check_gpu(self) -> bool:
     """Check if GPU acceleration is available."""
     try:
-      from openpilot.system.hardware.nvidia.gpu import is_nvidia_available
+      from openpilot.common.hardware.nvidia.gpu import is_nvidia_available
 
       return is_nvidia_available()
     except ImportError:
@@ -441,7 +441,7 @@ if __name__ == "__main__":
 
   # Check GPU availability
   try:
-    from openpilot.system.hardware.nvidia.gpu import is_nvidia_available
+    from openpilot.common.hardware.nvidia.gpu import is_nvidia_available
 
     print(f"NVIDIA GPU available: {is_nvidia_available()}")
   except ImportError:

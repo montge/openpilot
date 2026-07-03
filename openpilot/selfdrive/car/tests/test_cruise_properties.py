@@ -7,7 +7,7 @@ complementing the unit tests with broader coverage.
 from hypothesis import given, settings, HealthCheck
 from hypothesis import strategies as st
 
-from cereal import car
+from opendbc.car.structs import car
 
 from openpilot.common.constants import CV
 from openpilot.selfdrive.car.cruise import (

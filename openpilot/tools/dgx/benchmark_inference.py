@@ -52,7 +52,7 @@ def main():
   print(f"BEAM: {os.environ.get('BEAM', 'disabled')}")
   print("=" * 60)
 
-  models_dir = "selfdrive/modeld/models"
+  models_dir = "openpilot/selfdrive/modeld/models"
 
   # driving_policy
   print("\n[driving_policy.onnx]")

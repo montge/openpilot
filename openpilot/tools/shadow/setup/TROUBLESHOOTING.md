@@ -143,7 +143,7 @@ Shadow mode requires either OnePlus 6 detection OR environment variable.
 **Solution - force shadow mode:**
 ```bash
 export SHADOW_MODE=1
-python3 -c "from openpilot.system.hardware.shadow_mode import is_shadow_mode; print(is_shadow_mode())"
+python3 -c "from openpilot.common.hardware.shadow_mode import is_shadow_mode; print(is_shadow_mode())"
 ```
 
 ### Import errors when testing shadow mode
@@ -235,13 +235,13 @@ clinfo
 **Workaround for testing VisionIPC without modeld:**
 ```bash
 # Terminal 1: Start camera server
-python3 tools/shadow/setup/termux_camera_server.py --port 8080
+python3 openpilot/tools/shadow/setup/termux_camera_server.py --port 8080
 
 # Terminal 2: Start camera bridge (publishes to VisionIPC)
-python3 tools/shadow/setup/camera_bridge.py --url http://localhost:8080
+python3 openpilot/tools/shadow/setup/camera_bridge.py --url http://localhost:8080
 
 # Terminal 3: Test VisionIPC consumer
-python3 tools/shadow/setup/test_visionipc_consumer.py
+python3 openpilot/tools/shadow/setup/test_visionipc_consumer.py
 ```
 
 This verifies the frame pipeline works, even without GPU inference.

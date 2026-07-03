@@ -30,7 +30,7 @@ from typing import Optional
 
 # Ensure openpilot root is in path
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-_OPENPILOT_ROOT = os.path.abspath(os.path.join(_SCRIPT_DIR, "..", "..", ".."))
+_OPENPILOT_ROOT = os.path.abspath(os.path.join(_SCRIPT_DIR, "..", "..", "..", ".."))
 if _OPENPILOT_ROOT not in sys.path:
     sys.path.insert(0, _OPENPILOT_ROOT)
 
@@ -44,8 +44,8 @@ except ImportError as e:
 # Optional cereal imports for message deserialization
 CEREAL_AVAILABLE = False
 try:
-    from cereal import messaging
-    from cereal import log as capnp_log
+    from openpilot.cereal import messaging
+    from openpilot.cereal import log as capnp_log
     CEREAL_AVAILABLE = True
 except ImportError:
     pass

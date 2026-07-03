@@ -33,5 +33,5 @@ The algorithm harness code merged from Claude Code web has 19 linting violations
 ## Impact
 
 - Affected specs: algorithm-test-harness
-- Affected code: `selfdrive/controls/lib/tests/algorithm_harness/`, `system/hardware/nvidia/`
+- Affected code: `openpilot/selfdrive/controls/lib/tests/algorithm_harness/`, `openpilot/common/hardware/nvidia/`
 - No functional changes - linting fixes only

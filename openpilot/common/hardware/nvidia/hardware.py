@@ -5,9 +5,9 @@ Extends the base PC hardware class with NVIDIA GPU capabilities
 for development and experimentation with GPU acceleration.
 """
 
-from cereal import log
-from openpilot.system.hardware.base import HardwareBase, ThermalConfig, ThermalZone
-from openpilot.system.hardware.nvidia.gpu import (
+from openpilot.cereal import log
+from openpilot.common.hardware.base import HardwareBase, ThermalConfig, ThermalZone
+from openpilot.common.hardware.nvidia.gpu import (
   is_nvidia_available,
   is_dgx_spark,
   get_nvidia_gpus,
@@ -69,7 +69,7 @@ class NvidiaPC(HardwareBase):
 
     # Try to query GPU utilization via nvidia-smi
     try:
-      from openpilot.system.hardware.nvidia.gpu import _run_nvidia_smi
+      from openpilot.common.hardware.nvidia.gpu import _run_nvidia_smi
 
       output = _run_nvidia_smi(['--query-gpu=utilization.gpu', '--format=csv,noheader,nounits', f'--id={self._gpu_info.index}'])
       if output:
@@ -84,7 +84,7 @@ class NvidiaPC(HardwareBase):
       return 0
 
     try:
-      from openpilot.system.hardware.nvidia.gpu import _run_nvidia_smi
+      from openpilot.common.hardware.nvidia.gpu import _run_nvidia_smi
 
       output = _run_nvidia_smi(['--query-gpu=memory.used,memory.total', '--format=csv,noheader,nounits', f'--id={self._gpu_info.index}'])
       if output:
@@ -112,7 +112,7 @@ class NvidiaPC(HardwareBase):
       return 0.0
 
     try:
-      from openpilot.system.hardware.nvidia.gpu import _run_nvidia_smi
+      from openpilot.common.hardware.nvidia.gpu import _run_nvidia_smi
 
       output = _run_nvidia_smi(['--query-gpu=temperature.gpu', '--format=csv,noheader,nounits', f'--id={self._gpu_info.index}'])
       if output:
@@ -127,7 +127,7 @@ class NvidiaPC(HardwareBase):
       return 0.0
 
     try:
-      from openpilot.system.hardware.nvidia.gpu import _run_nvidia_smi
+      from openpilot.common.hardware.nvidia.gpu import _run_nvidia_smi
 
       output = _run_nvidia_smi(['--query-gpu=power.draw', '--format=csv,noheader,nounits', f'--id={self._gpu_info.index}'])
       if output:
@@ -151,7 +151,7 @@ class NvidiaGPUThermalZone(ThermalZone):
   def read(self) -> float:
     """Read GPU temperature via nvidia-smi."""
     try:
-      from openpilot.system.hardware.nvidia.gpu import _run_nvidia_smi
+      from openpilot.common.hardware.nvidia.gpu import _run_nvidia_smi
 
       output = _run_nvidia_smi(['--query-gpu=temperature.gpu', '--format=csv,noheader,nounits', f'--id={self.gpu_index}'])
       if output:

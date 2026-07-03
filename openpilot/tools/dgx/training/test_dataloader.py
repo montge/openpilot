@@ -13,7 +13,7 @@ import requests
 
 # Add openpilot to path if running standalone
 if __name__ == "__main__":
-  openpilot_root = Path(__file__).parent.parent.parent.parent
+  openpilot_root = Path(__file__).parent.parent.parent.parent.parent
   sys.path.insert(0, str(openpilot_root))
 
 

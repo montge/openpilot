@@ -1,4 +1,4 @@
-"""Tests for tools/lib/helpers.py - regex patterns for routes and segments."""
+"""Tests for openpilot/tools/lib/helpers.py - regex patterns for routes and segments."""
 
 import re
 

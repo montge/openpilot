@@ -1,4 +1,4 @@
-"""Tests for tools/lib/url_file.py - URL file reader with caching."""
+"""Tests for openpilot/tools/lib/url_file.py - URL file reader with caching."""
 
 import os
 import pytest

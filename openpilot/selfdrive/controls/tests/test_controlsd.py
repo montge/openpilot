@@ -3,8 +3,10 @@ import math
 import pytest
 from parameterized import parameterized
 
-from cereal import car, log
-import cereal.messaging as messaging
+from opendbc.car.structs import car
+
+from openpilot.cereal import log
+import openpilot.cereal.messaging as messaging
 from opendbc.car.honda.values import CAR as HONDA
 from opendbc.car.toyota.values import CAR as TOYOTA
 from opendbc.car.nissan.values import CAR as NISSAN

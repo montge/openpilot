@@ -81,24 +81,24 @@ jobs:
           source .venv/bin/activate
           # Build all C++ test directories with coverage instrumentation
           scons -u -j$(nproc) --coverage \
-            common/tests/ \
-            system/loggerd/tests/ \
-            system/camerad/test/ \
-            selfdrive/pandad/tests/ \
-            tools/cabana/tests/ \
-            tools/replay/tests/
+            openpilot/common/tests/ \
+            openpilot/system/loggerd/tests/ \
+            openpilot/system/camerad/test/ \
+            openpilot/selfdrive/pandad/tests/ \
+            openpilot/tools/cabana/tests/ \
+            openpilot/tools/replay/tests/
 
       - name: Run C++ tests
         run: |
           export LLVM_PROFILE_FILE="default_%p.profraw"
           # Core tests
-          ./common/tests/test_common || true
-          ./system/loggerd/tests/test_logger || true
-          ./system/camerad/test/test_ae_gray || true
-          ./selfdrive/pandad/tests/test_pandad_usbprotocol || true
+          ./openpilot/common/tests/test_common || true
+          ./openpilot/system/loggerd/tests/test_logger || true
+          ./openpilot/system/camerad/test/test_ae_gray || true
+          ./openpilot/selfdrive/pandad/tests/test_pandad_usbprotocol || true
           # Tools tests
-          ./tools/cabana/tests/test_cabana || true
-          ./tools/replay/tests/test_replay || true
+          ./openpilot/tools/cabana/tests/test_cabana || true
+          ./openpilot/tools/replay/tests/test_replay || true
 
       - name: Generate coverage reports
         run: |
@@ -114,8 +114,8 @@ jobs:
           TOOLS_BINARIES=""
           ALL_BINARIES=""
 
-          # Core binaries (common, system, selfdrive/pandad)
-          for bin in common/tests/test_common system/loggerd/tests/test_logger system/camerad/test/test_ae_gray selfdrive/pandad/tests/test_pandad_usbprotocol; do
+          # Core binaries (openpilot common, system, pandad)
+          for bin in openpilot/common/tests/test_common openpilot/system/loggerd/tests/test_logger openpilot/system/camerad/test/test_ae_gray openpilot/selfdrive/pandad/tests/test_pandad_usbprotocol; do
             if [[ -f "$bin" ]]; then
               CORE_BINARIES="$CORE_BINARIES -object=$bin"
               ALL_BINARIES="$ALL_BINARIES -object=$bin"
@@ -123,7 +123,7 @@ jobs:
           done
 
           # Tools binaries (tools/cabana, tools/replay)
-          for bin in tools/cabana/tests/test_cabana tools/replay/tests/test_replay; do
+          for bin in openpilot/tools/cabana/tests/test_cabana openpilot/tools/replay/tests/test_replay; do
             if [[ -f "$bin" ]]; then
               TOOLS_BINARIES="$TOOLS_BINARIES -object=$bin"
               ALL_BINARIES="$ALL_BINARIES -object=$bin"

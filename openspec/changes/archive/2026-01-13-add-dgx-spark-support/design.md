@@ -104,7 +104,7 @@ Support multiple precision modes for the supercombo model:
 Add optional DoRA (Weight-Decomposed Low-Rank Adaptation) support:
 
 ```
-tools/dgx/
+openpilot/tools/dgx/
 ├── finetune.py           # Fine-tuning entry point
 ├── dora_adapter.py       # DoRA implementation
 ├── dataset_loader.py     # Route log to training data

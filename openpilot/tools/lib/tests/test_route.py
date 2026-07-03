@@ -1,4 +1,4 @@
-"""Tests for tools/lib/route.py - route and segment name parsing."""
+"""Tests for openpilot/tools/lib/route.py - route and segment name parsing."""
 
 import os
 import tempfile

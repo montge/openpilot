@@ -2,7 +2,7 @@
 
 import pytest
 
-from cereal import log
+from openpilot.cereal import log
 from openpilot.selfdrive.controls.lib.desire_helper import DesireHelper, LANE_CHANGE_TIME_MAX, DESIRES, LaneChangeState, LaneChangeDirection
 
 

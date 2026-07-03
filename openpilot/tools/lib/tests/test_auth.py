@@ -1,4 +1,4 @@
-"""Tests for tools/lib/auth.py - OAuth authentication utilities."""
+"""Tests for openpilot/tools/lib/auth.py - OAuth authentication utilities."""
 
 import io
 import pytest

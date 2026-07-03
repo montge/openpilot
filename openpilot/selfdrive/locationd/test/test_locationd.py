@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from cereal import log, messaging
+from openpilot.cereal import log, messaging
 from openpilot.selfdrive.locationd.locationd import (
   LocationEstimator,
   HandleLogResult,

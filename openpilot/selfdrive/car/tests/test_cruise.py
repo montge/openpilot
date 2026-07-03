@@ -2,7 +2,7 @@
 
 import pytest
 
-from cereal import car
+from opendbc.car.structs import car
 
 from openpilot.common.constants import CV
 from openpilot.selfdrive.car.cruise import (

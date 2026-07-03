@@ -1,4 +1,4 @@
-"""Tests for tools/lib/file_sources.py - file source utilities."""
+"""Tests for openpilot/tools/lib/file_sources.py - file source utilities."""
 
 import pytest
 

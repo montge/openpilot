@@ -10,18 +10,18 @@ Developers without comma device hardware need a comprehensive test harness to ex
 
 ## What Changes
 
-- **Add Algorithm Test Framework** (`selfdrive/controls/lib/tests/algorithm_harness/`):
+- **Add Algorithm Test Framework** (`openpilot/selfdrive/controls/lib/tests/algorithm_harness/`):
   - Scenario runner for deterministic algorithm evaluation
   - Metrics collection (latency, smoothness, tracking error, safety margins)
   - A/B comparison utilities for algorithm variants
   - Synthetic scenario generators (curves, lane changes, emergency stops)
 
-- **Add Recorded Scenario Library** (`tools/lib/test_scenarios/`):
+- **Add Recorded Scenario Library** (`openpilot/tools/lib/test_scenarios/`):
   - Curated set of challenging driving scenarios from route logs
   - Ground truth annotations for algorithm validation
   - Scenario categories: curves, lane changes, traffic, weather conditions
 
-- **Add Algorithm Benchmarking CLI** (`tools/algo_bench.py`):
+- **Add Algorithm Benchmarking CLI** (`openpilot/tools/algo_bench.py`):
   - Run algorithms against scenario library
   - Generate comparison reports (tables, plots)
   - Track algorithm performance over commits

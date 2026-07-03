@@ -6,9 +6,9 @@ Sets up the development environment for openpilot on NVIDIA DGX Spark.
 Creates an isolated .venv, installs dependencies, and verifies GPU access.
 
 Usage:
-  python tools/dgx/setup.py           # Full setup
-  python tools/dgx/setup.py --check   # Check environment only
-  python tools/dgx/setup.py --verify  # Verify GPU and tinygrad
+  python openpilot/tools/dgx/setup.py           # Full setup
+  python openpilot/tools/dgx/setup.py --check   # Check environment only
+  python openpilot/tools/dgx/setup.py --verify  # Verify GPU and tinygrad
 """
 
 import argparse
@@ -205,7 +205,7 @@ def main():
 
   # Find project root
   script_path = Path(__file__).resolve()
-  project_root = script_path.parent.parent.parent
+  project_root = script_path.parent.parent.parent.parent
   os.chdir(project_root)
 
   print(f"Project root: {project_root}")
@@ -232,7 +232,7 @@ def main():
   print("\nTo activate the environment:")
   print(f"  source {project_root / '.venv' / 'bin' / 'activate'}")
   print("\nTo verify tinygrad CUDA:")
-  print("  python tools/dgx/setup.py --verify")
+  print("  python openpilot/tools/dgx/setup.py --verify")
 
 
 if __name__ == '__main__':

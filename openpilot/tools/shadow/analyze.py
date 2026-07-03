@@ -2,8 +2,8 @@
 """CLI tool for analyzing shadow device comparison logs.
 
 Usage:
-  python tools/shadow/analyze.py --shadow /path/to/shadow/segment --prod /path/to/prod/segment
-  python tools/shadow/analyze.py --shadow /path/to/shadow/segment --prod /path/to/prod/segment --output report.md
+  python openpilot/tools/shadow/analyze.py --shadow /path/to/shadow/segment --prod /path/to/prod/segment
+  python openpilot/tools/shadow/analyze.py --shadow /path/to/shadow/segment --prod /path/to/prod/segment --output report.md
 """
 
 from __future__ import annotations

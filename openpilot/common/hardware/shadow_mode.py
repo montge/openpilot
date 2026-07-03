@@ -13,7 +13,7 @@ Detection priority:
 3. SHADOW_DEVICE=1 with no panda (generic override)
 
 Usage:
-  from openpilot.system.hardware.shadow_mode import is_shadow_mode, SHADOW_MODE
+  from openpilot.common.hardware.shadow_mode import is_shadow_mode, SHADOW_MODE
 
   if SHADOW_MODE:
     # Skip actuator publishing

@@ -93,13 +93,13 @@ The test harness SHALL provide a command-line interface for algorithm benchmarki
 
 #### Scenario: Run benchmarks via CLI
 - **GIVEN** a developer at the command line
-- **WHEN** they execute `python tools/algo_bench.py run --algorithm lateral_pid --scenarios curves/`
+- **WHEN** they execute `python openpilot/tools/algo_bench.py run --algorithm lateral_pid --scenarios curves/`
 - **THEN** the algorithm runs against all scenarios in the specified directory
 - **AND** metrics are printed in tabular format
 
 #### Scenario: Generate reports via CLI
 - **GIVEN** completed benchmark results
-- **WHEN** the developer executes `python tools/algo_bench.py report --format html`
+- **WHEN** the developer executes `python openpilot/tools/algo_bench.py report --format html`
 - **THEN** an HTML report is generated with metrics tables and optional plots
 
 ### Requirement: Vehicle Dynamics Configuration

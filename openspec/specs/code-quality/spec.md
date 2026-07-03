@@ -119,7 +119,7 @@ Each Python module SHALL maintain minimum test coverage thresholds appropriate t
 - **NOTE** The enforced minimum in codecov.yml is 80%. The aspirational target is 90%.
 
 #### Scenario: Tools module meets coverage threshold
-- **GIVEN** a tools module (tools/lib/, tools/replay/)
+- **GIVEN** a tools module (openpilot/tools/lib/, tools/replay/)
 - **WHEN** pytest runs with coverage measurement
 - **THEN** line coverage is >= 80%
 - **AND** branch coverage is >= 80%

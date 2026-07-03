@@ -1,4 +1,4 @@
-"""Tests for tools/lib/auth_config.py - authentication configuration."""
+"""Tests for openpilot/tools/lib/auth_config.py - authentication configuration."""
 
 import json
 import os

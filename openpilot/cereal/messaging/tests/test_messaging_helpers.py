@@ -4,9 +4,9 @@ import time
 import capnp
 import pytest
 
-from cereal import log
-import cereal.messaging as messaging
-from cereal.services import SERVICE_LIST
+from openpilot.cereal import log
+import openpilot.cereal.messaging as messaging
+from openpilot.cereal.services import SERVICE_LIST
 
 
 class TestNewMessage:

@@ -1,4 +1,4 @@
-from cereal import log
+from openpilot.cereal import log
 from openpilot.selfdrive.controls.lib.ldw import (
   LaneDepartureWarning,
   LDW_MIN_SPEED,

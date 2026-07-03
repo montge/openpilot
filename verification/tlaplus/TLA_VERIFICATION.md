@@ -7,7 +7,7 @@ mathematical proof of system properties.
 ## Overview
 
 The `SelfDrived.tla` specification models the 5-state machine from
-`selfdrive/selfdrived/state.py` that controls vehicle engagement and
+`openpilot/selfdrive/selfdrived/state.py` that controls vehicle engagement and
 disengagement. The TLC model checker exhaustively verifies that safety
 properties hold across ALL possible event sequences.
 
@@ -199,8 +199,8 @@ PROPERTIES
 The TLA+ verification runs automatically via GitHub Actions when:
 
 - Files in `verification/tlaplus/` change
-- `selfdrive/selfdrived/state.py` changes
-- `selfdrive/selfdrived/events.py` changes
+- `openpilot/selfdrive/selfdrived/state.py` changes
+- `openpilot/selfdrive/selfdrived/events.py` changes
 
 See `.github/workflows/tlaplus.yml` for the workflow definition.
 
@@ -242,5 +242,5 @@ This skips temporal properties which require exploring the full state graph.
 - [TLA+ Language Manual](https://lamport.azurewebsites.net/tla/tla.html)
 - [Learn TLA+](https://learntla.com/)
 - [TLC Model Checker](https://lamport.azurewebsites.net/tla/tlc.html)
-- [selfdrive/selfdrived/state.py](../../selfdrive/selfdrived/state.py) - Reference implementation
-- [selfdrive/selfdrived/events.py](../../selfdrive/selfdrived/events.py) - Event definitions
+- [selfdrive/selfdrived/state.py](../../openpilot/selfdrive/selfdrived/state.py) - Reference implementation
+- [selfdrive/selfdrived/events.py](../../openpilot/selfdrive/selfdrived/events.py) - Event definitions

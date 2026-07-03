@@ -1,6 +1,6 @@
 """Tests for selfdrive/controls/lib/desire_helper.py - lane change desire helper."""
 
-from cereal import log
+from openpilot.cereal import log
 
 from openpilot.selfdrive.controls.lib.desire_helper import (
   DesireHelper,

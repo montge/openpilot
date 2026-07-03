@@ -6,10 +6,10 @@ This tool provides command-line access to the algorithm test harness
 for running benchmarks, comparing algorithms, and generating reports.
 
 Usage:
-  python tools/algo_bench.py generate-scenarios --output ./scenarios
-  python tools/algo_bench.py run --algorithm lateral_pid --scenarios ./scenarios
-  python tools/algo_bench.py compare --baseline lateral_pid --candidate lateral_torque --scenarios ./scenarios
-  python tools/algo_bench.py report --results ./results --format markdown
+  python openpilot/tools/algo_bench.py generate-scenarios --output ./scenarios
+  python openpilot/tools/algo_bench.py run --algorithm lateral_pid --scenarios ./scenarios
+  python openpilot/tools/algo_bench.py compare --baseline lateral_pid --candidate lateral_torque --scenarios ./scenarios
+  python openpilot/tools/algo_bench.py report --results ./results --format markdown
 """
 
 import argparse

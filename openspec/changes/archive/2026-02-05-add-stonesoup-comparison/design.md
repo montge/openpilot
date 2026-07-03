@@ -33,10 +33,10 @@ Stone Soup offers alternatives worth benchmarking, plus emerging approaches (vox
 Create bidirectional conversion between openpilot and Stone Soup types:
 
 ```python
-# tools/stonesoup/adapters.py
+# openpilot/tools/stonesoup/adapters.py
 from stonesoup.types.detection import Detection
 from stonesoup.types.state import GaussianState
-from cereal import log
+from openpilot.cereal import log
 
 class OpenpilotAdapter:
     def radar_track_to_detection(self, track: log.RadarState.RadarTrack) -> Detection:

@@ -10,7 +10,7 @@
 
 ## 2. Frame Streamer (Shadow Device)
 
-- [x] 2.1 Create `tools/shadow/setup/frame_streamer.py`
+- [x] 2.1 Create `openpilot/tools/shadow/setup/frame_streamer.py`
   - [x] VisionIpcClient connection to camerad
   - [x] NV12 to JPEG encoding (OpenCV)
   - [x] ZMQ PUB socket for frame publishing
@@ -26,7 +26,7 @@
 
 ## 3. Inference Server (Desktop)
 
-- [x] 3.1 Create `tools/shadow/setup/inference_server.py`
+- [x] 3.1 Create `openpilot/tools/shadow/setup/inference_server.py`
   - [x] ZMQ SUB socket for receiving frames
   - [x] JPEG to NV12 decoding
   - [x] VisionIpcServer for local modeld
@@ -46,7 +46,7 @@
 
 ## 4. Result Receiver (Shadow Device)
 
-- [x] 4.1 Create `tools/shadow/setup/result_receiver.py`
+- [x] 4.1 Create `openpilot/tools/shadow/setup/result_receiver.py`
   - [x] ZMQ SUB socket for receiving results
   - [x] Deserialize modelV2 messages
   - [x] Publish to local messaging (optional)
@@ -76,11 +76,11 @@
 
 ## 6. Documentation
 
-- [x] 6.1 Update `tools/shadow/setup/README.md`
+- [x] 6.1 Update `openpilot/tools/shadow/setup/README.md`
   - [x] Add remote inference section
   - [x] Document server requirements
   - [x] Add quick start guide
-- [x] 6.2 Create `tools/shadow/setup/REMOTE_INFERENCE.md`
+- [x] 6.2 Create `openpilot/tools/shadow/setup/REMOTE_INFERENCE.md`
   - [x] Detailed setup instructions
   - [x] Network configuration
   - [x] Troubleshooting guide
@@ -147,7 +147,7 @@
 **When IP Webcam is available**, run:
 ```bash
 # Desktop: Start ZMQ receiver
-python tools/shadow/setup/inference_server.py --test
+python openpilot/tools/shadow/setup/inference_server.py --test
 
 # Device: Start MJPEG streamer (via SSH)
 ssh -p 8022 10.0.1.62 "proot-distro login ubuntu -- bash -c '
@@ -157,8 +157,8 @@ python3 /data/data/com.termux/files/home/mjpeg_zmq_streamer.py \
 ```
 
 **Files created for remote testing**:
-- `tools/shadow/setup/mjpeg_zmq_streamer.py` - MJPEG → ZMQ (no VisionIPC needed)
-- `tools/shadow/setup/REMOTE_SETUP.md` - Remote setup guide with ADB/SSH commands
+- `openpilot/tools/shadow/setup/mjpeg_zmq_streamer.py` - MJPEG → ZMQ (no VisionIPC needed)
+- `openpilot/tools/shadow/setup/REMOTE_SETUP.md` - Remote setup guide with ADB/SSH commands
 
 **Remote access available**:
 - SSH: `ssh -p 8022 10.0.1.62`

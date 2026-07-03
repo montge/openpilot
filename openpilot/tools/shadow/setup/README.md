@@ -52,7 +52,7 @@ See [FLASHING.md](FLASHING.md) for detailed instructions.
 
 Push scripts to device:
 ```bash
-adb push tools/shadow/setup/*.sh /sdcard/Download/
+adb push openpilot/tools/shadow/setup/*.sh /sdcard/Download/
 ```
 
 In Termux on the phone:
@@ -103,7 +103,7 @@ ssh u0_a191@<phone-ip> -p 8022
 
 Run commands in Ubuntu via SSH:
 ```bash
-ssh u0_a191@<phone-ip> -p 8022 "proot-distro login ubuntu -- bash -c 'source ~/.venv/bin/activate && cd ~/openpilot && python3 -c \"from openpilot.system.hardware.shadow_mode import is_shadow_mode; print(is_shadow_mode())\"'"
+ssh u0_a191@<phone-ip> -p 8022 "proot-distro login ubuntu -- bash -c 'source ~/.venv/bin/activate && cd ~/openpilot && python3 -c \"from openpilot.common.hardware.shadow_mode import is_shadow_mode; print(is_shadow_mode())\"'"
 ```
 
 ## Verifying Shadow Mode
@@ -114,7 +114,7 @@ source ~/.venv/bin/activate
 cd ~/openpilot
 
 python3 -c "
-from openpilot.system.hardware.shadow_mode import is_shadow_mode, is_oneplus6
+from openpilot.common.hardware.shadow_mode import is_shadow_mode, is_oneplus6
 
 print(f'OnePlus 6 detected: {is_oneplus6()}')
 print(f'Shadow mode active: {is_shadow_mode()}')
@@ -131,7 +131,7 @@ Shadow mode active: True
 
 ### Device Detection
 
-The shadow mode detection (`system/hardware/shadow_mode.py`) uses two methods:
+The shadow mode detection (`openpilot/common/hardware/shadow_mode.py`) uses two methods:
 
 1. **Device tree** (native Linux): Reads `/sys/firmware/devicetree/base/model`
 2. **Android getprop** (proot fallback): Runs `getprop ro.product.device`
@@ -228,7 +228,7 @@ IP Webcam → camera_bridge.py
 ```bash
 cd ~/openpilot
 source .venv/bin/activate
-python tools/shadow/setup/inference_server.py --port 5555 --result-port 5556
+python openpilot/tools/shadow/setup/inference_server.py --port 5555 --result-port 5556
 ```
 
 **On the shadow device (in proot Ubuntu):**
@@ -236,17 +236,17 @@ python tools/shadow/setup/inference_server.py --port 5555 --result-port 5556
 # Terminal 1: Camera bridge
 source ~/.venv/bin/activate
 cd ~/openpilot
-python tools/shadow/setup/camera_bridge.py --url http://<phone-ip>:8080
+python openpilot/tools/shadow/setup/camera_bridge.py --url http://<phone-ip>:8080
 
 # Terminal 2: Frame streamer
 source ~/.venv/bin/activate
 cd ~/openpilot
-python tools/shadow/setup/frame_streamer.py --server tcp://<desktop-ip>:5555
+python openpilot/tools/shadow/setup/frame_streamer.py --server tcp://<desktop-ip>:5555
 
 # Terminal 3: Result receiver (optional)
 source ~/.venv/bin/activate
 cd ~/openpilot
-python tools/shadow/setup/result_receiver.py --server tcp://<desktop-ip>:5556
+python openpilot/tools/shadow/setup/result_receiver.py --server tcp://<desktop-ip>:5556
 ```
 
 ### Network Requirements
@@ -281,7 +281,7 @@ For camera access and VisionIPC publishing, see [CAMERA.md](CAMERA.md).
 ## File Structure
 
 ```
-tools/shadow/setup/
+openpilot/tools/shadow/setup/
 ├── README.md              # This file
 ├── FLASHING.md            # LineageOS flashing guide
 ├── ROOTING.md             # Magisk rooting for OpenCL

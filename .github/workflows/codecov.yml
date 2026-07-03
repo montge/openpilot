@@ -92,24 +92,24 @@ jobs:
           source .venv/bin/activate
           # Core safety-critical modules: controls, car, selfdrived, pandad, locationd
           pytest \
-            selfdrive/controls/ \
-            selfdrive/car/ \
-            selfdrive/selfdrived/ \
-            selfdrive/pandad/ \
-            selfdrive/locationd/ \
-            selfdrive/monitoring/ \
-            common/ \
-            --cov=selfdrive/controls \
-            --cov=selfdrive/car \
-            --cov=selfdrive/selfdrived \
-            --cov=selfdrive/pandad \
-            --cov=selfdrive/locationd \
-            --cov=selfdrive/monitoring \
-            --cov=common \
+            openpilot/selfdrive/controls/ \
+            openpilot/selfdrive/car/ \
+            openpilot/selfdrive/selfdrived/ \
+            openpilot/selfdrive/pandad/ \
+            openpilot/selfdrive/locationd/ \
+            openpilot/selfdrive/monitoring/ \
+            openpilot/common/ \
+            --cov=openpilot/selfdrive/controls \
+            --cov=openpilot/selfdrive/car \
+            --cov=openpilot/selfdrive/selfdrived \
+            --cov=openpilot/selfdrive/pandad \
+            --cov=openpilot/selfdrive/locationd \
+            --cov=openpilot/selfdrive/monitoring \
+            --cov=openpilot/common \
             --cov-report=xml:coverage-core.xml \
             --cov-report=term \
             -m "not slow and not tici" \
-            --ignore=tinygrad_repo --ignore=third_party \
+            --ignore=tinygrad_repo \
             --dist load -n auto --timeout=120 || true
 
       - name: Upload core coverage
@@ -196,12 +196,12 @@ jobs:
         run: |
           source .venv/bin/activate
           pytest \
-            system/ \
-            --cov=system \
+            openpilot/system/ \
+            --cov=openpilot/system \
             --cov-report=xml:coverage-system.xml \
             --cov-report=term \
             -m "not slow and not tici" \
-            --ignore=tinygrad_repo --ignore=third_party \
+            --ignore=tinygrad_repo \
             --dist load -n auto --timeout=120 || true
 
       - name: Upload system coverage
@@ -289,20 +289,16 @@ jobs:
           source .venv/bin/activate
           # Tools and remaining selfdrive modules (modeld, ui, etc.)
           pytest \
-            tools/ \
-            selfdrive/modeld/ \
-            selfdrive/navd/ \
-            selfdrive/ui/ \
-            selfdrive/debug/ \
-            --cov=tools \
-            --cov=selfdrive/modeld \
-            --cov=selfdrive/navd \
-            --cov=selfdrive/ui \
-            --cov=selfdrive/debug \
+            openpilot/tools/ \
+            openpilot/selfdrive/modeld/ \
+            openpilot/selfdrive/ui/ \
+            --cov=openpilot/tools \
+            --cov=openpilot/selfdrive/modeld \
+            --cov=openpilot/selfdrive/ui \
             --cov-report=xml:coverage-tools.xml \
             --cov-report=term \
             -m "not slow and not tici" \
-            --ignore=tinygrad_repo --ignore=third_party \
+            --ignore=tinygrad_repo \
             --dist load -n auto --timeout=120 || true
 
       - name: Upload tools coverage
@@ -351,13 +347,13 @@ jobs:
       - name: Build minimal project
         run: |
           source .venv/bin/activate
-          scons -u -j$(nproc) cereal/
+          scons -u -j$(nproc) openpilot/cereal/
 
       - name: Run algorithm harness coverage check
         id: coverage
         run: |
           source .venv/bin/activate
-          python selfdrive/controls/lib/tests/algorithm_harness/check_coverage.py
+          python openpilot/selfdrive/controls/lib/tests/algorithm_harness/check_coverage.py
         continue-on-error: true
 
       - name: Upload coverage report
@@ -376,7 +372,7 @@ jobs:
             echo "The algorithm harness module requires 90%+ test coverage." >> $GITHUB_STEP_SUMMARY
             echo "Run locally to see detailed report:" >> $GITHUB_STEP_SUMMARY
             echo '```bash' >> $GITHUB_STEP_SUMMARY
-            echo 'python selfdrive/controls/lib/tests/algorithm_harness/check_coverage.py' >> $GITHUB_STEP_SUMMARY
+            echo 'python openpilot/selfdrive/controls/lib/tests/algorithm_harness/check_coverage.py' >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
             exit 1
           fi

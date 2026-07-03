@@ -6,10 +6,10 @@ on NVIDIA GPUs (including DGX Spark). Tests are skipped if:
 - Required dependencies (tinygrad, tensorrt) are not installed
 
 Run with pytest:
-  pytest tools/dgx/tests/test_model_inference.py -v
+  pytest openpilot/tools/dgx/tests/test_model_inference.py -v
 
 For DGX hardware validation, also see:
-  tools/dgx/HARDWARE_TEST_CHECKLIST.md
+  openpilot/tools/dgx/HARDWARE_TEST_CHECKLIST.md
 """
 
 from __future__ import annotations
@@ -29,7 +29,7 @@ def pytest_configure(config):
 def has_nvidia_gpu() -> bool:
   """Check if NVIDIA GPU is available."""
   try:
-    from openpilot.system.hardware.nvidia.gpu import is_nvidia_available
+    from openpilot.common.hardware.nvidia.gpu import is_nvidia_available
 
     return is_nvidia_available()
   except ImportError:
@@ -46,14 +46,14 @@ class TestGPUDetection:
   @requires_gpu
   def test_nvidia_available(self):
     """Test NVIDIA GPU is detected."""
-    from openpilot.system.hardware.nvidia.gpu import is_nvidia_available
+    from openpilot.common.hardware.nvidia.gpu import is_nvidia_available
 
     assert is_nvidia_available()
 
   @requires_gpu
   def test_gpu_info(self):
     """Test GPU info retrieval."""
-    from openpilot.system.hardware.nvidia.gpu import get_nvidia_gpus
+    from openpilot.common.hardware.nvidia.gpu import get_nvidia_gpus
 
     gpus = get_nvidia_gpus()
     assert len(gpus) > 0
@@ -65,7 +65,7 @@ class TestGPUDetection:
   @requires_gpu
   def test_precision_detection(self):
     """Test precision capability detection."""
-    from openpilot.system.hardware.nvidia.gpu import get_best_gpu
+    from openpilot.common.hardware.nvidia.gpu import get_best_gpu
 
     gpu = get_best_gpu()
     assert gpu is not None
@@ -76,7 +76,7 @@ class TestGPUDetection:
   @requires_gpu
   def test_best_gpu_selection(self):
     """Test best GPU selection."""
-    from openpilot.system.hardware.nvidia.gpu import get_best_gpu
+    from openpilot.common.hardware.nvidia.gpu import get_best_gpu
 
     gpu = get_best_gpu()
     assert gpu is not None
@@ -92,7 +92,7 @@ class TestModelRunner:
     from openpilot.tools.dgx.model_runner import Backend, ModelRunner, Precision
 
     runner = ModelRunner(
-      model_path="selfdrive/modeld/models/driving_policy.onnx",
+      model_path="openpilot/selfdrive/modeld/models/driving_policy.onnx",
       backend=Backend.CPU,  # Use CPU for init test
       precision=Precision.FP32,
     )
@@ -181,7 +181,7 @@ class TestModelLoading:
   @pytest.fixture
   def model_dir(self) -> Path:
     """Get model directory."""
-    return Path("selfdrive/modeld/models")
+    return Path("openpilot/selfdrive/modeld/models")
 
   def test_model_files_exist(self, model_dir: Path):
     """Test that model files exist."""

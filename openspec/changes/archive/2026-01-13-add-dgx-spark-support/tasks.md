@@ -1,6 +1,6 @@
 ## 1. Hardware Abstraction
 
-- [x] 1.1 Create `system/hardware/nvidia/` directory structure
+- [x] 1.1 Create `openpilot/common/hardware/nvidia/` directory structure
 - [x] 1.2 Implement `NvidiaPC` class extending `HardwareBase`
 - [x] 1.3 Implement hardware detection (`is_nvidia_available()`, `is_dgx_spark()`)
 - [x] 1.4 Implement capability queries (`GPUInfo` with memory, compute capability, unified memory)
@@ -20,16 +20,16 @@
 - [x] 3.1 Extend model runner to support precision selection
 - [x] 3.2 Implement memory-efficient model loading for unified memory
 - [x] 3.3 Add model warm-up and performance profiling
-- [x] 3.4 Create inference benchmark script (`tools/dgx/benchmark_inference.py`)
-- [x] 3.5 Document performance characteristics (see tools/dgx/README.md)
+- [x] 3.4 Create inference benchmark script (`openpilot/tools/dgx/benchmark_inference.py`)
+- [x] 3.5 Document performance characteristics (see openpilot/tools/dgx/README.md)
 
 ## 4. DoRA Fine-Tuning Support
 
-- [x] 4.1 Create `tools/dgx/` directory structure
+- [x] 4.1 Create `openpilot/tools/dgx/` directory structure
 - [x] 4.2 Implement `DoRAAdapter` class for weight decomposition (`training/dora.py`)
 - [x] 4.3 Implement `DoRALayer` for low-rank adaptation (`DoRALinear`, `DoRAConv2d`)
 - [x] 4.4 Create dataset loader for route logs → training data (`training/dataloader.py`)
-- [x] 4.5 Implement fine-tuning entry point (`tools/dgx/training/train.py`)
+- [x] 4.5 Implement fine-tuning entry point (`openpilot/tools/dgx/training/train.py`)
 - [x] 4.6 Implement adapter checkpoint save/load (in train.py)
 - [x] 4.7 Add adapter merging utility (`DoRALinear.merge_weights()`)
 - [x] 4.8 Add unit tests for DoRA implementation (`training/test_dora.py`)
@@ -44,7 +44,7 @@
 
 ## 6. Development Utilities
 
-- [x] 6.1 Create `tools/dgx/setup.py` for environment setup
+- [x] 6.1 Create `openpilot/tools/dgx/setup.py` for environment setup
 - [x] 6.2 Add CUDA toolkit version checking
 - [x] 6.3 Create memory profiling utility (`gpu_monitor.py`)
 - [x] 6.4 Add GPU utilization monitoring (`gpu_monitor.py`)
@@ -67,7 +67,7 @@
 
 ## 9. Documentation
 
-- [x] 9.1 Add NVIDIA/DGX setup guide to tools/dgx/README.md
-- [x] 9.2 Document DoRA fine-tuning workflow (in tools/dgx/README.md)
-- [x] 9.3 Add troubleshooting guide for common issues (in tools/dgx/README.md)
+- [x] 9.1 Add NVIDIA/DGX setup guide to openpilot/tools/dgx/README.md
+- [x] 9.2 Document DoRA fine-tuning workflow (in openpilot/tools/dgx/README.md)
+- [x] 9.3 Add troubleshooting guide for common issues (in openpilot/tools/dgx/README.md)
 - [x] 9.4 Update CLAUDE.md with NVIDIA development notes

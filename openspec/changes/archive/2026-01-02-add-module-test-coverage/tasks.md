@@ -3,7 +3,7 @@
 ## 1. Priority 1: Largest Coverage Gaps (50-65%)
 
 ### 1.1 tools.lib (50% → 71% achieved, target 90%)
-- [x] 1.1.1 Identify uncovered files in tools/lib/
+- [x] 1.1.1 Identify uncovered files in openpilot/tools/lib/
 - [x] 1.1.2 Add tests for route.py edge cases (68% → 98%)
 - [x] 1.1.3 Add tests for github_utils.py (0% → 100%)
 - [x] 1.1.4 Add tests for auth.py (0% → 91%)

@@ -1,4 +1,5 @@
-from cereal import car, log
+from opendbc.car.structs import car
+from openpilot.cereal import log
 from openpilot.common.realtime import DT_CTRL
 from openpilot.selfdrive.selfdrived.selfdrived import SelfdriveD
 from openpilot.selfdrive.selfdrived.events import Events, ET, EVENTS, NormalPermanentAlert

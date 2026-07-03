@@ -81,12 +81,12 @@ All TID251 violations have been resolved. The conversion was completed in 3 comm
 
 - [x] **6.1** Convert `cereal/tests/test_services.py`
 - [x] **6.2** Convert `tools/car_porting/test_car_model.py`
-- [x] **6.3** Convert `tools/lib/tests/test_api.py`
-- [x] **6.4** Convert `tools/lib/tests/test_auth_config.py`
-- [x] **6.5** Convert `tools/lib/tests/test_cache.py`
-- [x] **6.6** Convert `tools/lib/tests/test_route.py`
-- [x] **6.7** Convert `tools/lib/tests/test_sanitizer.py`
-- [x] **6.8** Convert `tools/lib/tests/test_url_file.py`
+- [x] **6.3** Convert `openpilot/tools/lib/tests/test_api.py`
+- [x] **6.4** Convert `openpilot/tools/lib/tests/test_auth_config.py`
+- [x] **6.5** Convert `openpilot/tools/lib/tests/test_cache.py`
+- [x] **6.6** Convert `openpilot/tools/lib/tests/test_route.py`
+- [x] **6.7** Convert `openpilot/tools/lib/tests/test_sanitizer.py`
+- [x] **6.8** Convert `openpilot/tools/lib/tests/test_url_file.py`
 - [x] **6.9** Verify: `ruff check tools/ cereal/ --select TID251` ✓
 
 ## Phase 7: Final Validation

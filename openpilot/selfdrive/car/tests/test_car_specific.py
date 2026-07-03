@@ -1,6 +1,8 @@
 """Tests for selfdrive/car/car_specific.py - car-specific event handling."""
 
-from cereal import car, log
+from opendbc.car.structs import car
+
+from openpilot.cereal import log
 from opendbc.car import structs
 
 from openpilot.selfdrive.car.car_specific import CarSpecificEvents

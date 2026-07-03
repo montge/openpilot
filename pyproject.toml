@@ -103,6 +103,7 @@ testing = [
 
 dev = [
   "matplotlib",
+  "opencv-python-headless",  # fork: used by fair/shadow tooling
 ]
 
 tools = [

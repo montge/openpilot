@@ -18,7 +18,7 @@ Adapter layer for bidirectional conversion between openpilot and Stone Soup type
 ## Directory Structure
 
 ```
-tools/stonesoup/
+openpilot/tools/stonesoup/
 ├── __init__.py
 ├── adapters.py          # Type conversions
 ├── requirements.txt     # stonesoup>=1.8
@@ -200,7 +200,7 @@ class TestOpenpilotAdapter:
 
 ## Dependencies
 
-Add to `tools/stonesoup/requirements.txt`:
+Add to `openpilot/tools/stonesoup/requirements.txt`:
 ```
 stonesoup>=1.8
 ```

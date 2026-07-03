@@ -12,7 +12,7 @@ This documentation and tooling is needed because:
 
 ## What Changes
 
-- **Add Setup Scripts** (`tools/shadow/setup/`):
+- **Add Setup Scripts** (`openpilot/tools/shadow/setup/`):
   - `flash-lineageos.md` - Step-by-step LineageOS flashing guide
   - `termux-setup.sh` - Termux package installation and proot-distro setup
   - `ubuntu-setup.sh` - Ubuntu dependencies for openpilot
@@ -23,7 +23,7 @@ This documentation and tooling is needed because:
   - Added `_get_android_device()` fallback using `getprop ro.product.device`
   - Enables detection in proot/Termux where `/sys/firmware/devicetree/base/model` is inaccessible
 
-- **Add Setup Documentation** (`tools/shadow/setup/README.md`):
+- **Add Setup Documentation** (`openpilot/tools/shadow/setup/README.md`):
   - Complete setup guide from stock Android to working shadow device
   - Troubleshooting common issues
   - SSH remote development workflow
@@ -32,7 +32,7 @@ This documentation and tooling is needed because:
 
 - Affected specs: `shadow-device` (adds setup requirements)
 - Affected code:
-  - `system/hardware/shadow_mode.py` - Android getprop fallback (already merged)
-  - `tools/shadow/setup/` - New directory with scripts and docs
+  - `openpilot/common/hardware/shadow_mode.py` - Android getprop fallback (already merged)
+  - `openpilot/tools/shadow/setup/` - New directory with scripts and docs
 - Dependencies: LineageOS 22+, Termux from F-Droid, proot-distro
 - **SAFETY**: No changes to safety-critical code; shadow mode already prevents actuation

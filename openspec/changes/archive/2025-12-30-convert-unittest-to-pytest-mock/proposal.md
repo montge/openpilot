@@ -4,7 +4,7 @@
 
 The project's ruff configuration bans `unittest` imports (`"unittest".msg = "Use pytest"`), but 52 test files in the main codebase still use `from unittest.mock import ...` or `import unittest`. This causes pre-commit and pre-push hooks to fail, blocking contributions.
 
-The project already uses pytest-mock (listed in pyproject.toml dependencies) and has existing patterns in `tools/lib/tests/test_logreader.py` demonstrating proper usage.
+The project already uses pytest-mock (listed in pyproject.toml dependencies) and has existing patterns in `openpilot/tools/lib/tests/test_logreader.py` demonstrating proper usage.
 
 ## What Changes
 

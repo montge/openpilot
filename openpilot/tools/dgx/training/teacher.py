@@ -112,7 +112,7 @@ class TeacherModel:
 
   def __init__(
     self,
-    models_dir: str = "selfdrive/modeld/models",
+    models_dir: str = "openpilot/selfdrive/modeld/models",
     fp16: bool = True,
     verbose: bool = False,
   ):
@@ -194,7 +194,7 @@ class TeacherModel:
 
 
 def create_teacher(
-  models_dir: str = "selfdrive/modeld/models",
+  models_dir: str = "openpilot/selfdrive/modeld/models",
   fp16: bool = True,
 ) -> TeacherModel:
   """Factory function to create teacher model."""

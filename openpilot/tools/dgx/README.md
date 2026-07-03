@@ -11,10 +11,10 @@ Development utilities for running openpilot on NVIDIA DGX Spark hardware.
 
 ```bash
 # Run the quick start script (creates venv, installs deps, verifies GPU)
-./tools/dgx/quickstart.sh
+./openpilot/tools/dgx/quickstart.sh
 
 # Or use Python setup script
-python tools/dgx/setup.py
+python openpilot/tools/dgx/setup.py
 ```
 
 ## Environment Setup
@@ -33,10 +33,10 @@ pip install numpy tinygrad onnx pytest
 
 ```bash
 # Check GPU and environment
-python tools/dgx/setup.py --check
+python openpilot/tools/dgx/setup.py --check
 
 # Verify tinygrad CUDA backend
-python tools/dgx/setup.py --verify
+python openpilot/tools/dgx/setup.py --verify
 ```
 
 ## GPU Detection
@@ -44,7 +44,7 @@ python tools/dgx/setup.py --verify
 The hardware abstraction layer automatically detects NVIDIA GPUs:
 
 ```python
-from openpilot.system.hardware.nvidia.gpu import (
+from openpilot.common.hardware.nvidia.gpu import (
     is_nvidia_available,
     is_dgx_spark,
     get_nvidia_gpus,
@@ -132,13 +132,13 @@ pip install tensorrt
 git lfs pull
 
 # Or copy models manually
-scp user@source:/path/to/models/*.onnx selfdrive/modeld/models/
+scp user@source:/path/to/models/*.onnx openpilot/selfdrive/modeld/models/
 ```
 
 ### Out of memory during training
 - Reduce batch size: `--batch-size 16` or `--batch-size 8`
 - Use gradient checkpointing (if implemented)
-- Monitor memory: `python tools/dgx/gpu_monitor.py --monitor`
+- Monitor memory: `python openpilot/tools/dgx/gpu_monitor.py --monitor`
 
 ### PyTorch not found
 Training requires PyTorch:
@@ -163,10 +163,10 @@ ssh -i ~/.ssh/dgx_key user@dgx-spark-ip
 tinygrad CUDA is not optimized for Blackwell architecture. Use TensorRT:
 ```bash
 # TensorRT: ~800 FPS
-python tools/dgx/benchmark_tensorrt.py
+python openpilot/tools/dgx/benchmark_tensorrt.py
 
 # tinygrad: ~2 FPS (not optimized)
-python tools/dgx/benchmark_inference.py
+python openpilot/tools/dgx/benchmark_inference.py
 ```
 
 ### Pre-commit hook failures
@@ -184,7 +184,7 @@ export PATH="/home/$USER/.venv/bin:$PATH"
 Check for OOM (Out of Memory):
 ```bash
 dmesg | tail -20  # Check for OOM killer messages
-python tools/dgx/gpu_monitor.py --status  # Check GPU memory
+python openpilot/tools/dgx/gpu_monitor.py --status  # Check GPU memory
 ```
 
 ## Benchmarking
@@ -194,7 +194,7 @@ python tools/dgx/gpu_monitor.py --status  # Check GPU memory
 For maximum performance, use TensorRT:
 ```bash
 pip install tensorrt
-python tools/dgx/benchmark_tensorrt.py
+python openpilot/tools/dgx/benchmark_tensorrt.py
 ```
 
 Options:
@@ -206,7 +206,7 @@ Options:
 
 For tinygrad-based inference:
 ```bash
-python tools/dgx/benchmark_inference.py --runs 20 --warmup 5
+python openpilot/tools/dgx/benchmark_inference.py --runs 20 --warmup 5
 ```
 
 Options:
@@ -259,21 +259,21 @@ The DGX Spark is ideal for fine-tuning openpilot models using DoRA (Weight-Decom
 pip install torch onnx2pytorch tensorrt
 
 # Run training with dummy data (tests the pipeline)
-python tools/dgx/training/train.py --dry-run --epochs 2
+python openpilot/tools/dgx/training/train.py --dry-run --epochs 2
 
 # Train with CI test segments
-python tools/dgx/training/train.py --data ci --epochs 5
+python openpilot/tools/dgx/training/train.py --data ci --epochs 5
 
 # Train with commaCarSegments dataset
-python tools/dgx/training/train.py --data comma_car_segments --epochs 10
+python openpilot/tools/dgx/training/train.py --data comma_car_segments --epochs 10
 ```
 
 ### Training Configuration
 
 ```bash
-python tools/dgx/training/train.py \
+python openpilot/tools/dgx/training/train.py \
   --data /path/to/segments \    # Training data path
-  --model selfdrive/modeld/models/driving_policy.onnx \
+  --model openpilot/selfdrive/modeld/models/driving_policy.onnx \
   --epochs 10 \                 # Number of training epochs
   --batch-size 32 \             # Batch size
   --lr 1e-4 \                   # Learning rate
@@ -368,16 +368,16 @@ torch.onnx.export(model, dummy_input, "fine_tuned_model.onnx")
 
 ```bash
 # Run DoRA unit tests (requires PyTorch)
-pytest tools/dgx/training/test_dora.py -v
+pytest openpilot/tools/dgx/training/test_dora.py -v
 
 # Test dataloader with CI segments
-python tools/dgx/training/test_dataloader.py --download --read
+python openpilot/tools/dgx/training/test_dataloader.py --download --read
 ```
 
 ## Files
 
 ```
-tools/dgx/
+openpilot/tools/dgx/
 ├── __init__.py                 # Package init
 ├── setup.py                    # Environment setup script
 ├── quickstart.sh               # Quick start bash script

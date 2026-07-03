@@ -1,6 +1,8 @@
 import pytest
 
-from cereal import car, log
+from opendbc.car.structs import car
+
+from openpilot.cereal import log
 from opendbc.car import structs
 from opendbc.car.interfaces import CarInterfaceBase, RadarInterfaceBase
 from openpilot.selfdrive.car.card import Car, obd_callback, can_comm_callbacks

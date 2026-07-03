@@ -71,13 +71,13 @@ print(f"Accel RMSE: {report.control_metrics.accel_rmse:.4f}")
 
 ```bash
 # Generate comparison report
-python tools/shadow/analyze.py \
+python openpilot/tools/shadow/analyze.py \
     --shadow /data/shadow_logs/segment_001 \
     --prod /data/prod_logs/segment_001 \
     --output report.md
 
 # Output as JSON
-python tools/shadow/analyze.py \
+python openpilot/tools/shadow/analyze.py \
     --shadow /path/to/shadow \
     --prod /path/to/prod \
     --json --output metrics.json
@@ -85,27 +85,27 @@ python tools/shadow/analyze.py \
 
 ## Components
 
-### Shadow Mode Detection (`system/hardware/shadow_mode.py`)
+### Shadow Mode Detection (`openpilot/common/hardware/shadow_mode.py`)
 
 - `is_shadow_mode()` - Check if running in shadow mode
 - `panda_connected()` - Check for panda hardware
 - `SHADOW_MODE` - Module-level constant for fast access
 
-### Comparison Logger (`tools/shadow/comparison_logger.py`)
+### Comparison Logger (`openpilot/tools/shadow/comparison_logger.py`)
 
 - `ComparisonLogger` - Main logging class
 - `FrameData` - Data container for each frame
 - Supports JSON serialization with optional gzip compression
 - Automatic log rotation for long sessions
 
-### Log Alignment (`tools/shadow/align.py`)
+### Log Alignment (`openpilot/tools/shadow/align.py`)
 
 - `LogAligner` - Aligns logs from two devices
 - Supports GPS-based, frame ID-based, and timestamp-based alignment
 - `AlignmentResult` - Contains paired frames and unmatched frames
 - `validate_alignment()` - Check alignment quality
 
-### Metrics (`tools/shadow/metrics.py`)
+### Metrics (`openpilot/tools/shadow/metrics.py`)
 
 - `compute_control_metrics()` - Steer/accel divergence
 - `compute_trajectory_metrics()` - Path/speed divergence
@@ -146,7 +146,7 @@ Shadow mode detection uses `getprop` to identify OnePlus 6 hardware. In proot, t
 export PATH=$PATH:/data/data/com.termux/files/usr/bin
 
 # Verify detection
-python3 -c "from openpilot.system.hardware.shadow_mode import is_shadow_mode; print(is_shadow_mode())"
+python3 -c "from openpilot.common.hardware.shadow_mode import is_shadow_mode; print(is_shadow_mode())"
 ```
 
 If `getprop` is not found, set the environment variable explicitly:
@@ -173,7 +173,7 @@ SHADOW_MODE=1 ./launch_openpilot.sh
 
 ### Setup Reference
 
-See `tools/shadow/setup/README.md` for the complete OnePlus 6 setup guide covering:
+See `openpilot/tools/shadow/setup/README.md` for the complete OnePlus 6 setup guide covering:
 - LineageOS flashing (`FLASHING.md`)
 - Termux and proot environment setup
 - Camera integration (`CAMERA.md`)

@@ -1,6 +1,6 @@
 ## 1. Core Framework
 
-- [x] 1.1 Create `selfdrive/controls/lib/tests/algorithm_harness/` directory structure
+- [x] 1.1 Create `openpilot/selfdrive/controls/lib/tests/algorithm_harness/` directory structure
 - [x] 1.2 Implement `AlgorithmInterface` protocol and data classes (`interface.py`)
 - [x] 1.3 Implement `ScenarioRunner` class (`runner.py`)
 - [x] 1.4 Implement `MetricsCollector` class (`metrics.py`)
@@ -11,7 +11,7 @@
 
 - [x] 2.1 Define Parquet schema for scenarios (`scenario_schema.py`)
 - [x] 2.2 Implement scenario loader and validator (`scenarios.py`)
-- [x] 2.3 Create `tools/lib/test_scenarios/` directory structure
+- [x] 2.3 Create `openpilot/tools/lib/test_scenarios/` directory structure
 - [x] 2.4 Create 5 seed scenarios:
   - [x] 2.4.1 Highway straight driving (baseline)
   - [x] 2.4.2 Tight S-curve
@@ -37,7 +37,7 @@
 
 ## 5. CLI and Reporting
 
-- [x] 5.1 Create `tools/algo_bench.py` CLI entry point
+- [x] 5.1 Create `openpilot/tools/algo_bench.py` CLI entry point
 - [x] 5.2 Implement `run` subcommand (run algorithm against scenarios)
 - [x] 5.3 Implement `compare` subcommand (A/B comparison)
 - [x] 5.4 Implement `report` subcommand (generate HTML/markdown reports)

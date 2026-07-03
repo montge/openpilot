@@ -10,7 +10,7 @@ Each Python module SHALL maintain minimum test coverage thresholds appropriate t
 - **AND** branch coverage is >= 80%
 
 #### Scenario: Tools module meets coverage threshold
-- **GIVEN** a tools module (tools/lib/, tools/replay/)
+- **GIVEN** a tools module (openpilot/tools/lib/, tools/replay/)
 - **WHEN** pytest runs with coverage measurement
 - **THEN** line coverage is >= 90%
 - **AND** branch coverage is >= 80%

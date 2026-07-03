@@ -18,12 +18,12 @@ The strategy is to use FAIR models as teachers on DGX Spark to train smaller, ef
 
 ## What Changes
 
-- **Add FAIR Model Integration** (`tools/fair/`):
+- **Add FAIR Model Integration** (`openpilot/tools/fair/`):
   - Model loading and inference wrappers
   - Feature extraction pipelines
   - Benchmark utilities
 
-- **Add Knowledge Distillation** (`tools/fair/distillation/`):
+- **Add Knowledge Distillation** (`openpilot/tools/fair/distillation/`):
   - Teacher-student training framework
   - Feature distillation losses
   - Quantization-aware training
@@ -34,7 +34,7 @@ The strategy is to use FAIR models as teachers on DGX Spark to train smaller, ef
   - CoTracker lane tracking
   - Distilled models for comma 4
 
-- **Add Training Pipelines** (`tools/fair/training/`):
+- **Add Training Pipelines** (`openpilot/tools/fair/training/`):
   - DoRA fine-tuning with FAIR teachers
   - Multi-task learning (depth + segmentation + detection)
   - Dataset preparation from route logs
@@ -43,7 +43,7 @@ The strategy is to use FAIR models as teachers on DGX Spark to train smaller, ef
 
 - Affected specs: New `fair-integration` capability
 - Affected code:
-  - `tools/fair/` - New FAIR integration
+  - `openpilot/tools/fair/` - New FAIR integration
   - `selfdrive/modeld/fair/` - Perception enhancements
 - Dependencies: torch, torchvision, segment-anything, dinov2 (new)
 - Hardware requirements:

@@ -3,7 +3,7 @@
 import os
 from pathlib import Path
 
-from openpilot.system.hardware.hw import Paths, DEFAULT_DOWNLOAD_CACHE_ROOT
+from openpilot.common.hardware.hw import Paths, DEFAULT_DOWNLOAD_CACHE_ROOT
 
 
 class TestDefaultDownloadCacheRoot:
@@ -48,7 +48,7 @@ class TestPathsLogRoot:
 
   def test_log_root_pc(self, mocker):
     """Test log_root on PC platform."""
-    mocker.patch('openpilot.system.hardware.hw.PC', True)
+    mocker.patch('openpilot.common.hardware.hw.PC', True)
     mocker.patch.dict(os.environ, {}, clear=True)
     os.environ.pop('LOG_ROOT', None)
     os.environ.pop('OPENPILOT_PREFIX', None)
@@ -59,7 +59,7 @@ class TestPathsLogRoot:
 
   def test_log_root_device(self, mocker):
     """Test log_root on device (non-PC)."""
-    mocker.patch('openpilot.system.hardware.hw.PC', False)
+    mocker.patch('openpilot.common.hardware.hw.PC', False)
     mocker.patch.dict(os.environ, {}, clear=True)
     os.environ.pop('LOG_ROOT', None)
     result = Paths.log_root()
@@ -72,7 +72,7 @@ class TestPathsSwaglogRoot:
 
   def test_swaglog_root_pc(self, mocker):
     """Test swaglog_root on PC platform."""
-    mocker.patch('openpilot.system.hardware.hw.PC', True)
+    mocker.patch('openpilot.common.hardware.hw.PC', True)
     result = Paths.swaglog_root()
 
     expected = os.path.join(Paths.comma_home(), "log")
@@ -80,7 +80,7 @@ class TestPathsSwaglogRoot:
 
   def test_swaglog_root_device(self, mocker):
     """Test swaglog_root on device."""
-    mocker.patch('openpilot.system.hardware.hw.PC', False)
+    mocker.patch('openpilot.common.hardware.hw.PC', False)
     result = Paths.swaglog_root()
 
     assert result == "/data/log/"
@@ -138,7 +138,7 @@ class TestPathsPersistRoot:
 
   def test_persist_root_pc(self, mocker):
     """Test persist_root on PC platform."""
-    mocker.patch('openpilot.system.hardware.hw.PC', True)
+    mocker.patch('openpilot.common.hardware.hw.PC', True)
     result = Paths.persist_root()
 
     expected = os.path.join(Paths.comma_home(), "persist")
@@ -146,7 +146,7 @@ class TestPathsPersistRoot:
 
   def test_persist_root_device(self, mocker):
     """Test persist_root on device."""
-    mocker.patch('openpilot.system.hardware.hw.PC', False)
+    mocker.patch('openpilot.common.hardware.hw.PC', False)
     result = Paths.persist_root()
 
     assert result == "/persist/"
@@ -157,7 +157,7 @@ class TestPathsStatsRoot:
 
   def test_stats_root_pc(self, mocker):
     """Test stats_root on PC platform."""
-    mocker.patch('openpilot.system.hardware.hw.PC', True)
+    mocker.patch('openpilot.common.hardware.hw.PC', True)
     result = Paths.stats_root()
 
     expected = str(Path(Paths.comma_home()) / "stats")
@@ -165,7 +165,7 @@ class TestPathsStatsRoot:
 
   def test_stats_root_device(self, mocker):
     """Test stats_root on device."""
-    mocker.patch('openpilot.system.hardware.hw.PC', False)
+    mocker.patch('openpilot.common.hardware.hw.PC', False)
     result = Paths.stats_root()
 
     assert result == "/data/stats/"
@@ -176,14 +176,14 @@ class TestPathsConfigRoot:
 
   def test_config_root_pc(self, mocker):
     """Test config_root on PC platform."""
-    mocker.patch('openpilot.system.hardware.hw.PC', True)
+    mocker.patch('openpilot.common.hardware.hw.PC', True)
     result = Paths.config_root()
 
     assert result == Paths.comma_home()
 
   def test_config_root_device(self, mocker):
     """Test config_root on device."""
-    mocker.patch('openpilot.system.hardware.hw.PC', False)
+    mocker.patch('openpilot.common.hardware.hw.PC', False)
     result = Paths.config_root()
 
     assert result == "/tmp/.comma"
@@ -194,23 +194,23 @@ class TestPathsShmPath:
 
   def test_shm_path_macos(self, mocker):
     """Test shm_path on macOS returns /tmp."""
-    mocker.patch('openpilot.system.hardware.hw.PC', True)
-    mocker.patch('openpilot.system.hardware.hw.platform.system', return_value="Darwin")
+    mocker.patch('openpilot.common.hardware.hw.PC', True)
+    mocker.patch('openpilot.common.hardware.hw.platform.system', return_value="Darwin")
     result = Paths.shm_path()
 
     assert result == "/tmp"
 
   def test_shm_path_linux_pc(self, mocker):
     """Test shm_path on Linux PC returns /dev/shm."""
-    mocker.patch('openpilot.system.hardware.hw.PC', True)
-    mocker.patch('openpilot.system.hardware.hw.platform.system', return_value="Linux")
+    mocker.patch('openpilot.common.hardware.hw.PC', True)
+    mocker.patch('openpilot.common.hardware.hw.platform.system', return_value="Linux")
     result = Paths.shm_path()
 
     assert result == "/dev/shm"
 
   def test_shm_path_device(self, mocker):
     """Test shm_path on device returns /dev/shm."""
-    mocker.patch('openpilot.system.hardware.hw.PC', False)
+    mocker.patch('openpilot.common.hardware.hw.PC', False)
     result = Paths.shm_path()
 
     assert result == "/dev/shm"
@@ -221,15 +221,15 @@ class TestPcHardware:
 
   def test_get_device_type(self):
     """Test Pc.get_device_type returns 'pc'."""
-    from openpilot.system.hardware.pc.hardware import Pc
+    from openpilot.common.hardware.pc.hardware import Pc
 
     pc = Pc()
     assert pc.get_device_type() == "pc"
 
   def test_get_network_type(self):
     """Test Pc.get_network_type returns wifi."""
-    from cereal import log
-    from openpilot.system.hardware.pc.hardware import Pc
+    from openpilot.cereal import log
+    from openpilot.common.hardware.pc.hardware import Pc
 
     pc = Pc()
     result = pc.get_network_type()

@@ -1,4 +1,4 @@
-"""Tests for tools/lib/github_utils.py - GitHub API utilities."""
+"""Tests for openpilot/tools/lib/github_utils.py - GitHub API utilities."""
 
 import tempfile
 import os

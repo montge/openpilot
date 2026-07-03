@@ -36,11 +36,11 @@ with open('compile_commands.json') as f:
     data = json.load(f)
 
 excludes = [
-    'third_party/', 'msgq_repo/', 'opendbc_repo/', 'rednose_repo/',
-    'tinygrad_repo/', 'teleoprtc_repo/', 'cereal/gen/', '.venv/',
+    'msgq_repo/', 'opendbc_repo/', 'rednose_repo/',
+    'tinygrad_repo/', 'teleoprtc_repo/', 'openpilot/cereal/gen/', '.venv/',
     'panda/', 'c_generated_code/',
     # Qt-based tools excluded (cabana/replay use Qt heavily)
-    'tools/cabana/', 'tools/replay/',
+    'openpilot/tools/cabana/', 'openpilot/tools/replay/',
 ]
 
 for entry in data:

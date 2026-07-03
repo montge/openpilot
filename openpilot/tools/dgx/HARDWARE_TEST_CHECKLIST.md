@@ -7,14 +7,14 @@ Run these tests after setting up a new DGX environment or after significant code
 
 - [ ] SSH access to DGX Spark established
 - [ ] openpilot repository cloned
-- [ ] `./tools/dgx/quickstart.sh` completed successfully
+- [ ] `./openpilot/tools/dgx/quickstart.sh` completed successfully
 - [ ] `nvidia-smi` shows GPU available
 
 ## 1. Environment Setup
 
 ### 1.1 GPU Detection
 ```bash
-python -c "from openpilot.system.hardware.nvidia.gpu import get_nvidia_gpus; print(get_nvidia_gpus())"
+python -c "from openpilot.common.hardware.nvidia.gpu import get_nvidia_gpus; print(get_nvidia_gpus())"
 ```
 - [ ] GPU list is not empty
 - [ ] GPU name matches expected hardware (e.g., "NVIDIA GB10")
@@ -22,7 +22,7 @@ python -c "from openpilot.system.hardware.nvidia.gpu import get_nvidia_gpus; pri
 
 ### 1.2 DGX Spark Detection
 ```bash
-python -c "from openpilot.system.hardware.nvidia.gpu import is_dgx_spark; print(f'DGX Spark: {is_dgx_spark()}')"
+python -c "from openpilot.common.hardware.nvidia.gpu import is_dgx_spark; print(f'DGX Spark: {is_dgx_spark()}')"
 ```
 - [ ] Returns `True` on DGX Spark hardware
 - [ ] Returns `False` on other NVIDIA GPUs
@@ -30,7 +30,7 @@ python -c "from openpilot.system.hardware.nvidia.gpu import is_dgx_spark; print(
 ### 1.3 Precision Detection
 ```bash
 python -c "
-from openpilot.system.hardware.nvidia.gpu import get_best_gpu, get_recommended_precision
+from openpilot.common.hardware.nvidia.gpu import get_best_gpu, get_recommended_precision
 gpu = get_best_gpu()
 print(f'Recommended precision: {get_recommended_precision(gpu)}')
 print(f'Supports FP16: {gpu.supports_fp16}')
@@ -47,7 +47,7 @@ print(f'Supports NVFP4: {gpu.supports_nvfp4}')
 ### 1.4 Hardware Abstraction
 ```bash
 python -c "
-from openpilot.system.hardware import HARDWARE
+from openpilot.common.hardware import HARDWARE
 print(f'Hardware type: {type(HARDWARE).__name__}')
 print(f'EON: {HARDWARE.get_device_type()}')
 "
@@ -59,7 +59,7 @@ print(f'EON: {HARDWARE.get_device_type()}')
 
 ### 2.1 TensorRT Benchmark (Recommended)
 ```bash
-python tools/dgx/benchmark_tensorrt.py --runs 50 --warmup 10
+python openpilot/tools/dgx/benchmark_tensorrt.py --runs 50 --warmup 10
 ```
 Expected results (DGX Spark GB10):
 - [ ] driving_policy: < 0.5ms (>2000 FPS)
@@ -70,7 +70,7 @@ Expected results (DGX Spark GB10):
 
 ### 2.2 tinygrad CUDA Benchmark
 ```bash
-python tools/dgx/benchmark_inference.py --runs 10 --warmup 3
+python openpilot/tools/dgx/benchmark_inference.py --runs 10 --warmup 3
 ```
 - [ ] Models load without errors
 - [ ] Inference completes (performance will be slow, ~2 FPS expected)
@@ -84,9 +84,9 @@ Device.DEFAULT = 'CUDA'
 # Attempt to load each model
 import onnx
 models = [
-    'selfdrive/modeld/models/driving_policy.onnx',
-    'selfdrive/modeld/models/driving_vision.onnx',
-    'selfdrive/modeld/models/dmonitoring_model.onnx',
+    'openpilot/selfdrive/modeld/models/driving_policy.onnx',
+    'openpilot/selfdrive/modeld/models/driving_vision.onnx',
+    'openpilot/selfdrive/modeld/models/dmonitoring_model.onnx',
 ]
 for m in models:
     try:
@@ -103,7 +103,7 @@ for m in models:
 
 ### 3.1 Status Check
 ```bash
-python tools/dgx/gpu_monitor.py --status
+python openpilot/tools/dgx/gpu_monitor.py --status
 ```
 - [ ] GPU name displayed correctly
 - [ ] Memory usage shown (may show 0 for unified memory)
@@ -112,7 +112,7 @@ python tools/dgx/gpu_monitor.py --status
 
 ### 3.2 Continuous Monitoring
 ```bash
-python tools/dgx/gpu_monitor.py --monitor --duration 10
+python openpilot/tools/dgx/gpu_monitor.py --monitor --duration 10
 ```
 - [ ] Samples collected every second
 - [ ] Summary displayed at end
@@ -135,14 +135,14 @@ with MemoryTracker('test'):
 
 ### 4.1 DoRA Layer Tests
 ```bash
-pytest tools/dgx/training/test_dora.py -v
+pytest openpilot/tools/dgx/training/test_dora.py -v
 ```
 - [ ] All tests pass
 - [ ] No CUDA errors
 
 ### 4.2 Dataloader Test
 ```bash
-python tools/dgx/training/test_dataloader.py --download --read
+python openpilot/tools/dgx/training/test_dataloader.py --download --read
 ```
 - [ ] CI segment downloads successfully
 - [ ] Route log parsed correctly
@@ -150,7 +150,7 @@ python tools/dgx/training/test_dataloader.py --download --read
 
 ### 4.3 Training Dry Run
 ```bash
-python tools/dgx/training/train.py --dry-run --epochs 1
+python openpilot/tools/dgx/training/train.py --dry-run --epochs 1
 ```
 - [ ] Model loads and converts to PyTorch
 - [ ] DoRA layers applied correctly
@@ -160,7 +160,7 @@ python tools/dgx/training/train.py --dry-run --epochs 1
 
 ### 4.4 Training with Data (Optional)
 ```bash
-python tools/dgx/training/train.py --data ci --epochs 2 --batch-size 8
+python openpilot/tools/dgx/training/train.py --data ci --epochs 2 --batch-size 8
 ```
 - [ ] Data loads from CI segments
 - [ ] Loss decreases over epochs
@@ -210,8 +210,8 @@ print(f'After cleanup: {torch.cuda.memory_allocated() / 1e9:.2f} GB')
 ### 6.1 Hardware Selection
 ```bash
 python -c "
-from openpilot.system.hardware import HARDWARE
-from openpilot.system.hardware.nvidia import NvidiaPC
+from openpilot.common.hardware import HARDWARE
+from openpilot.common.hardware.nvidia import NvidiaPC
 assert isinstance(HARDWARE, NvidiaPC), 'Expected NvidiaPC'
 print('Hardware selection: OK')
 "
@@ -221,7 +221,7 @@ print('Hardware selection: OK')
 ### 6.2 Model Inference Integration
 ```bash
 # Run a short inference session
-python tools/dgx/benchmark_tensorrt.py --runs 5 --warmup 2
+python openpilot/tools/dgx/benchmark_tensorrt.py --runs 5 --warmup 2
 ```
 - [ ] All models run without errors
 - [ ] Results are numerically reasonable (not NaN/Inf)
@@ -230,7 +230,7 @@ python tools/dgx/benchmark_tensorrt.py --runs 5 --warmup 2
 
 ### 7.1 Extended Inference
 ```bash
-python tools/dgx/benchmark_tensorrt.py --runs 1000 --warmup 50
+python openpilot/tools/dgx/benchmark_tensorrt.py --runs 1000 --warmup 50
 ```
 - [ ] No degradation over time
 - [ ] Memory stable
@@ -238,7 +238,7 @@ python tools/dgx/benchmark_tensorrt.py --runs 1000 --warmup 50
 
 ### 7.2 Training Stability
 ```bash
-python tools/dgx/training/train.py --data ci --epochs 20 --batch-size 16
+python openpilot/tools/dgx/training/train.py --data ci --epochs 20 --batch-size 16
 ```
 - [ ] Training completes without crashes
 - [ ] Loss converges

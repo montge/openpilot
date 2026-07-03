@@ -6,7 +6,7 @@ import tempfile
 import pytest
 
 
-from openpilot.system.hardware.base import (
+from openpilot.common.hardware.base import (
   Profile,
   ThermalZone,
   ThermalConfig,

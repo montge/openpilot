@@ -1,4 +1,4 @@
-"""Tests for tools/lib/bootlog.py - bootlog utilities."""
+"""Tests for openpilot/tools/lib/bootlog.py - bootlog utilities."""
 
 import pytest
 

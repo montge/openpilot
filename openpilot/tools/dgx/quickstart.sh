@@ -2,8 +2,8 @@
 # DGX Spark Quick Start Script
 #
 # Usage:
-#   ./tools/dgx/quickstart.sh          # Setup and verify
-#   ./tools/dgx/quickstart.sh --check  # Check only
+#   ./openpilot/tools/dgx/quickstart.sh          # Setup and verify
+#   ./openpilot/tools/dgx/quickstart.sh --check  # Check only
 #
 set -e
 
@@ -73,4 +73,4 @@ echo "Environment is ready. To activate manually:"
 echo "  source $VENV_PATH/bin/activate"
 echo ""
 echo "To run the GPU detection test:"
-echo "  python -c \"from openpilot.system.hardware.nvidia.gpu import *; print(get_nvidia_gpus())\""
+echo "  python -c \"from openpilot.common.hardware.nvidia.gpu import *; print(get_nvidia_gpus())\""

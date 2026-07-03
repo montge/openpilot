@@ -51,7 +51,7 @@ openpilot's perception uses a monolithic "supercombo" CNN trained end-to-end. Wh
 
 **Full model on DGX Spark**:
 ```python
-# tools/fair/models/dinov2.py
+# openpilot/tools/fair/models/dinov2.py
 from dinov2.models import build_model
 
 class DINOv2Wrapper:
@@ -71,7 +71,7 @@ class DINOv2Wrapper:
 
 **Distilled model for comma 4**:
 ```python
-# tools/fair/students/vision.py
+# openpilot/tools/fair/students/vision.py
 class DINOv2Student(nn.Module):
     """Distilled DINOv2 for comma 4 deployment."""
 
@@ -89,7 +89,7 @@ class DINOv2Student(nn.Module):
 
 **Teacher on DGX Spark**:
 ```python
-# tools/fair/models/sam2.py
+# openpilot/tools/fair/models/sam2.py
 from sam2.build_sam import build_sam2_video_predictor
 
 class SAM2VideoWrapper:
@@ -118,7 +118,7 @@ class SAM2VideoWrapper:
 
 **Full model on DGX Spark**:
 ```python
-# tools/fair/models/cotracker.py
+# openpilot/tools/fair/models/cotracker.py
 from cotracker.predictor import CoTrackerPredictor
 
 class LaneTracker:
@@ -144,7 +144,7 @@ class LaneTracker:
 ### Decision 5: Knowledge Distillation Pipeline
 
 ```python
-# tools/fair/distillation/trainer.py
+# openpilot/tools/fair/distillation/trainer.py
 class DistillationTrainer:
     def __init__(self, teacher, student, temperature=4.0):
         self.teacher = teacher.eval()
@@ -177,7 +177,7 @@ class DistillationTrainer:
 Combine DoRA fine-tuning with FAIR model distillation:
 
 ```python
-# tools/fair/training/dora_distillation.py
+# openpilot/tools/fair/training/dora_distillation.py
 class DoRADistillation:
     """Fine-tune openpilot model with DoRA using FAIR teachers."""
 

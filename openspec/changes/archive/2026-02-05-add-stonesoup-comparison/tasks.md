@@ -1,7 +1,7 @@
 ## 1. Stone Soup Integration
 
 - [x] 1.1 Add stonesoup to development dependencies
-- [x] 1.2 Create `tools/stonesoup/` directory structure
+- [x] 1.2 Create `openpilot/tools/stonesoup/` directory structure
 - [x] 1.3 Implement `OpenpilotAdapter` for type conversion
 - [x] 1.4 Implement radar track → Stone Soup Detection conversion
 - [x] 1.5 Implement Stone Soup state → openpilot LeadData conversion
@@ -35,7 +35,7 @@
 
 ## 5. Voxel Grid Tracker
 
-- [x] 5.1 Create `tools/stonesoup/voxel_tracker.py`
+- [x] 5.1 Create `openpilot/tools/stonesoup/voxel_tracker.py`
 - [x] 5.2 Implement `VoxelGrid` class
 - [x] 5.3 Implement log-odds occupancy update
 - [x] 5.4 Implement voxel-to-world coordinate conversion

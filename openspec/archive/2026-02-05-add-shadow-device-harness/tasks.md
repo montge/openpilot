@@ -1,6 +1,6 @@
 ## 1. Shadow Mode Infrastructure
 
-- [x] 1.1 Add shadow mode detection (`system/hardware/shadow_mode.py`)
+- [x] 1.1 Add shadow mode detection (`openpilot/common/hardware/shadow_mode.py`)
   - [x] 1.1.1 Detect OnePlus 6 device type
   - [x] 1.1.2 Check for panda connection
   - [x] 1.1.3 Support `SHADOW_MODE` environment override
@@ -18,7 +18,7 @@
 
 ## 3. Comparison Logger
 
-- [x] 3.1 Create `tools/shadow/` directory structure
+- [x] 3.1 Create `openpilot/tools/shadow/` directory structure
 - [x] 3.2 Implement `ComparisonLogger` class
   - [x] 3.2.1 Capture model outputs per frame
   - [x] 3.2.2 Capture planned trajectories
@@ -31,7 +31,7 @@
 
 ## 4. Log Synchronization
 
-- [x] 4.1 Implement log alignment algorithm (`tools/shadow/align.py`)
+- [x] 4.1 Implement log alignment algorithm (`openpilot/tools/shadow/align.py`)
   - [x] 4.1.1 GPS-based time alignment
   - [x] 4.1.2 Frame ID matching
   - [x] 4.1.3 Interpolation for mismatched timestamps
@@ -41,15 +41,15 @@
 
 ## 5. Analysis Tools
 
-- [x] 5.1 Implement divergence metrics (`tools/shadow/metrics.py`)
+- [x] 5.1 Implement divergence metrics (`openpilot/tools/shadow/metrics.py`)
   - [x] 5.1.1 Model output divergence (cosine similarity, RMSE)
   - [x] 5.1.2 Trajectory divergence (path error, speed error)
   - [x] 5.1.3 Control command divergence (steer error, accel error)
-- [x] 5.2 Implement visualization (`tools/shadow/visualize.py`)
+- [x] 5.2 Implement visualization (`openpilot/tools/shadow/visualize.py`)
   - [x] 5.2.1 Time-series plots of divergence
   - [x] 5.2.2 Heatmaps of control differences
   - [x] 5.2.3 Event timeline comparison
-- [x] 5.3 Create CLI tool (`tools/shadow/analyze.py`)
+- [x] 5.3 Create CLI tool (`openpilot/tools/shadow/analyze.py`)
   - [x] 5.3.1 Load and align logs
   - [x] 5.3.2 Compute metrics
   - [x] 5.3.3 Generate report (markdown/HTML)
@@ -89,10 +89,10 @@
 
 ## 9. Documentation
 
-- [x] 9.1 Add README.md to tools/shadow/
-- [x] 9.2 Document complete shadow device setup guide (in tools/shadow/setup/)
+- [x] 9.1 Add README.md to openpilot/tools/shadow/
+- [x] 9.2 Document complete shadow device setup guide (in openpilot/tools/shadow/setup/)
 - [x] 9.3 Document comparison testing workflow
-- [x] 9.4 Add troubleshooting guide (in tools/shadow/setup/TROUBLESHOOTING.md)
+- [x] 9.4 Add troubleshooting guide (in openpilot/tools/shadow/setup/TROUBLESHOOTING.md)
 - [x] 9.5 Add example analysis notebook
 
 ## Summary

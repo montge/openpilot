@@ -1,4 +1,4 @@
-"""Tests for tools/lib/exceptions.py - custom exception classes."""
+"""Tests for openpilot/tools/lib/exceptions.py - custom exception classes."""
 
 import pytest
 

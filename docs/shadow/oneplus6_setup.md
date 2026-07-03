@@ -162,7 +162,7 @@ Shadow mode auto-activates on OnePlus 6 without a panda:
 
 ```bash
 # Verify shadow mode detection
-python -c "from openpilot.system.hardware.shadow_mode import is_shadow_mode; print(f'Shadow mode: {is_shadow_mode()}')"
+python -c "from openpilot.common.hardware.shadow_mode import is_shadow_mode; print(f'Shadow mode: {is_shadow_mode()}')"
 ```
 
 Or force shadow mode explicitly:
@@ -284,7 +284,7 @@ Both cameras should view the same scene:
 
 ### Mount Options
 
-1. **3D Printed Bracket** - See `tools/shadow/mounts/` for STL files
+1. **3D Printed Bracket** - See `openpilot/tools/shadow/mounts/` for STL files
 2. **Universal Phone Mount** - Windshield suction mount
 3. **Custom Piggyback** - Attach to existing comma mount
 
@@ -325,10 +325,10 @@ cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
 
 ```bash
 # Check device detection
-python -c "from openpilot.system.hardware.shadow_mode import is_oneplus6; print(is_oneplus6())"
+python -c "from openpilot.common.hardware.shadow_mode import is_oneplus6; print(is_oneplus6())"
 
 # Check panda detection
-python -c "from openpilot.system.hardware.shadow_mode import panda_connected; print(panda_connected())"
+python -c "from openpilot.common.hardware.shadow_mode import panda_connected; print(panda_connected())"
 
 # Force shadow mode
 export SHADOW_MODE=1
@@ -337,12 +337,12 @@ export SHADOW_MODE=1
 ## Next Steps
 
 1. [Camera Calibration](camera_calibration.md) - Calibrate for accurate comparison
-2. [Comparison Testing](../tools/shadow/README.md) - Run comparison tests
-3. [Algorithm Harness](../selfdrive/controls/lib/tests/algorithm_harness/README.md) - Replay shadow logs
+2. [Comparison Testing](../openpilot/tools/shadow/README.md) - Run comparison tests
+3. [Algorithm Harness](../openpilot/selfdrive/controls/lib/tests/algorithm_harness/README.md) - Replay shadow logs
 
 ## References
 
 - [postmarketOS OnePlus 6 Wiki](https://wiki.postmarketos.org/wiki/OnePlus_6_(oneplus-enchilada))
 - [LineageOS Installation](https://wiki.lineageos.org/devices/enchilada/install/)
 - [comma AGNOS Builder](https://github.com/commaai/agnos-builder)
-- [Shadow Device README](../../tools/shadow/README.md)
+- [Shadow Device README](../../openpilot/tools/shadow/README.md)

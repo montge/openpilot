@@ -5,9 +5,9 @@ TensorRT provides optimized inference that is significantly faster than tinygrad
 On DGX Spark GB10 (Blackwell), TensorRT achieves 800+ FPS vs tinygrad's ~2 FPS.
 
 Usage:
-  python tools/dgx/benchmark_tensorrt.py
-  python tools/dgx/benchmark_tensorrt.py --fp32  # Use FP32 instead of FP16
-  python tools/dgx/benchmark_tensorrt.py --runs 50 --warmup 10
+  python openpilot/tools/dgx/benchmark_tensorrt.py
+  python openpilot/tools/dgx/benchmark_tensorrt.py --fp32  # Use FP32 instead of FP16
+  python openpilot/tools/dgx/benchmark_tensorrt.py --runs 50 --warmup 10
 """
 
 import argparse
@@ -107,7 +107,7 @@ def main():
   print(f"Precision: {'FP32' if args.fp32 else 'FP16'}")
   print("=" * 60)
 
-  models_dir = "selfdrive/modeld/models"
+  models_dir = "openpilot/selfdrive/modeld/models"
   models = [
     ("driving_policy.onnx", f"{models_dir}/driving_policy.onnx"),
     ("driving_vision.onnx", f"{models_dir}/driving_vision.onnx"),

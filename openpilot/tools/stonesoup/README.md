@@ -198,7 +198,7 @@ python -m openpilot.tools.stonesoup.scenarios
 ## Running Tests
 
 ```bash
-pytest tools/stonesoup/tests/
+pytest openpilot/tools/stonesoup/tests/
 ```
 
 ## Dependencies

@@ -71,7 +71,7 @@ The system SHALL support DoRA (Weight-Decomposed Low-Rank Adaptation) for model 
 
 #### Scenario: Create DoRA adapter for base model
 - **GIVEN** a pre-trained supercombo model
-- **WHEN** `tools/dgx/finetune.py --create-adapter` is executed
+- **WHEN** `openpilot/tools/dgx/finetune.py --create-adapter` is executed
 - **THEN** DoRA adapter layers are initialized
 - **AND** base model weights are frozen
 - **AND** only adapter parameters are trainable
@@ -117,7 +117,7 @@ The system SHALL provide benchmarking tools for model inference performance.
 
 #### Scenario: Run inference benchmark
 - **GIVEN** a model loaded on DGX Spark
-- **WHEN** `tools/dgx/benchmark_inference.py` is executed
+- **WHEN** `openpilot/tools/dgx/benchmark_inference.py` is executed
 - **THEN** inference latency statistics are reported (mean, p50, p99)
 - **AND** throughput (inferences/second) is reported
 - **AND** GPU utilization and memory usage are reported

@@ -13,19 +13,17 @@ REPORT_FILE="${1:-reports/cppcheck-misra-report.txt}"
 mkdir -p "$(dirname "$REPORT_FILE")"
 
 # Directories to analyze
-TARGET_DIRS="selfdrive system common"
+TARGET_DIRS="openpilot/selfdrive openpilot/system openpilot/common"
 
 # Exclusions (third-party, submodules, generated code)
 EXCLUDES=(
   # Submodules
-  --suppress="*:third_party/*"
   --suppress="*:msgq_repo/*"
   --suppress="*:opendbc_repo/*"
   --suppress="*:rednose_repo/*"
   --suppress="*:tinygrad_repo/*"
   --suppress="*:teleoprtc_repo/*"
   --suppress="*:.venv/*"
-  -i third_party
   -i msgq_repo
   -i opendbc_repo
   -i rednose_repo
@@ -33,13 +31,13 @@ EXCLUDES=(
   -i teleoprtc_repo
   -i .venv
   # Generated code
-  --suppress="*:cereal/gen/*"
-  --suppress="*:selfdrive/controls/lib/lateral_mpc_lib/c_generated_code/*"
-  --suppress="*:selfdrive/controls/lib/longitudinal_mpc_lib/c_generated_code/*"
-  --suppress="*:selfdrive/locationd/models/generated/*"
-  -i selfdrive/controls/lib/lateral_mpc_lib/c_generated_code
-  -i selfdrive/controls/lib/longitudinal_mpc_lib/c_generated_code
-  -i selfdrive/locationd/models/generated
+  --suppress="*:openpilot/cereal/gen/*"
+  --suppress="*:openpilot/selfdrive/controls/lib/lateral_mpc_lib/c_generated_code/*"
+  --suppress="*:openpilot/selfdrive/controls/lib/longitudinal_mpc_lib/c_generated_code/*"
+  --suppress="*:openpilot/selfdrive/locationd/models/generated/*"
+  -i openpilot/selfdrive/controls/lib/lateral_mpc_lib/c_generated_code
+  -i openpilot/selfdrive/controls/lib/longitudinal_mpc_lib/c_generated_code
+  -i openpilot/selfdrive/locationd/models/generated
 )
 
 echo "Running cppcheck MISRA C:2012 analysis..."
