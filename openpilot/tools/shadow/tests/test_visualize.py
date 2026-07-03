@@ -38,7 +38,7 @@ def make_test_pairs(n: int = 100) -> list[AlignedPair]:
     t = float(i) * 0.05  # 20Hz
     shadow = make_test_frame(i, t, steer=0.1 * random.random(), accel=0.5 * random.random())
     prod = make_test_frame(i, t, steer=0.1 * random.random(), accel=0.5 * random.random())
-    pairs.append(AlignedPair(shadow_frame=shadow, production_frame=prod, time_offset=0.0))
+    pairs.append(AlignedPair(shadow_frame=shadow, production_frame=prod, time_offset_ms=0.0, alignment_quality=1.0))
   return pairs
 
 
@@ -48,6 +48,7 @@ def make_test_result() -> AlignmentResult:
     pairs=make_test_pairs(100),
     shadow_only=[],
     production_only=[],
+    mean_time_offset_ms=0.0,
     alignment_quality=0.95,
     method="frame_id",
   )

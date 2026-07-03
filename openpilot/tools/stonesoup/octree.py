@@ -24,11 +24,11 @@ class BoundingBox:
 
   def contains_point(self, point: np.ndarray) -> bool:
     """Check if point is inside or on boundary of box."""
-    return np.all(point >= self.min_corner) and np.all(point <= self.max_corner)
+    return bool(np.all(point >= self.min_corner) and np.all(point <= self.max_corner))
 
   def intersects(self, other: "BoundingBox") -> bool:
     """Check if this box intersects another box."""
-    return (
+    return bool(
       np.all(self.min_corner <= other.max_corner) and
       np.all(self.max_corner >= other.min_corner)
     )

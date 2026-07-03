@@ -168,6 +168,7 @@ class TestImportShadowLog:
     assert len(scenario.states) == 50
     assert all(isinstance(s, LongitudinalAlgorithmState) for s in scenario.states)
     # Ground truth should be accel values
+    assert scenario.ground_truth is not None
     assert all(gt == 0.5 for gt in scenario.ground_truth)
 
   def test_import_with_description(self):

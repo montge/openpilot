@@ -102,7 +102,8 @@ done
 RUN=$([ -z "$RUN" ] && echo "" || echo "!($(echo $RUN | sed 's/ /|/g'))")
 SKIP="@($(echo $SKIP | sed 's/ /|/g'))"
 
-GIT_FILES="$(git ls-files openpilot)"
+# fork: exclude Termux-target scripts (on-device shebangs that can't conform)
+GIT_FILES="$(git ls-files openpilot | grep -Ev 'openpilot/tools/shadow/setup/(camera_stream|setup-ssh|termux-setup)\.sh')"
 ALL_FILES=""
 for f in $GIT_FILES; do
   if [[ -f $f ]]; then

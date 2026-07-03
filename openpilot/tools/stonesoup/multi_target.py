@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 import numpy as np
-from stonesoup.dataassociator.neighbour import GNNWith2DAssignment
+from stonesoup.dataassociator.neighbor import GNNWith2DAssignment
 from stonesoup.dataassociator.probability import JPDA
 from stonesoup.deleter.time import UpdateTimeStepsDeleter
 from stonesoup.hypothesiser.distance import DistanceHypothesiser

@@ -7,6 +7,7 @@ LongControl) to implement the AlgorithmInterface protocol for use with the test 
 
 import math
 from dataclasses import dataclass, field
+from collections.abc import Callable
 from typing import Any, Optional
 
 from openpilot.selfdrive.controls.lib.tests.algorithm_harness.interface import (
@@ -86,7 +87,7 @@ class LongitudinalControlConfig:
 
 def create_mock_lateral_dependencies(
   config: LateralControlConfig,
-  steer_from_curvature_fn: Optional[callable] = None,
+  steer_from_curvature_fn: Optional[Callable] = None,
 ) -> tuple[Any, Any]:
   """
   Create mock CarParams and CarInterface for lateral controllers.

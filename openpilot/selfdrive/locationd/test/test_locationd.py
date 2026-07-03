@@ -445,7 +445,7 @@ class TestLocationEstimatorGetMsg:
     estimator = LocationEstimator(debug=False)
     estimator.reset(1.0)
 
-    msg = estimator.get_msg(sensors_valid=True, inputs_valid=True, filter_valid=True)
+    msg = estimator.get_msg(sensors_valid=True, inputs_valid=True, filter_initialized=True)
 
     assert msg.which() == 'livePose'
     assert msg.valid is True
@@ -457,7 +457,7 @@ class TestLocationEstimatorGetMsg:
     estimator = LocationEstimator(debug=False)
     estimator.reset(1.0)
 
-    msg = estimator.get_msg(sensors_valid=True, inputs_valid=True, filter_valid=False)
+    msg = estimator.get_msg(sensors_valid=True, inputs_valid=True, filter_initialized=False)
 
     assert msg.valid is False
     assert msg.livePose.orientationNED.valid is False
@@ -467,7 +467,7 @@ class TestLocationEstimatorGetMsg:
     estimator = LocationEstimator(debug=False)
     estimator.reset(1.0)
 
-    msg = estimator.get_msg(sensors_valid=False, inputs_valid=True, filter_valid=True)
+    msg = estimator.get_msg(sensors_valid=False, inputs_valid=True, filter_initialized=True)
     assert msg.livePose.sensorsOK is False
 
   def test_get_msg_inputs_invalid(self):
@@ -475,7 +475,7 @@ class TestLocationEstimatorGetMsg:
     estimator = LocationEstimator(debug=False)
     estimator.reset(1.0)
 
-    msg = estimator.get_msg(sensors_valid=True, inputs_valid=False, filter_valid=True)
+    msg = estimator.get_msg(sensors_valid=True, inputs_valid=False, filter_initialized=True)
     assert msg.livePose.inputsOK is False
 
   def test_get_msg_debug_mode(self):
@@ -483,7 +483,7 @@ class TestLocationEstimatorGetMsg:
     estimator = LocationEstimator(debug=True)
     estimator.reset(1.0)
 
-    msg = estimator.get_msg(sensors_valid=True, inputs_valid=True, filter_valid=True)
+    msg = estimator.get_msg(sensors_valid=True, inputs_valid=True, filter_initialized=True)
 
     # Debug mode should include filter state
     assert len(msg.livePose.debugFilterState.value) > 0
@@ -499,7 +499,7 @@ class TestLocationEstimatorGetMsg:
     estimator.posenet_stds[:POSENET_STD_HIST_HALF] = 1.0
     estimator.posenet_stds[POSENET_STD_HIST_HALF:] = 10.0
 
-    msg = estimator.get_msg(sensors_valid=True, inputs_valid=True, filter_valid=True)
+    msg = estimator.get_msg(sensors_valid=True, inputs_valid=True, filter_initialized=True)
     assert msg.livePose.posenetOK is True
 
   def test_get_msg_posenet_not_ok_high_speed_with_spike(self):
@@ -512,7 +512,7 @@ class TestLocationEstimatorGetMsg:
     estimator.posenet_stds[:POSENET_STD_HIST_HALF] = 1.0
     estimator.posenet_stds[POSENET_STD_HIST_HALF:] = 10.0
 
-    msg = estimator.get_msg(sensors_valid=True, inputs_valid=True, filter_valid=True)
+    msg = estimator.get_msg(sensors_valid=True, inputs_valid=True, filter_initialized=True)
     assert msg.livePose.posenetOK is False
 
 
@@ -705,7 +705,7 @@ class TestLocationEstimatorIntegration:
     assert result == HandleLogResult.SUCCESS
 
     # Get final message
-    msg = estimator.get_msg(sensors_valid=True, inputs_valid=True, filter_valid=True)
+    msg = estimator.get_msg(sensors_valid=True, inputs_valid=True, filter_initialized=True)
     assert msg.valid is True
 
   def test_posenet_std_rolling(self):

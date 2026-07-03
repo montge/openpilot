@@ -25,7 +25,7 @@ from openpilot.system.manager.process import (
 class DummyProcess(ManagerProcess):
   """A minimal test process for unit testing ManagerProcess behavior."""
 
-  def __init__(self, name: str, should_run_fn: Callable = None, enabled: bool = True):
+  def __init__(self, name: str, should_run_fn: Callable | None = None, enabled: bool = True):
     self.name = name
     self.should_run = should_run_fn or (lambda started, params, CP: True)
     self.enabled = enabled

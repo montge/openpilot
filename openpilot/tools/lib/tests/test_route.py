@@ -390,8 +390,9 @@ class TestGetMaxSegNumberCached:
 class TestSegment:
   """Test Segment class."""
 
-  def test_init(self):
+  def test_init(self, mocker):
     """Test Segment initialization."""
+    mocker.patch('openpilot.tools.lib.route.Segment._get_route_metadata', return_value={"url": "https://example.com/route"})
     seg = Segment(
       "aaaaaaaaaaaaaaaa|2024-01-15--12-30-45--5",
       "/path/to/rlog.zst",
@@ -400,7 +401,6 @@ class TestSegment:
       "/path/to/dcamera.hevc",
       "/path/to/ecamera.hevc",
       "/path/to/qcamera.ts",
-      "https://example.com/route",
     )
 
     assert seg.log_path == "/path/to/rlog.zst"
@@ -413,7 +413,7 @@ class TestSegment:
 
   def test_name_property(self):
     """Test name property returns SegmentName."""
-    seg = Segment("bbbbbbbbbbbbbbbb|2024-02-20--08-15-30--3", None, None, None, None, None, None, "https://example.com/route")
+    seg = Segment("bbbbbbbbbbbbbbbb|2024-02-20--08-15-30--3", None, None, None, None, None, None)
 
     assert isinstance(seg.name, SegmentName)
     assert seg.name.segment_num == 3
@@ -424,8 +424,9 @@ class TestSegment:
     mock_response.json.return_value = [{"type": "event1"}, {"type": "event2"}]
     mock_response.raise_for_status = mocker.MagicMock()
     mocker.patch('openpilot.tools.lib.route.requests.get', return_value=mock_response)
+    mocker.patch('openpilot.tools.lib.route.Segment._get_route_metadata', return_value={"url": "https://example.com/route"})
 
-    seg = Segment("cccccccccccccccc|2024-03-10--14-45-00--0", None, None, None, None, None, None, "https://example.com/route")
+    seg = Segment("cccccccccccccccc|2024-03-10--14-45-00--0", None, None, None, None, None, None)
 
     events = seg.events
 
@@ -437,8 +438,9 @@ class TestSegment:
     mock_response.json.return_value = [{"type": "cached"}]
     mock_response.raise_for_status = mocker.MagicMock()
     mock_get = mocker.patch('openpilot.tools.lib.route.requests.get', return_value=mock_response)
+    mocker.patch('openpilot.tools.lib.route.Segment._get_route_metadata', return_value={"url": "https://example.com/route"})
 
-    seg = Segment("dddddddddddddddd|2024-04-05--10-20-30--1", None, None, None, None, None, None, "https://example.com/route")
+    seg = Segment("dddddddddddddddd|2024-04-05--10-20-30--1", None, None, None, None, None, None)
 
     _ = seg.events
     _ = seg.events
@@ -451,8 +453,9 @@ class TestSegment:
     from openpilot.tools.lib.api import APIError
 
     mocker.patch('openpilot.tools.lib.route.requests.get', side_effect=Exception("Network error"))
+    mocker.patch('openpilot.tools.lib.route.Segment._get_route_metadata', return_value={"url": "https://example.com/route"})
 
-    seg = Segment("eeeeeeeeeeeeeeee|2024-05-15--16-30-00--2", None, None, None, None, None, None, "https://example.com/route")
+    seg = Segment("eeeeeeeeeeeeeeee|2024-05-15--16-30-00--2", None, None, None, None, None, None)
 
     with pytest.raises(APIError, match="error getting events"):
       _ = seg.events

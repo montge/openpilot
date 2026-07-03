@@ -361,7 +361,7 @@ class DeterministicRandom:
     """Choose k unique random elements."""
     return self._rng.sample(population, k)
 
-  def np_random(self, size=None) -> np.ndarray:
+  def np_random(self, size=None) -> np.ndarray | float:
     """Get numpy array of random floats in [0, 1)."""
     return self._np_rng.random(size)
 
@@ -369,7 +369,7 @@ class DeterministicRandom:
     """Get numpy array of standard normal values."""
     return self._np_rng.randn(*shape)
 
-  def np_randint(self, low: int, high: int = None, size=None) -> np.ndarray:
+  def np_randint(self, low: int, high: int | None = None, size=None) -> np.ndarray:
     """Get numpy array of random integers."""
     return self._np_rng.randint(low, high, size)
 

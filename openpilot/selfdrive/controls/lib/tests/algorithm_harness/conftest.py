@@ -13,7 +13,7 @@ Usage:
 """
 
 import pytest
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 
 from openpilot.selfdrive.controls.lib.tests.algorithm_harness.interface import (
   LongitudinalAlgorithmState,
@@ -76,7 +76,7 @@ def lateral_pid_adapter() -> LatControlPIDAdapter:
 
 
 @pytest.fixture
-def lateral_pid_adapter_custom() -> Generator[LatControlPIDAdapter, None, None]:
+def lateral_pid_adapter_custom() -> Generator[Callable[..., LatControlPIDAdapter], None, None]:
   """Factory fixture for custom LatControlPID configurations."""
   adapters = []
 

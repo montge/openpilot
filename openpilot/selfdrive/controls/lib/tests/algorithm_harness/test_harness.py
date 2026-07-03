@@ -467,6 +467,7 @@ class TestGenerateSyntheticScenario:
     )
 
     assert len(scenario) == 10
+    assert scenario.ground_truth is not None
     assert all(gt == 5.0 for gt in scenario.ground_truth)
 
   def test_ramp_scenario(self):
