@@ -43,11 +43,12 @@ def main():
 
   if args.beam > 0:
     os.environ["BEAM"] = str(args.beam)
+  # device must be chosen via env before tinygrad import (Device.DEFAULT is read-only now)
+  os.environ.setdefault("DEV", "CUDA")
 
   from tinygrad import Device, Tensor
   from tinygrad.nn.onnx import OnnxRunner  # type: ignore[import-not-found]
 
-  Device.DEFAULT = "CUDA"
   print(f"Device: {Device.DEFAULT}")
   print(f"BEAM: {os.environ.get('BEAM', 'disabled')}")
   print("=" * 60)
