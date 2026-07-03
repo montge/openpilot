@@ -1,6 +1,6 @@
 # Tasks: Sync Fork with Upstream Master (July 2026)
 
-> **Pickup point (2026-07-03):** merge + local validation are DONE; PR montge/openpilot#46 is open with CI fix round 2 pushed (`80d698edd`). Resume at section 5 — get CI green, then land on develop (section 6), then work the follow-ups (section 7).
+> **Pickup point (2026-07-03):** merge, local validation, and CI are DONE — PR montge/openpilot#46 is fully green at `955987ce4`. Resume at section 6 — land on develop (merge the PR or ff-push develop), then work the follow-ups (section 7).
 
 ## 1. Analysis
 - [x] 1.1 Fetch upstream, measure divergence (204 behind / 263 ahead, merge-base `d7c562e13`)
@@ -27,7 +27,7 @@
 - [x] 5.2 Round 2: uv sync --all-extras (imgui); harness dep closure (pycapnp/setproctitle/zstandard/requests/pyserial) + achievable gates (75 minimal / 85 pandas, measured 76/88); Build devel timeout 1->5 min; CodeQL fork-test alerts fixed with exact hostname/path assertions
 - [x] 5.3 CI rounds 3-4: clang for --coverage builds (upstream SConstruct defaults to gcc on x86); coverage gate aligned with workflow measurement + pandas (verified 90.2% locally); permissions blocks on fork workflows; lazy stonesoup package __init__ so test collection skips without the optional lib; SonarCloud scan skips gracefully when SONAR_TOKEN unset
 - [x] 5.3b Round 5: manager transition test asserts deduplicated transitions (loop-count varies on CI); dgx test_dataloader no longer returns a value; docs job timeout 60->180s (stock runners); Sonar scan non-blocking
-- [ ] 5.3c Confirm round-5 CI green
+- [x] 5.3c Round 6 hardened manager lifecycle tests against Linux xdist worker crashes (SIGKILL default + SIGINT-safe child target); CI fully green on 955987ce4: 30 pass, 0 fail (Sonar passes-with-warning pending token, task 7.7)
 - [x] 5.4 CodeQL: fork-test alerts fixed (exact assertions); 18 upstream-owned alerts dismissed as won't-fix with provenance comments (reversible in the scanning UI); fork workflows got permissions blocks
 
 ## 6. Land on develop
