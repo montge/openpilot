@@ -3,7 +3,7 @@
 import pytest
 
 from openpilot.cereal import log
-from openpilot.selfdrive.controls.lib.desire_helper import DesireHelper, LANE_CHANGE_TIME_MAX, DESIRES, LaneChangeState, LaneChangeDirection
+from openpilot.selfdrive.controls.lib.desire_helper import DesireHelper, LANE_CHANGE_TIME_MAX, LANE_CHANGE_START_TIME, LaneChangeState, LaneChangeDirection
 
 
 def make_carstate(
@@ -30,8 +30,6 @@ class TestDesireHelperInit:
     assert dh.lane_change_state == LaneChangeState.off
     assert dh.lane_change_direction == LaneChangeDirection.none
     assert dh.lane_change_timer == 0.0
-    assert dh.lane_change_ll_prob == 1.0
-    assert dh.keep_pulse_timer == 0.0
     assert dh.prev_one_blinker is False
     assert dh.desire == log.Desire.none
 
@@ -70,7 +68,6 @@ class TestDesireHelperStateOff:
 
     assert dh.lane_change_state == LaneChangeState.preLaneChange
     assert dh.lane_change_direction == LaneChangeDirection.left
-    assert dh.lane_change_ll_prob == 1.0
 
   def test_off_to_prelanechange_right_blinker(self, mocker):
     """Test off->preLaneChange on right blinker activation."""
@@ -225,30 +222,43 @@ class TestDesireHelperStateLaneChangeStarting:
     assert dh.lane_change_state == LaneChangeState.laneChangeStarting
     return dh
 
-  def test_starting_ll_prob_decreases(self, mocker, setup_starting):
-    """Test lane line probability decreases during starting."""
-    dh = setup_starting
-    initial_prob = dh.lane_change_ll_prob
-    cs = make_carstate(mocker, v_ego=25.0, left_blinker=True)
-
-    dh.update(cs, lateral_active=True, lane_change_prob=0.5)
-
-    assert dh.lane_change_ll_prob < initial_prob
-
-  def test_starting_to_finishing_low_probability(self, mocker, setup_starting):
-    """Test laneChangeStarting->laneChangeFinishing on low prob."""
+  def test_starting_to_prelanechange_on_completion_with_blinker(self, mocker, setup_starting):
+    """Test laneChangeStarting->preLaneChange when lane change completes with blinker still on."""
     dh = setup_starting
     # Simulate lane change completing
-    dh.lane_change_ll_prob = 0.005  # Below 0.01
+    dh.lane_change_timer = LANE_CHANGE_START_TIME
     cs = make_carstate(mocker, v_ego=25.0, left_blinker=True)
 
     dh.update(cs, lateral_active=True, lane_change_prob=0.01)  # Below 0.02
 
-    assert dh.lane_change_state == LaneChangeState.laneChangeFinishing
+    assert dh.lane_change_state == LaneChangeState.preLaneChange
+    assert dh.lane_change_direction == LaneChangeDirection.left
+    assert dh.lane_change_timer == 0.0
+
+  def test_starting_to_off_on_completion_without_blinker(self, mocker, setup_starting):
+    """Test laneChangeStarting->off when lane change completes and blinker is off."""
+    dh = setup_starting
+    dh.lane_change_timer = LANE_CHANGE_START_TIME
+    cs = make_carstate(mocker, v_ego=25.0)  # No blinker
+
+    dh.update(cs, lateral_active=True, lane_change_prob=0.01)  # Below 0.02
+
+    assert dh.lane_change_state == LaneChangeState.off
+    assert dh.lane_change_direction == LaneChangeDirection.none
+
+  def test_starting_holds_low_probability_before_start_time(self, mocker, setup_starting):
+    """Test stays in laneChangeStarting with low prob before LANE_CHANGE_START_TIME elapses."""
+    dh = setup_starting
+    cs = make_carstate(mocker, v_ego=25.0, left_blinker=True)
+
+    dh.update(cs, lateral_active=True, lane_change_prob=0.01)  # Below 0.02, but timer < LANE_CHANGE_START_TIME
+
+    assert dh.lane_change_state == LaneChangeState.laneChangeStarting
 
   def test_starting_stays_starting_high_probability(self, mocker, setup_starting):
     """Test stays in laneChangeStarting with high probability."""
     dh = setup_starting
+    dh.lane_change_timer = LANE_CHANGE_START_TIME
     cs = make_carstate(mocker, v_ego=25.0, left_blinker=True)
 
     dh.update(cs, lateral_active=True, lane_change_prob=0.5)
@@ -264,56 +274,6 @@ class TestDesireHelperStateLaneChangeStarting:
     dh.update(cs, lateral_active=True, lane_change_prob=0.5)
 
     assert dh.lane_change_timer > initial_timer
-
-
-class TestDesireHelperStateLaneChangeFinishing:
-  """Test transitions from LaneChangeState.laneChangeFinishing."""
-
-  def _get_to_finishing_state(self, mocker):
-    """Helper to get to laneChangeFinishing state."""
-    dh = DesireHelper()
-    # Get into preLaneChange state
-    cs = make_carstate(mocker, v_ego=25.0, left_blinker=True)
-    dh.update(cs, lateral_active=True, lane_change_prob=0.5)
-    # Get into laneChangeStarting state
-    cs = make_carstate(mocker, v_ego=25.0, left_blinker=True, steering_pressed=True, steering_torque=10.0)
-    dh.update(cs, lateral_active=True, lane_change_prob=0.5)
-    # Get into laneChangeFinishing state
-    dh.lane_change_ll_prob = 0.005
-    cs = make_carstate(mocker, v_ego=25.0, left_blinker=True)
-    dh.update(cs, lateral_active=True, lane_change_prob=0.01)
-    return dh
-
-  def test_finishing_ll_prob_increases(self, mocker):
-    """Test lane line probability increases during finishing."""
-    dh = self._get_to_finishing_state(mocker)
-    assert dh.lane_change_state == LaneChangeState.laneChangeFinishing
-    initial_prob = dh.lane_change_ll_prob
-    cs = make_carstate(mocker, v_ego=25.0, left_blinker=True)
-
-    dh.update(cs, lateral_active=True, lane_change_prob=0.01)
-
-    assert dh.lane_change_ll_prob > initial_prob
-
-  def test_finishing_to_off_high_ll_prob_no_blinker(self, mocker):
-    """Test laneChangeFinishing->off when ll_prob high and no blinker."""
-    dh = self._get_to_finishing_state(mocker)
-    dh.lane_change_ll_prob = 0.995  # Above 0.99
-    cs = make_carstate(mocker, v_ego=25.0, left_blinker=False)
-
-    dh.update(cs, lateral_active=True, lane_change_prob=0.01)
-
-    assert dh.lane_change_state == LaneChangeState.off
-
-  def test_finishing_to_prelanechange_high_ll_prob_with_blinker(self, mocker):
-    """Test laneChangeFinishing->preLaneChange when ll_prob high with blinker."""
-    dh = self._get_to_finishing_state(mocker)
-    dh.lane_change_ll_prob = 0.995  # Above 0.99
-    cs = make_carstate(mocker, v_ego=25.0, left_blinker=True)
-
-    dh.update(cs, lateral_active=True, lane_change_prob=0.01)
-
-    assert dh.lane_change_state == LaneChangeState.preLaneChange
 
 
 class TestDesireHelperTimeout:
@@ -348,6 +308,15 @@ class TestDesireHelperDesire:
 
     assert dh.desire == log.Desire.none
 
+  def test_desire_none_when_prelanechange(self, mocker):
+    """Test desire stays none while waiting in preLaneChange."""
+    dh = DesireHelper()
+    cs = make_carstate(mocker, v_ego=25.0, left_blinker=True)
+    dh.update(cs, lateral_active=True, lane_change_prob=0.5)
+
+    assert dh.lane_change_state == LaneChangeState.preLaneChange
+    assert dh.desire == log.Desire.none
+
   def test_desire_lane_change_left_when_starting_left(self, mocker):
     """Test desire is laneChangeLeft when starting left lane change."""
     dh = DesireHelper()
@@ -369,58 +338,3 @@ class TestDesireHelperDesire:
 
     assert dh.lane_change_state == LaneChangeState.laneChangeStarting
     assert dh.desire == log.Desire.laneChangeRight
-
-
-class TestDesireHelperKeepPulseTimer:
-  """Test keep pulse timer behavior."""
-
-  def test_keep_pulse_timer_resets_on_off(self, mocker):
-    """Test keep pulse timer resets when off."""
-    dh = DesireHelper()
-    dh.keep_pulse_timer = 0.5
-    cs = make_carstate(mocker, v_ego=25.0)
-
-    dh.update(cs, lateral_active=True, lane_change_prob=0.5)
-
-    assert dh.keep_pulse_timer == 0.0
-
-  def test_keep_pulse_timer_resets_on_starting(self, mocker):
-    """Test keep pulse timer resets when starting lane change."""
-    dh = DesireHelper()
-    # Get to laneChangeStarting
-    cs = make_carstate(mocker, v_ego=25.0, left_blinker=True)
-    dh.update(cs, lateral_active=True, lane_change_prob=0.5)
-    cs = make_carstate(mocker, v_ego=25.0, left_blinker=True, steering_pressed=True, steering_torque=10.0)
-    dh.update(cs, lateral_active=True, lane_change_prob=0.5)
-
-    assert dh.keep_pulse_timer == 0.0
-
-  def test_keep_pulse_timer_increments_in_prelanechange(self, mocker):
-    """Test keep pulse timer increments in preLaneChange."""
-    dh = DesireHelper()
-    cs = make_carstate(mocker, v_ego=25.0, left_blinker=True)
-    dh.update(cs, lateral_active=True, lane_change_prob=0.5)
-    initial_timer = dh.keep_pulse_timer
-
-    # Update again in preLaneChange
-    dh.update(cs, lateral_active=True, lane_change_prob=0.5)
-
-    assert dh.keep_pulse_timer > initial_timer
-
-
-class TestDesiresMapping:
-  """Test DESIRES dictionary mapping."""
-
-  def test_desires_none_direction_all_states(self):
-    """Test all states for none direction return none desire."""
-    for state in LaneChangeState.schema.enumerants:
-      if state in DESIRES[LaneChangeDirection.none]:
-        assert DESIRES[LaneChangeDirection.none][state] == log.Desire.none
-
-  def test_desires_left_starting_returns_left(self):
-    """Test left direction starting returns laneChangeLeft."""
-    assert DESIRES[LaneChangeDirection.left][LaneChangeState.laneChangeStarting] == log.Desire.laneChangeLeft
-
-  def test_desires_right_starting_returns_right(self):
-    """Test right direction starting returns laneChangeRight."""
-    assert DESIRES[LaneChangeDirection.right][LaneChangeState.laneChangeStarting] == log.Desire.laneChangeRight

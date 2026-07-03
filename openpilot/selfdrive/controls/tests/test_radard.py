@@ -277,9 +277,8 @@ class TestGetRadarStateFromVision:
     lead.y = [1.0]
     lead.v = [15.0]
     lead.a = [-1.0]
-    lead.prob = 0.8
 
-    state = get_RadarState_from_vision(lead, v_ego=20.0, model_v_ego=20.0)
+    state = get_RadarState_from_vision(lead, v_ego=20.0, model_v_ego=20.0, lead_prob=0.8)
 
     assert state['dRel'] == pytest.approx(50.0 - RADAR_TO_CAMERA)
     assert state['yRel'] == pytest.approx(-1.0)
@@ -301,14 +300,13 @@ class TestGetLead:
   def kalman_params(self):
     return KalmanParams(0.05)
 
-  def _make_lead_msg(self, mocker, x, y, v, prob, a=0.0):
+  def _make_lead_msg(self, mocker, x, y, v, a=0.0):
     """Create a mock lead message."""
     lead = mocker.MagicMock()
     lead.x = [x]
     lead.y = [y]
     lead.v = [v]
     lead.a = [a]
-    lead.prob = prob
     lead.xStd = [1.0]
     lead.yStd = [1.0]
     lead.vStd = [1.0]
@@ -316,23 +314,23 @@ class TestGetLead:
 
   def test_no_tracks_returns_vision_only(self, mocker, kalman_params):
     """Test that with no tracks, vision-only lead is returned."""
-    lead = self._make_lead_msg(mocker, x=50.0, y=0.0, v=15.0, prob=0.8)
-    result = get_lead(v_ego=20.0, ready=True, tracks={}, lead_msg=lead, model_v_ego=20.0)
+    lead = self._make_lead_msg(mocker, x=50.0, y=0.0, v=15.0)
+    result = get_lead(v_ego=20.0, ready=True, tracks={}, lead_msg=lead, model_v_ego=20.0, lead_prob=0.8)
 
     assert result['status'] is True
     assert result['radar'] is False
 
   def test_low_prob_returns_no_lead(self, mocker, kalman_params):
     """Test that low probability returns no lead."""
-    lead = self._make_lead_msg(mocker, x=50.0, y=0.0, v=15.0, prob=0.3)
-    result = get_lead(v_ego=20.0, ready=True, tracks={}, lead_msg=lead, model_v_ego=20.0)
+    lead = self._make_lead_msg(mocker, x=50.0, y=0.0, v=15.0)
+    result = get_lead(v_ego=20.0, ready=True, tracks={}, lead_msg=lead, model_v_ego=20.0, lead_prob=0.3)
 
     assert result['status'] is False
 
   def test_not_ready_returns_no_lead(self, mocker, kalman_params):
     """Test that not ready returns no lead."""
-    lead = self._make_lead_msg(mocker, x=50.0, y=0.0, v=15.0, prob=0.8)
-    result = get_lead(v_ego=20.0, ready=False, tracks={}, lead_msg=lead, model_v_ego=20.0)
+    lead = self._make_lead_msg(mocker, x=50.0, y=0.0, v=15.0)
+    result = get_lead(v_ego=20.0, ready=False, tracks={}, lead_msg=lead, model_v_ego=20.0, lead_prob=0.8)
 
     assert result['status'] is False
 
@@ -342,8 +340,8 @@ class TestGetLead:
     track.update(d_rel=50.0 - RADAR_TO_CAMERA, y_rel=0.0, v_rel=-5.0, v_lead=15.0, measured=1.0)
     tracks = {1: track}
 
-    lead = self._make_lead_msg(mocker, x=50.0, y=0.0, v=15.0, prob=0.8)
-    result = get_lead(v_ego=20.0, ready=True, tracks=tracks, lead_msg=lead, model_v_ego=20.0)
+    lead = self._make_lead_msg(mocker, x=50.0, y=0.0, v=15.0)
+    result = get_lead(v_ego=20.0, ready=True, tracks=tracks, lead_msg=lead, model_v_ego=20.0, lead_prob=0.8)
 
     assert result['status'] is True
     assert result['radar'] is True
@@ -356,8 +354,8 @@ class TestGetLead:
     track.update(d_rel=5.0, y_rel=0.0, v_rel=-1.0, v_lead=2.0, measured=1.0)
     tracks = {1: track}
 
-    lead = self._make_lead_msg(mocker, x=50.0, y=0.0, v=15.0, prob=0.3)  # Low prob, no vision lead
-    result = get_lead(v_ego=2.0, ready=True, tracks=tracks, lead_msg=lead, model_v_ego=2.0, low_speed_override=True)
+    lead = self._make_lead_msg(mocker, x=50.0, y=0.0, v=15.0)  # Low prob, no vision lead
+    result = get_lead(v_ego=2.0, ready=True, tracks=tracks, lead_msg=lead, model_v_ego=2.0, lead_prob=0.3, low_speed_override=True)
 
     assert result['status'] is True
     assert result['radarTrackId'] == 1
@@ -368,8 +366,8 @@ class TestGetLead:
     track.update(d_rel=5.0, y_rel=0.0, v_rel=-1.0, v_lead=2.0, measured=1.0)
     tracks = {1: track}
 
-    lead = self._make_lead_msg(mocker, x=50.0, y=0.0, v=15.0, prob=0.3)
-    result = get_lead(v_ego=2.0, ready=True, tracks=tracks, lead_msg=lead, model_v_ego=2.0, low_speed_override=False)
+    lead = self._make_lead_msg(mocker, x=50.0, y=0.0, v=15.0)
+    result = get_lead(v_ego=2.0, ready=True, tracks=tracks, lead_msg=lead, model_v_ego=2.0, lead_prob=0.3, low_speed_override=False)
 
     assert result['status'] is False
 

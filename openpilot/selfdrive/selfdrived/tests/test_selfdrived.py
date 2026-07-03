@@ -102,6 +102,7 @@ class MockSubMaster:
       'carOutput',
       'driverMonitoringState',
       'longitudinalPlan',
+      'lateralManeuverPlan',
       'livePose',
       'liveDelay',
       'managerState',

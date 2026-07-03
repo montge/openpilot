@@ -392,15 +392,15 @@ class TestStateMachineDisablePriority:
     assert self.state_machine.state == State.disabled
     assert ET.IMMEDIATE_DISABLE in self.state_machine.current_alert_types
 
-  def test_user_disable_priority_over_immediate(self):
-    """USER_DISABLE should take priority over IMMEDIATE_DISABLE."""
+  def test_immediate_disable_priority_over_user(self):
+    """IMMEDIATE_DISABLE should take priority over USER_DISABLE."""
     self.state_machine.state = State.enabled
     self.events.add(make_event([ET.USER_DISABLE, ET.IMMEDIATE_DISABLE]))
     self.state_machine.update(self.events)
 
     assert self.state_machine.state == State.disabled
-    # USER_DISABLE is checked first
-    assert ET.USER_DISABLE in self.state_machine.current_alert_types
+    # IMMEDIATE_DISABLE is checked first
+    assert ET.IMMEDIATE_DISABLE in self.state_machine.current_alert_types
 
   def test_disable_works_from_all_non_disabled_states(self):
     """USER_DISABLE should work from any non-disabled state."""

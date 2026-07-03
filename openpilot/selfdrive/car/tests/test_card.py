@@ -65,7 +65,7 @@ class TestOBDCallback:
     callback = obd_callback(mock_params)
     callback(True)
 
-    mock_params.put_bool.assert_called_with("ObdMultiplexingEnabled", True)
+    mock_params.put_bool.assert_called_with("ObdMultiplexingEnabled", True, block=True)
     mock_params.remove.assert_called_with("ObdMultiplexingChanged")
 
   def test_obd_callback_sets_multiplexing_false(self, mocker):
@@ -75,7 +75,7 @@ class TestOBDCallback:
     callback = obd_callback(mock_params)
     callback(False)
 
-    mock_params.put_bool.assert_called_with("ObdMultiplexingEnabled", False)
+    mock_params.put_bool.assert_called_with("ObdMultiplexingEnabled", False, block=True)
 
   def test_obd_callback_no_change_when_same(self, mocker):
     mock_params = mocker.MagicMock()
@@ -376,7 +376,7 @@ class TestControlsUpdate:
     # CI.init should have been called
     mock_ci.init.assert_called_once()
     # ControlsReady should be set
-    mock_params.put_bool_nonblocking.assert_called_with("ControlsReady", True)
+    mock_params.put_bool.assert_called_with("ControlsReady", True)
 
 
 class TestStatePublish:
@@ -542,13 +542,11 @@ class TestCarParamsPersistence:
 
     Car(CI=mock_ci, RI=mock_ri)
 
-    # Should write CarParams to params
+    # Should write CarParams to params ("CarParams" blocks; cache/persistent are non-blocking puts)
     put_calls = [call[0][0] for call in mock_params.put.call_args_list]
     assert "CarParams" in put_calls
-
-    put_nonblocking_calls = [call[0][0] for call in mock_params.put_nonblocking.call_args_list]
-    assert "CarParamsCache" in put_nonblocking_calls
-    assert "CarParamsPersistent" in put_nonblocking_calls
+    assert "CarParamsCache" in put_calls
+    assert "CarParamsPersistent" in put_calls
 
   def test_prev_car_params_saved(self, mocker):
     """Test that previous route's CarParams are saved"""

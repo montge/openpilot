@@ -3,9 +3,6 @@
 from openpilot.system.loggerd.config import (
   CAMERA_FPS,
   SEGMENT_LENGTH,
-  STATS_DIR_FILE_LIMIT,
-  STATS_SOCKET,
-  STATS_FLUSH_TIME_S,
   get_available_percent,
   get_available_bytes,
 )
@@ -21,18 +18,6 @@ class TestConstants:
   def test_segment_length(self):
     """Test SEGMENT_LENGTH is 60 seconds."""
     assert SEGMENT_LENGTH == 60
-
-  def test_stats_dir_file_limit(self):
-    """Test STATS_DIR_FILE_LIMIT value."""
-    assert STATS_DIR_FILE_LIMIT == 10000
-
-  def test_stats_socket(self):
-    """Test STATS_SOCKET is an IPC socket."""
-    assert STATS_SOCKET.startswith("ipc://")
-
-  def test_stats_flush_time(self):
-    """Test STATS_FLUSH_TIME_S is 60 seconds."""
-    assert STATS_FLUSH_TIME_S == 60
 
 
 class TestGetAvailablePercent:

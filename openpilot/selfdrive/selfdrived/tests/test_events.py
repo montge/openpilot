@@ -25,7 +25,7 @@ from openpilot.common.realtime import DT_CTRL
 AlertStatus = log.SelfdriveState.AlertStatus
 AlertSize = log.SelfdriveState.AlertSize
 VisualAlert = car.CarControl.HUDControl.VisualAlert
-AudibleAlert = car.CarControl.HUDControl.AudibleAlert
+AudibleAlert = log.SelfdriveState.AudibleAlert
 EventName = log.OnroadEvent.EventName
 
 

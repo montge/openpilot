@@ -619,7 +619,6 @@ class TestManagerThread:
     mock_messaging.SubMaster.return_value = mock_sm
     mock_messaging.PubMaster.return_value = mocker.MagicMock()
     mocker.patch('openpilot.system.manager.manager.ensure_running', return_value=[])
-    mocker.patch('openpilot.system.manager.manager.write_onroad_params')
 
     # Set shutdown param after first iteration
     call_count = [0]
@@ -639,7 +638,7 @@ class TestManagerThread:
     assert call_count[0] >= 2
 
   def test_manager_thread_handles_onroad_transition(self, mocker):
-    """Test that manager_thread handles onroad/offroad transitions."""
+    """Test that manager_thread updates the IsOffroad param on onroad/offroad transitions."""
     from openpilot.system.manager import manager
 
     params = Params()
@@ -648,6 +647,7 @@ class TestManagerThread:
     mock_sm = mocker.MagicMock()
     started_values = [False, True, True, False]  # Simulate transition
     call_count = [0]
+    offroad_values = []
 
     def get_item(key):
       if key == 'deviceState':
@@ -662,10 +662,10 @@ class TestManagerThread:
     mock_messaging.SubMaster.return_value = mock_sm
     mock_messaging.PubMaster.return_value = mocker.MagicMock()
     mocker.patch('openpilot.system.manager.manager.ensure_running', return_value=[])
-    mock_write_onroad = mocker.patch('openpilot.system.manager.manager.write_onroad_params')
 
     def update_side_effect(*args):
       call_count[0] += 1
+      offroad_values.append(params.get_bool("IsOffroad"))
       if call_count[0] >= len(started_values):
         params.put_bool("DoShutdown", True)
 
@@ -674,29 +674,6 @@ class TestManagerThread:
     mocker.patch.dict('openpilot.system.manager.process_config.managed_processes', {})
     manager.manager_thread()
 
-    # Verify write_onroad_params was called
-    assert mock_write_onroad.call_count >= 1
-
-
-class TestHelpers:
-  """Tests for manager helper functions."""
-
-  def test_write_onroad_params_started(self):
-    """Test write_onroad_params sets correct values when started."""
-    from openpilot.system.manager.helpers import write_onroad_params
-
-    params = Params()
-    write_onroad_params(True, params)
-
-    assert params.get_bool("IsOnroad") is True
-    assert params.get_bool("IsOffroad") is False
-
-  def test_write_onroad_params_stopped(self):
-    """Test write_onroad_params sets correct values when stopped."""
-    from openpilot.system.manager.helpers import write_onroad_params
-
-    params = Params()
-    write_onroad_params(False, params)
-
-    assert params.get_bool("IsOnroad") is False
+    # IsOffroad starts True, flips to False after the onroad transition, and back to True after going offroad
+    assert offroad_values == [True, False, False, True]
     assert params.get_bool("IsOffroad") is True

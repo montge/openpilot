@@ -1,4 +1,4 @@
-"""Tests for system/hardware/base.py - hardware abstraction base classes."""
+"""Tests for common/hardware/base.py - hardware abstraction base classes."""
 
 import os
 import tempfile
@@ -6,14 +6,15 @@ import tempfile
 import pytest
 
 
-from openpilot.common.hardware.base import (
-  Profile,
-  ThermalZone,
-  ThermalConfig,
-  LPABase,
-  HardwareBase,
+from openpilot.common.esim.base import (
   LPAError,
   LPAProfileNotFoundError,
+  Profile,
+)
+from openpilot.common.hardware.base import (
+  ThermalZone,
+  ThermalConfig,
+  HardwareBase,
   NetworkType,
   NetworkStrength,
 )
@@ -125,58 +126,23 @@ class TestThermalConfig:
     assert msg['cpuTempC'] == [45.0, 45.0]
 
 
-class TestLPABase:
-  """Test LPABase abstract class."""
+class TestProfileIsComma:
+  """Test Profile.is_comma property (comma profile detection)."""
 
-  def test_is_comma_profile_true(self):
-    """Test is_comma_profile returns True for comma ICCIDs."""
+  def test_is_comma_true(self):
+    """Test is_comma returns True for comma ICCIDs from the comma provider."""
+    profile = Profile(iccid="8985235123456789", nickname="comma", enabled=True, provider="Webbing")
+    assert profile.is_comma is True
 
-    class ConcreteLPA(LPABase):
-      def list_profiles(self):
-        return []
+  def test_is_comma_false_for_other_iccid(self):
+    """Test is_comma returns False for non-comma ICCIDs."""
+    profile = Profile(iccid="1234567890123456", nickname="other", enabled=True, provider="Webbing")
+    assert profile.is_comma is False
 
-      def get_active_profile(self):
-        return None
-
-      def delete_profile(self, iccid):
-        pass
-
-      def download_profile(self, qr, nickname=None):
-        pass
-
-      def nickname_profile(self, iccid, nickname):
-        pass
-
-      def switch_profile(self, iccid):
-        pass
-
-    lpa = ConcreteLPA()
-    assert lpa.is_comma_profile("8985235123456789") is True
-
-  def test_is_comma_profile_false(self):
-    """Test is_comma_profile returns False for non-comma ICCIDs."""
-
-    class ConcreteLPA(LPABase):
-      def list_profiles(self):
-        return []
-
-      def get_active_profile(self):
-        return None
-
-      def delete_profile(self, iccid):
-        pass
-
-      def download_profile(self, qr, nickname=None):
-        pass
-
-      def nickname_profile(self, iccid, nickname):
-        pass
-
-      def switch_profile(self, iccid):
-        pass
-
-    lpa = ConcreteLPA()
-    assert lpa.is_comma_profile("1234567890123456") is False
+  def test_is_comma_false_for_other_provider(self):
+    """Test is_comma returns False for non-comma providers."""
+    profile = Profile(iccid="8985235123456789", nickname="other", enabled=True, provider="Other")
+    assert profile.is_comma is False
 
 
 class TestLPAErrors:
@@ -226,7 +192,7 @@ class TestHardwareBase:
   def test_get_imei_returns_empty_string(self):
     """Test get_imei() returns empty string by default."""
     hw = self._create_hardware()
-    assert hw.get_imei(0) == ""
+    assert hw.get_imei() == ""
 
   def test_get_serial_returns_empty_string(self):
     """Test get_serial() returns empty string by default."""
@@ -310,40 +276,15 @@ class TestHardwareBase:
     hw = self._create_hardware()
     assert hw.get_gpu_usage_percent() == 0
 
-  def test_get_modem_version_returns_none(self):
-    """Test get_modem_version() returns None by default."""
-    hw = self._create_hardware()
-    assert hw.get_modem_version() is None
-
   def test_get_modem_temperatures_returns_empty_list(self):
     """Test get_modem_temperatures() returns empty list by default."""
     hw = self._create_hardware()
     assert hw.get_modem_temperatures() == []
 
-  def test_get_networks_returns_none(self):
-    """Test get_networks() returns None by default."""
-    hw = self._create_hardware()
-    assert hw.get_networks() is None
-
-  def test_has_internal_panda_returns_false(self):
-    """Test has_internal_panda() returns False by default."""
-    hw = self._create_hardware()
-    assert hw.has_internal_panda() is False
-
   def test_get_modem_data_usage_returns_negative(self):
     """Test get_modem_data_usage() returns (-1, -1) by default."""
     hw = self._create_hardware()
     assert hw.get_modem_data_usage() == (-1, -1)
-
-  def test_get_voltage_returns_zero(self):
-    """Test get_voltage() returns 0.0 by default."""
-    hw = self._create_hardware()
-    assert hw.get_voltage() == 0.0
-
-  def test_get_current_returns_zero(self):
-    """Test get_current() returns 0.0 by default."""
-    hw = self._create_hardware()
-    assert hw.get_current() == 0.0
 
 
 class TestHardwareBaseStaticMethods:

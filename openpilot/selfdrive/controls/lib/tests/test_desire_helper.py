@@ -4,8 +4,8 @@ from openpilot.cereal import log
 
 from openpilot.selfdrive.controls.lib.desire_helper import (
   DesireHelper,
-  DESIRES,
   LANE_CHANGE_SPEED_MIN,
+  LANE_CHANGE_START_TIME,
   LANE_CHANGE_TIME_MAX,
 )
 
@@ -38,8 +38,6 @@ class TestDesireHelperInit:
     assert helper.lane_change_state == LaneChangeState.off
     assert helper.lane_change_direction == LaneChangeDirection.none
     assert helper.lane_change_timer == 0.0
-    assert helper.lane_change_ll_prob == 1.0
-    assert helper.keep_pulse_timer == 0.0
     assert not helper.prev_one_blinker
     assert helper.desire == log.Desire.none
 
@@ -163,74 +161,45 @@ class TestDesireHelperUpdate:
 
     assert helper.lane_change_state == LaneChangeState.preLaneChange
 
-  def test_lane_change_starting_fades_ll_prob(self, mocker):
-    """Test laneChangeStarting fades lane line probability."""
+  def test_lane_change_starting_holds_before_start_time(self, mocker):
+    """Test laneChangeStarting holds when low prob but timer below LANE_CHANGE_START_TIME."""
     helper = DesireHelper()
     helper.lane_change_state = LaneChangeState.laneChangeStarting
-    helper.lane_change_ll_prob = 1.0
-    helper.lane_change_direction = LaneChangeDirection.left
-
-    CS = create_mock_carstate(mocker, v_ego=LANE_CHANGE_SPEED_MIN + 1, left_blinker=True)
-    helper.update(CS, lateral_active=True, lane_change_prob=0.5)
-
-    assert helper.lane_change_ll_prob < 1.0
-
-  def test_lane_change_starting_to_finishing(self, mocker):
-    """Test laneChangeStarting transitions to finishing."""
-    helper = DesireHelper()
-    helper.lane_change_state = LaneChangeState.laneChangeStarting
-    helper.lane_change_ll_prob = 0.0
+    helper.lane_change_timer = 0.0
     helper.lane_change_direction = LaneChangeDirection.left
 
     CS = create_mock_carstate(mocker, v_ego=LANE_CHANGE_SPEED_MIN + 1, left_blinker=True)
     helper.update(CS, lateral_active=True, lane_change_prob=0.01)  # < 0.02
 
-    assert helper.lane_change_state == LaneChangeState.laneChangeFinishing
+    assert helper.lane_change_state == LaneChangeState.laneChangeStarting
 
-  def test_lane_change_finishing_fades_in_ll_prob(self, mocker):
-    """Test laneChangeFinishing fades in lane line probability."""
+  def test_lane_change_starting_completes_with_blinker(self, mocker):
+    """Test laneChangeStarting completes to preLaneChange when blinker still on."""
     helper = DesireHelper()
-    helper.lane_change_state = LaneChangeState.laneChangeFinishing
-    helper.lane_change_ll_prob = 0.5
-    helper.lane_change_direction = LaneChangeDirection.left
-
-    CS = create_mock_carstate(mocker, v_ego=LANE_CHANGE_SPEED_MIN + 1, left_blinker=True)
-    helper.update(CS, lateral_active=True, lane_change_prob=0.5)
-
-    assert helper.lane_change_ll_prob > 0.5
-
-  def test_lane_change_finishing_completes_with_blinker(self, mocker):
-    """Test laneChangeFinishing completes to preLaneChange when blinker still on."""
-    helper = DesireHelper()
-    helper.lane_change_state = LaneChangeState.laneChangeFinishing
-    helper.lane_change_ll_prob = 0.995  # Just below 0.99 threshold
+    helper.lane_change_state = LaneChangeState.laneChangeStarting
+    helper.lane_change_timer = LANE_CHANGE_START_TIME
     helper.lane_change_direction = LaneChangeDirection.left
     helper.prev_one_blinker = True
 
     CS = create_mock_carstate(mocker, v_ego=LANE_CHANGE_SPEED_MIN + 1, left_blinker=True)
-    # Update enough times to push ll_prob above 0.99
-    for _ in range(10):
-      helper.update(CS, lateral_active=True, lane_change_prob=0.5)
+    helper.update(CS, lateral_active=True, lane_change_prob=0.01)  # < 0.02
 
-    assert helper.lane_change_ll_prob > 0.99
     assert helper.lane_change_state == LaneChangeState.preLaneChange
     # Direction is updated in preLaneChange based on current blinker
     assert helper.lane_change_direction == LaneChangeDirection.left
+    assert helper.lane_change_timer == 0.0
 
-  def test_lane_change_finishing_completes_without_blinker(self, mocker):
-    """Test laneChangeFinishing completes to off when blinker released."""
+  def test_lane_change_starting_completes_without_blinker(self, mocker):
+    """Test laneChangeStarting completes to off when blinker released."""
     helper = DesireHelper()
-    helper.lane_change_state = LaneChangeState.laneChangeFinishing
-    helper.lane_change_ll_prob = 0.995  # Just below 0.99 threshold
+    helper.lane_change_state = LaneChangeState.laneChangeStarting
+    helper.lane_change_timer = LANE_CHANGE_START_TIME
     helper.lane_change_direction = LaneChangeDirection.left
     helper.prev_one_blinker = True
 
     CS = create_mock_carstate(mocker, v_ego=LANE_CHANGE_SPEED_MIN + 1)  # No blinker
-    # Update enough times to push ll_prob above 0.99
-    for _ in range(10):
-      helper.update(CS, lateral_active=True, lane_change_prob=0.5)
+    helper.update(CS, lateral_active=True, lane_change_prob=0.01)  # < 0.02
 
-    assert helper.lane_change_ll_prob > 0.99
     assert helper.lane_change_state == LaneChangeState.off
     assert helper.lane_change_direction == LaneChangeDirection.none
 
@@ -246,70 +215,29 @@ class TestDesireHelperUpdate:
 
     assert helper.lane_change_timer > 0.0
 
-  def test_lane_change_timer_resets_off(self, mocker):
-    """Test lane change timer resets when off."""
+  def test_lane_change_timer_resets_when_lateral_inactive(self, mocker):
+    """Test lane change timer resets when lateral control is inactive."""
     helper = DesireHelper()
-    helper.lane_change_state = LaneChangeState.off
+    helper.lane_change_state = LaneChangeState.laneChangeStarting
     helper.lane_change_timer = 5.0
 
     CS = create_mock_carstate(mocker)
-    helper.update(CS, lateral_active=True, lane_change_prob=0.5)
+    helper.update(CS, lateral_active=False, lane_change_prob=0.5)
 
     assert helper.lane_change_timer == 0.0
+    assert helper.lane_change_state == LaneChangeState.off
 
-  def test_keep_pulse_timer_resets_after_one_second(self, mocker):
-    """Test keep pulse timer resets after exceeding 1 second in preLaneChange."""
+  def test_desire_none_in_pre_lane_change(self, mocker):
+    """Test desire stays none while waiting in preLaneChange."""
     helper = DesireHelper()
     helper.lane_change_state = LaneChangeState.preLaneChange
     helper.lane_change_direction = LaneChangeDirection.left
-    helper.keep_pulse_timer = 1.05  # Just over 1 second
     helper.prev_one_blinker = True
 
     CS = create_mock_carstate(mocker, v_ego=LANE_CHANGE_SPEED_MIN + 1, left_blinker=True)
     helper.update(CS, lateral_active=True, lane_change_prob=0.5)
 
-    assert helper.keep_pulse_timer == 0.0
-
-  def test_keep_pulse_timer_increments_in_pre_lane_change(self, mocker):
-    """Test keep pulse timer increments during preLaneChange."""
-    helper = DesireHelper()
-    helper.lane_change_state = LaneChangeState.preLaneChange
-    helper.lane_change_direction = LaneChangeDirection.left
-    helper.keep_pulse_timer = 0.0
-    helper.prev_one_blinker = True
-
-    CS = create_mock_carstate(mocker, v_ego=LANE_CHANGE_SPEED_MIN + 1, left_blinker=True)
-    helper.update(CS, lateral_active=True, lane_change_prob=0.5)
-
-    assert helper.keep_pulse_timer > 0.0
-
-  def test_keep_desire_resets_to_none_in_pre_lane_change(self, mocker):
-    """Test keepLeft/keepRight desire resets to none during pre lane change pulse."""
-    helper = DesireHelper()
-    helper.lane_change_state = LaneChangeState.preLaneChange
-    helper.lane_change_direction = LaneChangeDirection.left
-    helper.keep_pulse_timer = 0.5  # Below 1.0 threshold
-    helper.prev_one_blinker = True
-    helper.desire = log.Desire.keepLeft  # Pre-set to keepLeft
-
-    CS = create_mock_carstate(mocker, v_ego=LANE_CHANGE_SPEED_MIN + 1, left_blinker=True)
-    helper.update(CS, lateral_active=True, lane_change_prob=0.5)
-
-    # After the pulse logic, desire should be reset to none (line 119)
-    assert helper.desire == log.Desire.none
-
-  def test_keep_desire_right_resets_to_none(self, mocker):
-    """Test keepRight desire also resets to none."""
-    helper = DesireHelper()
-    helper.lane_change_state = LaneChangeState.preLaneChange
-    helper.lane_change_direction = LaneChangeDirection.right
-    helper.keep_pulse_timer = 0.5
-    helper.prev_one_blinker = True
-    helper.desire = log.Desire.keepRight
-
-    CS = create_mock_carstate(mocker, v_ego=LANE_CHANGE_SPEED_MIN + 1, right_blinker=True)
-    helper.update(CS, lateral_active=True, lane_change_prob=0.5)
-
+    assert helper.lane_change_state == LaneChangeState.preLaneChange
     assert helper.desire == log.Desire.none
 
 
@@ -330,7 +258,6 @@ class TestDesireHelperDesire:
     helper = DesireHelper()
     helper.lane_change_state = LaneChangeState.laneChangeStarting
     helper.lane_change_direction = LaneChangeDirection.left
-    helper.lane_change_ll_prob = 0.5
 
     CS = create_mock_carstate(mocker, v_ego=LANE_CHANGE_SPEED_MIN + 1, left_blinker=True)
     helper.update(CS, lateral_active=True, lane_change_prob=0.5)
@@ -342,43 +269,11 @@ class TestDesireHelperDesire:
     helper = DesireHelper()
     helper.lane_change_state = LaneChangeState.laneChangeStarting
     helper.lane_change_direction = LaneChangeDirection.right
-    helper.lane_change_ll_prob = 0.5
 
     CS = create_mock_carstate(mocker, v_ego=LANE_CHANGE_SPEED_MIN + 1, right_blinker=True)
     helper.update(CS, lateral_active=True, lane_change_prob=0.5)
 
     assert helper.desire == log.Desire.laneChangeRight
-
-
-class TestDesires:
-  """Test DESIRES lookup table."""
-
-  def test_desires_has_all_directions(self):
-    """Test DESIRES has entries for all directions."""
-    assert LaneChangeDirection.none in DESIRES
-    assert LaneChangeDirection.left in DESIRES
-    assert LaneChangeDirection.right in DESIRES
-
-  def test_desires_has_all_states(self):
-    """Test each direction has entries for all states."""
-    for direction in [LaneChangeDirection.none, LaneChangeDirection.left, LaneChangeDirection.right]:
-      assert LaneChangeState.off in DESIRES[direction]
-      assert LaneChangeState.preLaneChange in DESIRES[direction]
-      assert LaneChangeState.laneChangeStarting in DESIRES[direction]
-      assert LaneChangeState.laneChangeFinishing in DESIRES[direction]
-
-  def test_none_direction_all_none(self):
-    """Test none direction returns none for all states."""
-    for state in DESIRES[LaneChangeDirection.none].values():
-      assert state == log.Desire.none
-
-  def test_left_direction_starting_is_left(self):
-    """Test left direction starting state is laneChangeLeft."""
-    assert DESIRES[LaneChangeDirection.left][LaneChangeState.laneChangeStarting] == log.Desire.laneChangeLeft
-
-  def test_right_direction_starting_is_right(self):
-    """Test right direction starting state is laneChangeRight."""
-    assert DESIRES[LaneChangeDirection.right][LaneChangeState.laneChangeStarting] == log.Desire.laneChangeRight
 
 
 class TestConstants:
@@ -391,3 +286,7 @@ class TestConstants:
   def test_lane_change_time_max_positive(self):
     """Test LANE_CHANGE_TIME_MAX is positive."""
     assert LANE_CHANGE_TIME_MAX > 0
+
+  def test_lane_change_start_time_positive(self):
+    """Test LANE_CHANGE_START_TIME is positive and below the timeout."""
+    assert 0 < LANE_CHANGE_START_TIME < LANE_CHANGE_TIME_MAX

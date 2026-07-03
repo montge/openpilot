@@ -1,4 +1,4 @@
-"""Tests for system/hardware/hw.py - hardware paths."""
+"""Tests for common/hardware/hw.py - hardware paths."""
 
 import os
 from pathlib import Path
@@ -150,25 +150,6 @@ class TestPathsPersistRoot:
     result = Paths.persist_root()
 
     assert result == "/persist/"
-
-
-class TestPathsStatsRoot:
-  """Test Paths.stats_root method."""
-
-  def test_stats_root_pc(self, mocker):
-    """Test stats_root on PC platform."""
-    mocker.patch('openpilot.common.hardware.hw.PC', True)
-    result = Paths.stats_root()
-
-    expected = str(Path(Paths.comma_home()) / "stats")
-    assert result == expected
-
-  def test_stats_root_device(self, mocker):
-    """Test stats_root on device."""
-    mocker.patch('openpilot.common.hardware.hw.PC', False)
-    result = Paths.stats_root()
-
-    assert result == "/data/stats/"
 
 
 class TestPathsConfigRoot:
