@@ -60,7 +60,7 @@ cppcheck \
 
 # Count findings
 if [[ -f "$REPORT_FILE" ]]; then
-  TOTAL=$(grep -c "misra-" "$REPORT_FILE" 2>/dev/null || echo "0")
+  TOTAL=$(grep -c "misra-c2012" "$REPORT_FILE" 2>/dev/null || echo "0")
   echo ""
   echo "Analysis complete. Found $TOTAL MISRA findings."
   echo "Report saved to: $REPORT_FILE"
@@ -69,7 +69,7 @@ if [[ -f "$REPORT_FILE" ]]; then
   if [[ "$TOTAL" -gt 0 ]]; then
     echo ""
     echo "Top 10 rules by frequency:"
-    grep -oE '\[misra-[a-z]+-[0-9]+\.[0-9]+\]' "$REPORT_FILE" 2>/dev/null | \
+    grep -oE '\[misra-c2012-[0-9]+\.[0-9]+\]' "$REPORT_FILE" 2>/dev/null | \
       sort | uniq -c | sort -rn | head -10
   fi
 else
