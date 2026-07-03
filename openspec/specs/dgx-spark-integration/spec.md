@@ -9,13 +9,13 @@ The system SHALL automatically detect when running on NVIDIA DGX Spark hardware.
 #### Scenario: DGX Spark detected on compatible hardware
 - **GIVEN** the system is running on NVIDIA DGX Spark or GB10-based OEM system
 - **WHEN** the hardware abstraction layer initializes
-- **THEN** the module-level `DGX_SPARK` boolean from `system/hardware/__init__.py` is `True` (only available on `NvidiaPC` instances)
+- **THEN** the module-level `DGX_SPARK` boolean from `openpilot/common/hardware/__init__.py` is `True` (only available on `NvidiaPC` instances)
 - **AND** GPU capabilities are queried and cached
 
 #### Scenario: DGX Spark detection on incompatible hardware
 - **GIVEN** the system is running on PC or comma device
 - **WHEN** the hardware abstraction layer initializes
-- **THEN** the module-level `DGX_SPARK` boolean from `system/hardware/__init__.py` is `False`
+- **THEN** the module-level `DGX_SPARK` boolean from `openpilot/common/hardware/__init__.py` is `False`
 - **AND** standard hardware abstraction is used
 
 ### Requirement: CUDA Backend Selection

@@ -24,8 +24,8 @@ context: |
   Worktrees: sibling dir /home/e/Development/openpilot-worktrees/, scripts in tools/worktree/
 
   Safety constraints:
-  - Never disable driver monitoring (selfdrive/monitoring/)
-  - Never weaken actuation limits (selfdrive/selfdrived/helpers.py)
+  - Never disable driver monitoring (openpilot/selfdrive/monitoring/)
+  - Never weaken actuation limits (openpilot/selfdrive/selfdrived/helpers.py)
   - Safety model enforced in opendbc/safety/
   - Real-time code must avoid memory allocation in hot paths
 

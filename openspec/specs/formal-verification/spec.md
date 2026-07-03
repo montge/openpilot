@@ -53,7 +53,7 @@ The CI pipeline SHALL run TLA+ model checking on the selfdrived state machine sp
 - **AND** no infinite loop in softDisabling state
 
 #### Scenario: TLC runs on state machine changes
-- **GIVEN** a PR modifying selfdrive/selfdrived/state.py or verification/tlaplus/
+- **GIVEN** a PR modifying openpilot/selfdrive/selfdrived/state.py or verification/tlaplus/
 - **WHEN** the CI pipeline runs
 - **THEN** TLC verification executes on the specification
 - **AND** PR fails if any invariant is violated
