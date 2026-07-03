@@ -24,7 +24,7 @@ jobs:
       with:
         timeout: 180  # fork: stock runners are slower than upstream's
 
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         submodules: true
 
@@ -36,7 +36,7 @@ jobs:
         python scripts/docs.py build
 
     # Push to docs.comma.ai
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       if: github.ref == 'refs/heads/master' && github.repository == 'commaai/openpilot'
       with:
         path: openpilot-docs
