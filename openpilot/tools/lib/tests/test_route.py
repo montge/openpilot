@@ -612,22 +612,34 @@ class TestRouteRemote:
     assert len(qcamera_paths) == 1
 
   def test_route_metadata_cached(self, mocker):
-    """Test Route metadata property is cached."""
+    """Test route metadata is fetched once and cached by Segment._get_route_metadata."""
     mock_api = mocker.MagicMock()
     mock_api.get.side_effect = [
-      {"logs": ["https://example.com/2222222222222222/2024-09-20--18-00-00/0/rlog.zst"]},
-      {"url": "https://example.com/route", "extra": "data"},
+      {
+        "logs": [
+          "https://example.com/2222222222222222/2024-09-20--18-00-00/0/rlog.zst",
+          "https://example.com/2222222222222222/2024-09-20--18-00-00/1/rlog.zst",
+        ],
+      },
+      {"url": "https://example.com/route"},
     ]
     mocker.patch('openpilot.tools.lib.route.CommaApi', return_value=mock_api)
     mocker.patch('openpilot.tools.lib.route.get_token', return_value="fake_token")
 
-    route = Route("2222222222222222|2024-09-20--18-00-00")
+    # _get_route_metadata is a module-level @cache; isolate this test from other runs
+    Segment._get_route_metadata.cache_clear()
+    try:
+      route = Route("2222222222222222|2024-09-20--18-00-00")
+      assert mock_api.get.call_count == 1  # route files only
 
-    # Access metadata twice
-    _ = route.metadata
-    metadata = route.metadata
-
-    assert metadata["extra"] == "data"
+      # Access url on both segments: metadata fetched once, second access is cached
+      assert route.segments[0].url == "https://example.com/route/0"
+      assert route.segments[1].url == "https://example.com/route/1"
+      assert mock_api.get.call_count == 2  # files + one metadata fetch
+      mock_api.get.assert_called_with('v1/route/2222222222222222|2024-09-20--18-00-00')
+    finally:
+      # don't leak the mocked metadata into other tests via the global cache
+      Segment._get_route_metadata.cache_clear()
 
 
 class TestRouteLocal:

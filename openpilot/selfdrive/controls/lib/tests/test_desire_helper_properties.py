@@ -8,6 +8,7 @@ from hypothesis import given, settings, HealthCheck
 from hypothesis import strategies as st
 
 from openpilot.cereal import log
+from openpilot.common.realtime import DT_MDL
 
 from openpilot.selfdrive.controls.lib.desire_helper import (
   DesireHelper,
@@ -36,67 +37,6 @@ def create_mock_carstate(
   return CS
 
 
-class TestDesireHelperLLProbProperties:
-  """Property-based tests for lane_change_ll_prob."""
-
-  @given(
-    v_ego=st.floats(min_value=0.0, max_value=50.0, allow_nan=False, allow_infinity=False),
-    left_blinker=st.booleans(),
-    right_blinker=st.booleans(),
-    lane_change_prob=st.floats(min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False),
-  )
-  @HYPOTHESIS_SETTINGS
-  def test_ll_prob_bounded_0_1(self, mocker, v_ego, left_blinker, right_blinker, lane_change_prob):
-    """Property: lane_change_ll_prob is always in [0.0, 1.0]."""
-    helper = DesireHelper()
-
-    CS = create_mock_carstate(mocker, v_ego=v_ego, left_blinker=left_blinker, right_blinker=right_blinker)
-
-    # Run multiple updates
-    for _ in range(20):
-      helper.update(CS, lateral_active=True, lane_change_prob=lane_change_prob)
-
-      assert 0.0 <= helper.lane_change_ll_prob <= 1.0
-
-  @given(
-    v_ego=st.floats(min_value=LANE_CHANGE_SPEED_MIN, max_value=50.0, allow_nan=False, allow_infinity=False),
-    lane_change_prob=st.floats(min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False),
-  )
-  @HYPOTHESIS_SETTINGS
-  def test_ll_prob_fades_in_starting_state(self, mocker, v_ego, lane_change_prob):
-    """Property: ll_prob decreases in laneChangeStarting state."""
-    helper = DesireHelper()
-    helper.lane_change_state = LaneChangeState.laneChangeStarting
-    helper.lane_change_direction = LaneChangeDirection.left
-    helper.lane_change_ll_prob = 1.0
-
-    CS = create_mock_carstate(mocker, v_ego=v_ego, left_blinker=True)
-
-    initial_prob = helper.lane_change_ll_prob
-    helper.update(CS, lateral_active=True, lane_change_prob=lane_change_prob)
-
-    assert helper.lane_change_ll_prob <= initial_prob
-
-  @given(
-    v_ego=st.floats(min_value=LANE_CHANGE_SPEED_MIN, max_value=50.0, allow_nan=False, allow_infinity=False),
-    lane_change_prob=st.floats(min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False),
-  )
-  @HYPOTHESIS_SETTINGS
-  def test_ll_prob_fades_out_finishing_state(self, mocker, v_ego, lane_change_prob):
-    """Property: ll_prob increases in laneChangeFinishing state."""
-    helper = DesireHelper()
-    helper.lane_change_state = LaneChangeState.laneChangeFinishing
-    helper.lane_change_direction = LaneChangeDirection.left
-    helper.lane_change_ll_prob = 0.5
-
-    CS = create_mock_carstate(mocker, v_ego=v_ego, left_blinker=True)
-
-    initial_prob = helper.lane_change_ll_prob
-    helper.update(CS, lateral_active=True, lane_change_prob=lane_change_prob)
-
-    assert helper.lane_change_ll_prob >= initial_prob
-
-
 class TestDesireHelperTimerProperties:
   """Property-based tests for lane_change_timer."""
 
@@ -123,35 +63,50 @@ class TestDesireHelperTimerProperties:
     lane_change_prob=st.floats(min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False),
   )
   @HYPOTHESIS_SETTINGS
-  def test_timer_zero_when_off(self, mocker, v_ego, lane_change_prob):
-    """Property: lane_change_timer is 0 in off state."""
+  def test_timer_stays_zero_while_off(self, mocker, v_ego, lane_change_prob):
+    """Property: with no blinkers, the state stays off and the timer never accumulates."""
     helper = DesireHelper()
-    helper.lane_change_timer = 5.0  # Non-zero
 
     CS = create_mock_carstate(mocker, v_ego=v_ego)  # No blinkers
-    helper.update(CS, lateral_active=True, lane_change_prob=lane_change_prob)
+    for _ in range(20):
+      helper.update(CS, lateral_active=True, lane_change_prob=lane_change_prob)
 
-    # Should be off with no blinkers
-    if helper.lane_change_state == LaneChangeState.off:
+      assert helper.lane_change_state == LaneChangeState.off
       assert helper.lane_change_timer == 0.0
+
+  @given(
+    v_ego=st.floats(min_value=0.0, max_value=50.0, allow_nan=False, allow_infinity=False),
+    left_blinker=st.booleans(),
+    right_blinker=st.booleans(),
+  )
+  @HYPOTHESIS_SETTINGS
+  def test_timer_reset_when_not_lateral_active(self, mocker, v_ego, left_blinker, right_blinker):
+    """Property: lane_change_timer is reset to 0 whenever lateral is inactive."""
+    helper = DesireHelper()
+    helper.lane_change_state = LaneChangeState.laneChangeStarting
+    helper.lane_change_direction = LaneChangeDirection.left
+    helper.lane_change_timer = 5.0  # Non-zero
+
+    CS = create_mock_carstate(mocker, v_ego=v_ego, left_blinker=left_blinker, right_blinker=right_blinker)
+    helper.update(CS, lateral_active=False, lane_change_prob=0.5)
+
+    assert helper.lane_change_timer == 0.0
 
   @given(
     v_ego=st.floats(min_value=LANE_CHANGE_SPEED_MIN + 1, max_value=50.0, allow_nan=False, allow_infinity=False),
   )
   @HYPOTHESIS_SETTINGS
-  def test_timer_zero_in_pre_lane_change(self, mocker, v_ego):
-    """Property: lane_change_timer is 0 in preLaneChange state."""
+  def test_timer_reset_on_entering_pre_lane_change(self, mocker, v_ego):
+    """Property: entering preLaneChange from off resets lane_change_timer to 0."""
     helper = DesireHelper()
-    helper.lane_change_state = LaneChangeState.preLaneChange
-    helper.lane_change_direction = LaneChangeDirection.left
-    helper.lane_change_timer = 5.0
-    helper.prev_one_blinker = True
+    helper.lane_change_timer = 5.0  # Non-zero, below LANE_CHANGE_TIME_MAX
+    helper.prev_one_blinker = False
 
     CS = create_mock_carstate(mocker, v_ego=v_ego, left_blinker=True)
     helper.update(CS, lateral_active=True, lane_change_prob=0.5)
 
-    if helper.lane_change_state == LaneChangeState.preLaneChange:
-      assert helper.lane_change_timer == 0.0
+    assert helper.lane_change_state == LaneChangeState.preLaneChange
+    assert helper.lane_change_timer == 0.0
 
 
 class TestDesireHelperStateProperties:
@@ -226,15 +181,36 @@ class TestDesireHelperDesireProperties:
     for _ in range(10):
       helper.update(CS, lateral_active=True, lane_change_prob=lane_change_prob)
 
-      # Desire should be a valid log.Desire value
+      # The current DesireHelper only ever emits none or a lane change desire
       valid_desires = {
         log.Desire.none,
         log.Desire.laneChangeLeft,
         log.Desire.laneChangeRight,
-        log.Desire.keepLeft,
-        log.Desire.keepRight,
       }
       assert helper.desire in valid_desires
+
+  @given(
+    v_ego=st.floats(min_value=0.0, max_value=50.0, allow_nan=False, allow_infinity=False),
+    left_blinker=st.booleans(),
+    right_blinker=st.booleans(),
+    lane_change_prob=st.floats(min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False),
+  )
+  @HYPOTHESIS_SETTINGS
+  def test_desire_consistent_with_state(self, mocker, v_ego, left_blinker, right_blinker, lane_change_prob):
+    """Property: desire is non-none only in laneChangeStarting, and matches the direction."""
+    helper = DesireHelper()
+
+    CS = create_mock_carstate(mocker, v_ego=v_ego, left_blinker=left_blinker, right_blinker=right_blinker, steering_pressed=True, steering_torque=1)
+
+    for _ in range(10):
+      helper.update(CS, lateral_active=True, lane_change_prob=lane_change_prob)
+
+      if helper.lane_change_state != LaneChangeState.laneChangeStarting:
+        assert helper.desire == log.Desire.none
+      elif helper.lane_change_direction == LaneChangeDirection.left:
+        assert helper.desire == log.Desire.laneChangeLeft
+      elif helper.lane_change_direction == LaneChangeDirection.right:
+        assert helper.desire == log.Desire.laneChangeRight
 
   @given(
     v_ego=st.floats(min_value=0.0, max_value=50.0, allow_nan=False, allow_infinity=False),
@@ -305,42 +281,33 @@ class TestDesireHelperDirectionProperties:
       assert helper.lane_change_direction == LaneChangeDirection.right
 
 
-class TestDesireHelperKeepPulseProperties:
-  """Property-based tests for keep_pulse_timer."""
+class TestDesireHelperTimerBoundProperties:
+  """Property-based tests bounding lane_change_timer accumulation."""
 
   @given(
-    v_ego=st.floats(min_value=0.0, max_value=50.0, allow_nan=False, allow_infinity=False),
-    left_blinker=st.booleans(),
-    right_blinker=st.booleans(),
-    lane_change_prob=st.floats(min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False),
+    v_ego=st.floats(min_value=LANE_CHANGE_SPEED_MIN + 1, max_value=50.0, allow_nan=False, allow_infinity=False),
+    lane_change_prob=st.floats(min_value=0.02, max_value=1.0, allow_nan=False, allow_infinity=False),
   )
   @HYPOTHESIS_SETTINGS
-  def test_keep_pulse_timer_non_negative(self, mocker, v_ego, left_blinker, right_blinker, lane_change_prob):
-    """Property: keep_pulse_timer is always >= 0."""
+  def test_timer_bounded_in_starting_state(self, mocker, v_ego, lane_change_prob):
+    """Property: the timer never exceeds LANE_CHANGE_TIME_MAX + DT_MDL; exceeding it aborts to off."""
     helper = DesireHelper()
+    helper.lane_change_state = LaneChangeState.laneChangeStarting
+    helper.lane_change_direction = LaneChangeDirection.left
+    helper.prev_one_blinker = True
 
-    CS = create_mock_carstate(mocker, v_ego=v_ego, left_blinker=left_blinker, right_blinker=right_blinker)
+    # lane_change_prob >= 0.02 keeps the lane change "in progress" so the timer accumulates
+    CS = create_mock_carstate(mocker, v_ego=v_ego, left_blinker=True)
 
-    for _ in range(20):
+    n_steps = int(LANE_CHANGE_TIME_MAX / DT_MDL) + 50
+    aborted = False
+    for _ in range(n_steps):
       helper.update(CS, lateral_active=True, lane_change_prob=lane_change_prob)
 
-      assert helper.keep_pulse_timer >= 0.0
+      assert helper.lane_change_timer <= LANE_CHANGE_TIME_MAX + DT_MDL
+      if helper.lane_change_state == LaneChangeState.off:
+        aborted = True
+        assert helper.lane_change_timer == 0.0
 
-  @given(
-    v_ego=st.floats(min_value=0.0, max_value=50.0, allow_nan=False, allow_infinity=False),
-    left_blinker=st.booleans(),
-    right_blinker=st.booleans(),
-    lane_change_prob=st.floats(min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False),
-  )
-  @HYPOTHESIS_SETTINGS
-  def test_keep_pulse_timer_bounded(self, mocker, v_ego, left_blinker, right_blinker, lane_change_prob):
-    """Property: keep_pulse_timer resets at 1.0s, so it's bounded < 1.1."""
-    helper = DesireHelper()
-
-    CS = create_mock_carstate(mocker, v_ego=v_ego, left_blinker=left_blinker, right_blinker=right_blinker)
-
-    for _ in range(100):
-      helper.update(CS, lateral_active=True, lane_change_prob=lane_change_prob)
-
-      # Timer should reset when exceeding 1.0, plus at most one DT_MDL increment
-      assert helper.keep_pulse_timer < 1.1
+    # After running past LANE_CHANGE_TIME_MAX, the lane change must have been aborted
+    assert aborted

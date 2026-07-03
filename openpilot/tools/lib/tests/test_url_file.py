@@ -4,7 +4,7 @@ import os
 import pytest
 
 from openpilot.tools.lib.url_file import (
-  hash_256,
+  hash_url,
   URLFile,
   URLFileException,
   CHUNK_SIZE,
@@ -12,37 +12,37 @@ from openpilot.tools.lib.url_file import (
 )
 
 
-class TestHash256:
-  """Test hash_256 function."""
+class TestHashUrl:
+  """Test hash_url function."""
 
   def test_returns_hex_string(self):
-    """Test hash_256 returns hex string."""
-    result = hash_256("https://example.com/file.txt")
+    """Test hash_url returns hex string."""
+    result = hash_url("https://example.com/file.txt")
     assert all(c in '0123456789abcdef' for c in result)
 
   def test_consistent_hash(self):
     """Test same input gives same hash."""
     url = "https://example.com/file.txt"
-    h1 = hash_256(url)
-    h2 = hash_256(url)
+    h1 = hash_url(url)
+    h2 = hash_url(url)
     assert h1 == h2
 
   def test_different_urls_different_hashes(self):
     """Test different URLs give different hashes."""
-    h1 = hash_256("https://example.com/file1.txt")
-    h2 = hash_256("https://example.com/file2.txt")
+    h1 = hash_url("https://example.com/file1.txt")
+    h2 = hash_url("https://example.com/file2.txt")
     assert h1 != h2
 
   def test_ignores_query_params(self):
     """Test hash ignores query parameters."""
-    h1 = hash_256("https://example.com/file.txt")
-    h2 = hash_256("https://example.com/file.txt?token=abc")
+    h1 = hash_url("https://example.com/file.txt")
+    h2 = hash_url("https://example.com/file.txt?token=abc")
     assert h1 == h2
 
   def test_hash_length(self):
-    """Test hash is 64 characters (SHA-256)."""
-    result = hash_256("https://example.com/file.txt")
-    assert len(result) == 64
+    """Test hash is 32 characters (MD5)."""
+    result = hash_url("https://example.com/file.txt")
+    assert len(result) == 32
 
 
 class TestURLFileException:
@@ -113,17 +113,17 @@ class TestURLFileInit:
     uf = URLFile("https://example.com/file.txt")
     assert uf._length is None
 
-  def test_init_cache_env_enabled(self, mocker):
-    """Test FILEREADER_CACHE=1 enables caching."""
-    mocker.patch.dict(os.environ, {'FILEREADER_CACHE': '1'})
+  def test_init_cache_env_default_enabled(self, mocker):
+    """Test caching is enabled by default (DISABLE_FILEREADER_CACHE unset/0)."""
+    mocker.patch.dict(os.environ, {'DISABLE_FILEREADER_CACHE': '0'})
     mocker.patch('openpilot.tools.lib.url_file.Paths.download_cache_root', return_value="/tmp/cache")
     mocker.patch('openpilot.tools.lib.url_file.os.makedirs')
     uf = URLFile("https://example.com/file.txt")
     assert uf._force_download is False
 
   def test_init_cache_env_disabled(self, mocker):
-    """Test FILEREADER_CACHE=0 disables caching."""
-    mocker.patch.dict(os.environ, {'FILEREADER_CACHE': '0'})
+    """Test DISABLE_FILEREADER_CACHE=1 disables caching."""
+    mocker.patch.dict(os.environ, {'DISABLE_FILEREADER_CACHE': '1'})
     mocker.patch('openpilot.tools.lib.url_file.Paths.download_cache_root', return_value="/tmp/cache")
     uf = URLFile("https://example.com/file.txt")
     assert uf._force_download is True
@@ -458,9 +458,9 @@ class TestURLFileGetLengthCaching:
     uf = URLFile("https://example.com/file.txt", cache=True)
 
     # Create cached length file
-    from openpilot.tools.lib.url_file import hash_256
+    from openpilot.tools.lib.url_file import hash_url
 
-    length_file = tmp_path / (hash_256("https://example.com/file.txt") + "_length")
+    length_file = tmp_path / (hash_url("https://example.com/file.txt") + "_length")
     length_file.write_text("12345")
 
     result = uf.get_length()
@@ -483,9 +483,9 @@ class TestURLFileGetLengthCaching:
     assert result == 9999
 
     # Check file was created
-    from openpilot.tools.lib.url_file import hash_256
+    from openpilot.tools.lib.url_file import hash_url
 
-    length_file = tmp_path / (hash_256("https://example.com/newfile.txt") + "_length")
+    length_file = tmp_path / (hash_url("https://example.com/newfile.txt") + "_length")
     assert length_file.exists()
     assert length_file.read_text() == "9999"
 
@@ -525,7 +525,7 @@ class TestURLFileRead:
 
   def test_read_uses_cached_chunk(self, mocker, tmp_path):
     """Test read uses existing cached chunks."""
-    from openpilot.tools.lib.url_file import hash_256
+    from openpilot.tools.lib.url_file import hash_url
 
     cache_dir = str(tmp_path)
     mocker.patch('openpilot.tools.lib.url_file.Paths.download_cache_root', return_value=cache_dir)
@@ -535,7 +535,7 @@ class TestURLFileRead:
     uf._pos = 0
 
     # Create cached chunk file
-    chunk_file = tmp_path / (hash_256("https://example.com/file.txt") + "_0.0")
+    chunk_file = tmp_path / (hash_url("https://example.com/file.txt") + "_0.0")
     chunk_file.write_bytes(b"Cached Data")
 
     mocker.patch.object(uf, 'get_length', return_value=11)

@@ -317,13 +317,13 @@ class TestUpdateEvents:
     assert EventName.selfdriveInitializing in sd.events.names
 
   def test_update_events_thermal_overheat(self, mocker):
-    """Test that overheat event is added when thermal status is red."""
+    """Test that overheat event is added when thermal status is overheated."""
     sd, mock_sm = self._create_selfdrived(mocker, brand='toyota')
     sd.initialized = True
 
-    # Set thermal status to red (overheat)
+    # Set thermal status to overheated
     mock_sm.data['deviceState'] = log.DeviceState.new_message()
-    mock_sm.data['deviceState'].thermalStatus = ThermalStatus.red
+    mock_sm.data['deviceState'].thermalStatus = ThermalStatus.overheated
 
     CS = make_car_state(can_valid=True)
     sd.update_events(CS)
@@ -504,7 +504,7 @@ class TestUpdateEvents:
 
     # Set thermal overheat - this should not be added in passive mode
     mock_sm.data['deviceState'] = log.DeviceState.new_message()
-    mock_sm.data['deviceState'].thermalStatus = ThermalStatus.red
+    mock_sm.data['deviceState'].thermalStatus = ThermalStatus.overheated
 
     CS = make_car_state(can_valid=True)
     sd.update_events(CS)

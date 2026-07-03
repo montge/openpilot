@@ -1,7 +1,7 @@
 import math
 
 import pytest
-from parameterized import parameterized
+from openpilot.common.parameterized import parameterized
 
 from opendbc.car.structs import car
 
@@ -150,6 +150,7 @@ class TestControlsStateControl:
       'liveCalibration',
       'livePose',
       'longitudinalPlan',
+      'lateralManeuverPlan',
       'carState',
       'carOutput',
       'driverMonitoringState',
@@ -268,11 +269,11 @@ class TestControlsStateControl:
     co.actuatorsOutput.torque = torque
     self.mock_sm.data['carOutput'] = msg.as_reader().carOutput
 
-  def _set_driver_monitoring_state(self, awarenessStatus=1.0):
+  def _set_driver_monitoring_state(self, noResponseForceDecel=False):
     """Set driverMonitoringState in the mock SubMaster."""
     msg = messaging.new_message('driverMonitoringState')
     dms = msg.driverMonitoringState
-    dms.awarenessStatus = awarenessStatus
+    dms.noResponseForceDecel = noResponseForceDecel
     self.mock_sm.data['driverMonitoringState'] = msg.as_reader().driverMonitoringState
 
   def _set_driver_assistance(self, leftLaneDeparture=False, rightLaneDeparture=False):
@@ -364,14 +365,31 @@ class TestControlsStateControl:
     assert self.controls.curvature != 0.0
 
   def test_state_control_desired_curvature_from_model(self):
-    """Test that desired curvature comes from model when active."""
+    """Test that desired curvature comes from model when lateralManeuverPlan is not valid."""
     desired_curv = 0.01
     self._set_model_v2(desiredCurvature=desired_curv)
+    # controlsd prefers lateralManeuverPlan when valid; invalidate it to exercise the model path
+    self.mock_sm.valid['lateralManeuverPlan'] = False
 
     CC, lac_log = self.controls.state_control()
 
-    # Desired curvature should be set (may be clipped)
-    assert CC.actuators.curvature is not None
+    # Desired curvature should move toward the model value (rate-limited by clip_curvature)
+    assert self.controls.desired_curvature > 0.0
+    assert CC.actuators.curvature == pytest.approx(self.controls.desired_curvature)
+
+  def test_state_control_desired_curvature_from_lateral_maneuver_plan(self):
+    """Test that desired curvature comes from lateralManeuverPlan when it is valid."""
+    msg = messaging.new_message('lateralManeuverPlan')
+    msg.lateralManeuverPlan.desiredCurvature = 0.01
+    self.mock_sm.data['lateralManeuverPlan'] = msg.as_reader().lateralManeuverPlan
+    self.mock_sm.valid['lateralManeuverPlan'] = True
+    # Model requests zero curvature; the plan value must win
+    self._set_model_v2(desiredCurvature=0.0)
+
+    CC, lac_log = self.controls.state_control()
+
+    assert self.controls.desired_curvature > 0.0
+    assert CC.actuators.curvature == pytest.approx(self.controls.desired_curvature)
 
   def test_state_control_longitudinal_inactive_on_override(self):
     """Test that longActive is False when there's a longitudinal override event."""
@@ -444,6 +462,7 @@ class TestControlsActuatorSafety:
       'liveCalibration',
       'livePose',
       'longitudinalPlan',
+      'lateralManeuverPlan',
       'carState',
       'carOutput',
       'driverMonitoringState',
@@ -528,6 +547,7 @@ class TestControlsPublish:
       'liveCalibration',
       'livePose',
       'longitudinalPlan',
+      'lateralManeuverPlan',
       'carState',
       'carOutput',
       'driverMonitoringState',
@@ -565,7 +585,7 @@ class TestControlsPublish:
     self.mock_sm.data['carOutput'] = msg.as_reader().carOutput
 
     msg = messaging.new_message('driverMonitoringState')
-    msg.driverMonitoringState.awarenessStatus = 1.0
+    msg.driverMonitoringState.noResponseForceDecel = False
     self.mock_sm.data['driverMonitoringState'] = msg.as_reader().driverMonitoringState
 
     msg = messaging.new_message('driverAssistance')
@@ -716,6 +736,7 @@ class TestControlsUpdate:
       'liveCalibration',
       'livePose',
       'longitudinalPlan',
+      'lateralManeuverPlan',
       'carState',
       'carOutput',
       'driverMonitoringState',
@@ -778,6 +799,7 @@ class TestControlsIntegration:
       'liveCalibration',
       'livePose',
       'longitudinalPlan',
+      'lateralManeuverPlan',
       'carState',
       'carOutput',
       'driverMonitoringState',
@@ -846,7 +868,7 @@ class TestControlsIntegration:
     self.mock_sm.data['carOutput'] = msg.as_reader().carOutput
 
     msg = messaging.new_message('driverMonitoringState')
-    msg.driverMonitoringState.awarenessStatus = 1.0
+    msg.driverMonitoringState.noResponseForceDecel = False
     self.mock_sm.data['driverMonitoringState'] = msg.as_reader().driverMonitoringState
 
     msg = messaging.new_message('driverAssistance')
@@ -956,6 +978,7 @@ class TestControlsDifferentCars:
       'liveCalibration',
       'livePose',
       'longitudinalPlan',
+      'lateralManeuverPlan',
       'carState',
       'carOutput',
       'driverMonitoringState',
@@ -1027,6 +1050,7 @@ class TestControlsNaNInfHandling:
       'liveCalibration',
       'livePose',
       'longitudinalPlan',
+      'lateralManeuverPlan',
       'carState',
       'carOutput',
       'driverMonitoringState',
@@ -1166,6 +1190,7 @@ class TestControlsCruiseLogic:
       'liveCalibration',
       'livePose',
       'longitudinalPlan',
+      'lateralManeuverPlan',
       'carState',
       'carOutput',
       'driverMonitoringState',
@@ -1215,7 +1240,7 @@ class TestControlsCruiseLogic:
     self.mock_sm.data['carOutput'] = msg.as_reader().carOutput
 
     msg = messaging.new_message('driverMonitoringState')
-    msg.driverMonitoringState.awarenessStatus = 1.0
+    msg.driverMonitoringState.noResponseForceDecel = False
     self.mock_sm.data['driverMonitoringState'] = msg.as_reader().driverMonitoringState
 
     msg = messaging.new_message('driverAssistance')
@@ -1288,6 +1313,7 @@ class TestControlsForceDecel:
       'liveCalibration',
       'livePose',
       'longitudinalPlan',
+      'lateralManeuverPlan',
       'carState',
       'carOutput',
       'driverMonitoringState',
@@ -1298,7 +1324,7 @@ class TestControlsForceDecel:
     self.controls.sm = self.mock_sm
     self._setup_default_sm()
 
-  def _setup_default_sm(self, awarenessStatus=1.0, state=State.enabled):
+  def _setup_default_sm(self, noResponseForceDecel=False, state=State.enabled):
     """Set up mock SubMaster with configurable state."""
     msg = messaging.new_message('carState')
     msg.carState.vEgo = 20.0
@@ -1333,7 +1359,7 @@ class TestControlsForceDecel:
     self.mock_sm.data['carOutput'] = msg.as_reader().carOutput
 
     msg = messaging.new_message('driverMonitoringState')
-    msg.driverMonitoringState.awarenessStatus = awarenessStatus
+    msg.driverMonitoringState.noResponseForceDecel = noResponseForceDecel
     self.mock_sm.data['driverMonitoringState'] = msg.as_reader().driverMonitoringState
 
     msg = messaging.new_message('driverAssistance')
@@ -1341,36 +1367,33 @@ class TestControlsForceDecel:
 
     self.mock_sm.data['onroadEvents'] = []
 
-  def test_force_decel_on_negative_awareness(self):
-    """Test forceDecel is True when awarenessStatus < 0."""
-    self._setup_default_sm(awarenessStatus=-0.5)
+  def test_force_decel_on_no_response(self):
+    """Test forceDecel is True when driver monitoring requests a no-response force decel."""
+    self._setup_default_sm(noResponseForceDecel=True)
 
-    self.controls.state_control()
+    CC, lac_log = self.controls.state_control()
+    self.controls.publish(CC, lac_log)
 
-    # Check the forceDecel calculation directly
-    force_decel = bool((self.mock_sm['driverMonitoringState'].awarenessStatus < 0.0) or (self.mock_sm['selfdriveState'].state == State.softDisabling))
-
-    assert force_decel is True
+    # publish mirrors controlsState.forceDecel into CC.driverMonitoringEscalation
+    assert CC.driverMonitoringEscalation is True
 
   def test_force_decel_on_soft_disabling(self):
     """Test forceDecel is True when state is softDisabling."""
     self._setup_default_sm(state=State.softDisabling)
 
     CC, lac_log = self.controls.state_control()
+    self.controls.publish(CC, lac_log)
 
-    force_decel = bool((self.mock_sm['driverMonitoringState'].awarenessStatus < 0.0) or (self.mock_sm['selfdriveState'].state == State.softDisabling))
-
-    assert force_decel is True
+    assert CC.driverMonitoringEscalation is True
 
   def test_no_force_decel_under_normal_conditions(self):
     """Test forceDecel is False under normal conditions."""
-    self._setup_default_sm(awarenessStatus=1.0, state=State.enabled)
+    self._setup_default_sm(noResponseForceDecel=False, state=State.enabled)
 
     CC, lac_log = self.controls.state_control()
+    self.controls.publish(CC, lac_log)
 
-    force_decel = bool((self.mock_sm['driverMonitoringState'].awarenessStatus < 0.0) or (self.mock_sm['selfdriveState'].state == State.softDisabling))
-
-    assert force_decel is False
+    assert CC.driverMonitoringEscalation is False
 
 
 class TestControlsSteerLimitedBySafety:
@@ -1394,6 +1417,7 @@ class TestControlsSteerLimitedBySafety:
       'liveCalibration',
       'livePose',
       'longitudinalPlan',
+      'lateralManeuverPlan',
       'carState',
       'carOutput',
       'driverMonitoringState',
@@ -1504,6 +1528,7 @@ class TestControlsVehicleModelUpdate:
       'liveCalibration',
       'livePose',
       'longitudinalPlan',
+      'lateralManeuverPlan',
       'carState',
       'carOutput',
       'driverMonitoringState',

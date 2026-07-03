@@ -15,6 +15,7 @@ from openpilot.selfdrive.locationd.locationd import (
   MAX_FILTER_REWIND_TIME,
   POSENET_STD_INITIAL_VALUE,
   POSENET_STD_HIST_HALF,
+  CAM_ODO_POSE_DELAY,
 )
 from openpilot.selfdrive.locationd.models.constants import ObservationKind
 
@@ -22,8 +23,6 @@ from openpilot.selfdrive.locationd.models.constants import ObservationKind
 def create_accelerometer_msg(v, timestamp=None, source=None):
   """Create an accelerometer message for testing."""
   msg = messaging.new_message('accelerometer', valid=True)
-  msg.accelerometer.sensor = 4
-  msg.accelerometer.type = 0x10
   if timestamp is None:
     timestamp = msg.logMonoTime
   msg.accelerometer.timestamp = timestamp
@@ -37,8 +36,6 @@ def create_accelerometer_msg(v, timestamp=None, source=None):
 def create_gyroscope_msg(v, timestamp=None, source=None):
   """Create a gyroscope message for testing."""
   msg = messaging.new_message('gyroscope', valid=True)
-  msg.gyroscope.sensor = 5
-  msg.gyroscope.type = 0x10
   if timestamp is None:
     timestamp = msg.logMonoTime
   msg.gyroscope.timestamp = timestamp
@@ -49,13 +46,18 @@ def create_gyroscope_msg(v, timestamp=None, source=None):
   return msg
 
 
-def create_camera_odometry_msg(trans, rot, trans_std, rot_std):
-  """Create a cameraOdometry message for testing."""
+def create_camera_odometry_msg(trans, rot, trans_std, rot_std, t=1.01):
+  """Create a cameraOdometry message for testing.
+
+  handle_log derives the observation time from timestampEof (minus CAM_ODO_POSE_DELAY),
+  so set timestampEof such that the effective observation time equals t.
+  """
   msg = messaging.new_message('cameraOdometry')
   msg.cameraOdometry.trans = trans
   msg.cameraOdometry.rot = rot
   msg.cameraOdometry.transStd = trans_std
   msg.cameraOdometry.rotStd = rot_std
+  msg.cameraOdometry.timestampEof = int((t + CAM_ODO_POSE_DELAY) * 1e9)
   return msg
 
 
@@ -599,8 +601,6 @@ class TestSensorAllChecks:
   def test_sensor_all_checks_invalid_sensor(self):
     """Test sensor_all_checks with invalid sensor data."""
     acc_msg = messaging.new_message('accelerometer', valid=False)  # Invalid
-    acc_msg.accelerometer.sensor = 4
-    acc_msg.accelerometer.type = 0x10
     acc_msg.accelerometer.timestamp = acc_msg.logMonoTime
     acc_msg.accelerometer.init('acceleration')
     acc_msg.accelerometer.acceleration.v = [0.0, 0.0, -9.81]
@@ -699,7 +699,8 @@ class TestLocationEstimatorIntegration:
       trans=[5.0, 0.0, 0.0],
       rot=[0.0, 0.0, 0.01],
       trans_std=[0.5, 0.5, 0.5],
-      rot_std=[0.05, 0.05, 0.05]
+      rot_std=[0.05, 0.05, 0.05],
+      t=1.03
     )
     result = estimator.handle_log(1.03, "cameraOdometry", cam_msg.cameraOdometry)
     assert result == HandleLogResult.SUCCESS

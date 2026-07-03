@@ -433,14 +433,11 @@ class TestSwagLogger:
 
   def test_timestamp_logs_when_enabled(self, mocker):
     """Test timestamp logs when LOG_TIMESTAMPS is set."""
-    mocker.patch.dict('os.environ', {'LOG_TIMESTAMPS': '1'})
-    # Need to reimport to pick up env var
-    from importlib import reload
-    import openpilot.common.logging_extra as le
+    # Patch the module flag directly: reloading the module would replace the
+    # SwagLogger class object and break isinstance checks in other tests.
+    mocker.patch('openpilot.common.logging_extra.LOG_TIMESTAMPS', True)
 
-    reload(le)
-
-    logger = le.SwagLogger()
+    logger = SwagLogger()
     logger.debug = mocker.MagicMock()
 
     logger.timestamp("test_event")

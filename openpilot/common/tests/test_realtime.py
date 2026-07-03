@@ -47,7 +47,8 @@ class TestSetCoreAffinity:
     """Test that core affinity is set on Linux non-PC."""
     mocker.patch('openpilot.common.realtime.PC', False)
     mocker.patch('openpilot.common.realtime.sys.platform', 'linux')
-    mock_setaffinity = mocker.patch('openpilot.common.realtime.os.sched_setaffinity')
+    # create=True: os.sched_setaffinity does not exist on non-Linux hosts
+    mock_setaffinity = mocker.patch('openpilot.common.realtime.os.sched_setaffinity', create=True)
 
     set_core_affinity([0, 1])
     mock_setaffinity.assert_called_once_with(0, [0, 1])
@@ -56,7 +57,7 @@ class TestSetCoreAffinity:
     """Test that core affinity is not set on Linux PC."""
     mocker.patch('openpilot.common.realtime.PC', True)
     mocker.patch('openpilot.common.realtime.sys.platform', 'linux')
-    mock_setaffinity = mocker.patch('openpilot.common.realtime.os.sched_setaffinity')
+    mock_setaffinity = mocker.patch('openpilot.common.realtime.os.sched_setaffinity', create=True)
 
     set_core_affinity([0, 1])
     mock_setaffinity.assert_not_called()
@@ -64,7 +65,7 @@ class TestSetCoreAffinity:
   def test_set_core_affinity_non_linux(self, mocker):
     """Test that core affinity is not set on non-Linux platforms."""
     mocker.patch('openpilot.common.realtime.sys.platform', 'darwin')
-    mock_setaffinity = mocker.patch('openpilot.common.realtime.os.sched_setaffinity')
+    mock_setaffinity = mocker.patch('openpilot.common.realtime.os.sched_setaffinity', create=True)
 
     set_core_affinity([0, 1])
     mock_setaffinity.assert_not_called()
@@ -96,7 +97,9 @@ class TestConfigRealtimeProcess:
     """Test config_realtime_process on Linux non-PC."""
     mocker.patch('openpilot.common.realtime.PC', False)
     mocker.patch('openpilot.common.realtime.sys.platform', 'linux')
-    mock_scheduler = mocker.patch('openpilot.common.realtime.os.sched_setscheduler')
+    # create=True: os.sched_setscheduler/os.sched_param do not exist on non-Linux hosts
+    mock_scheduler = mocker.patch('openpilot.common.realtime.os.sched_setscheduler', create=True)
+    mocker.patch('openpilot.common.realtime.os.sched_param', create=True)
     mock_gc_disable = mocker.patch('openpilot.common.realtime.gc.disable')
     mock_set_affinity = mocker.patch('openpilot.common.realtime.set_core_affinity')
 

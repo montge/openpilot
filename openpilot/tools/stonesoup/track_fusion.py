@@ -91,8 +91,12 @@ def covariance_intersection(
     else:  # det
       return np.linalg.det(P_fused)
 
-  result = minimize_scalar(objective, bounds=(0.01, 0.99), method='bounded')
-  omega_opt = result.x
+  result = minimize_scalar(objective, bounds=(0.0, 1.0), method='bounded')
+  # method='bounded' converges strictly inside the bounds, but the CI objective is
+  # convex in omega and the optimum sits at an endpoint when one estimate dominates.
+  # Check the endpoints explicitly so the optimality guarantee
+  # trace(P_fused) <= min(trace(P1), trace(P2)) actually holds.
+  omega_opt = min((0.0, 1.0, float(result.x)), key=objective)
 
   x_fused, P_fused = compute_fused(omega_opt)
   return x_fused, P_fused, omega_opt

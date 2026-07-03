@@ -49,11 +49,16 @@ class TestOpenpilotPrefixInit:
     assert prefix.shared_download_cache is True
 
   def test_msgq_path_set(self, mocker):
-    """Test msgq_path is set correctly."""
-    mock_shm_path = mocker.patch('openpilot.common.prefix.Paths.shm_path')
-    mock_shm_path.return_value = "/dev/shm"
+    """Test msgq_path is set correctly (shm on non-Darwin platforms)."""
+    mocker.patch('openpilot.common.prefix.platform.system', return_value="Linux")
     prefix = OpenpilotPrefix(prefix="myprefix", create_dirs_on_enter=False, clean_dirs_on_exit=False)
     assert prefix.msgq_path == "/dev/shm/msgq_myprefix"
+
+  def test_msgq_path_set_darwin(self, mocker):
+    """Test msgq_path falls back to /tmp on Darwin."""
+    mocker.patch('openpilot.common.prefix.platform.system', return_value="Darwin")
+    prefix = OpenpilotPrefix(prefix="myprefix", create_dirs_on_enter=False, clean_dirs_on_exit=False)
+    assert prefix.msgq_path == "/tmp/msgq_myprefix"
 
   def test_different_prefixes_generate_different_paths(self):
     """Test different prefixes generate different msgq paths."""
@@ -75,11 +80,10 @@ class TestOpenpilotPrefixCreateDirs:
 
   def test_creates_msgq_dir(self, mocker):
     """Test create_dirs creates msgq directory."""
-    mock_shm = mocker.patch('openpilot.common.prefix.Paths.shm_path')
+    mocker.patch('openpilot.common.prefix.platform.system', return_value="Linux")
     mock_log = mocker.patch('openpilot.common.prefix.Paths.log_root')
     mock_mkdir = mocker.patch('openpilot.common.prefix.os.mkdir')
     mocker.patch('openpilot.common.prefix.os.makedirs')
-    mock_shm.return_value = "/dev/shm"
     mock_log.return_value = "/data/realdata"
 
     prefix = OpenpilotPrefix(prefix="test", create_dirs_on_enter=False, clean_dirs_on_exit=False)

@@ -241,13 +241,13 @@ class TestGetAccelFromPlan:
     speeds = np.array([0.1, 0.1, 0.1, 0.1])
     accels = np.array([0.0, 0.0, 0.0, 0.0])
 
-    # Default threshold is 0.05, so 0.1 should not stop
+    # Default threshold is 0.3, so v_now=0.1 should stop
     _, should_stop_default = get_accel_from_plan(speeds, accels, t_idxs)
-    assert not should_stop_default
+    assert should_stop_default
 
-    # With higher threshold, should stop
-    _, should_stop_custom = get_accel_from_plan(speeds, accels, t_idxs, vEgoStopping=0.2)
-    assert should_stop_custom
+    # With a lower threshold, should not stop
+    _, should_stop_custom = get_accel_from_plan(speeds, accels, t_idxs, vEgoStopping=0.05)
+    assert not should_stop_custom
 
 
 class TestCurvFromPsis:

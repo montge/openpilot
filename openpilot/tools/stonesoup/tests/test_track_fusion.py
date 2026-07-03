@@ -28,7 +28,10 @@ class TestCovarianceIntersection:
 
     assert x_fused.shape == (2,)
     assert P_fused.shape == (2, 2)
-    assert 0 < omega < 1
+    # P1 dominates P2 in every dimension, so the trace-optimal weight is the
+    # endpoint omega=1 (use the first estimate exclusively)
+    assert omega == 1.0
+    np.testing.assert_allclose(x_fused, x1)
 
   def test_omega_favors_lower_covariance(self):
     x1 = np.array([10.0, 1.0])
@@ -61,9 +64,14 @@ class TestCovarianceIntersection:
     x_opt, P_opt, omega_opt = covariance_intersection(x1, P1, x2, P2)
     x_fast, P_fast, omega_fast = fast_covariance_intersection(x1, P1, x2, P2)
 
-    # Results should be similar (not identical due to approximation)
+    # Fused states should be similar (not identical due to approximation)
     assert np.allclose(x_opt, x_fast, atol=1.0)
-    assert np.allclose(omega_opt, omega_fast, atol=0.3)
+    # Both are valid CI weights
+    assert 0.0 <= omega_opt <= 1.0
+    assert 0.01 <= omega_fast <= 0.99
+    # The optimized CI is trace-optimal, so it can only be at least as tight
+    # as the fast trace-ratio approximation
+    assert np.trace(P_opt) <= np.trace(P_fast) + 1e-9
 
 
 class TestTrackFusionEngine:
@@ -105,18 +113,20 @@ class TestTrackFusionEngine:
 
   def test_fuse_both_sensors(self):
     engine = TrackFusionEngine()
+    # Mixed dominance (radar better in position, vision better in velocity) so
+    # the trace-optimal CI weight is interior rather than at an endpoint
     radar = RadarTrack(
       sensor_name="radar",
       position=np.array([20.0, 0.0]),
       velocity=np.array([-5.0, 0.0]),
-      covariance=np.diag([0.5, 0.5, 0.1, 0.1]),
+      covariance=np.diag([0.2, 0.2, 1.0, 1.0]),
       timestamp=0.0
     )
     vision = VisionTrack(
       sensor_name="vision",
       position=np.array([22.0, 0.5]),
       velocity=np.array([-4.5, 0.1]),
-      covariance=np.diag([1.0, 1.0, 0.5, 0.5]),
+      covariance=np.diag([1.0, 1.0, 0.2, 0.2]),
       timestamp=0.0
     )
 

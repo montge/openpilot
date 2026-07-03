@@ -130,19 +130,23 @@ class TestOctree:
     # Insert a cluster of points
     np.random.seed(42)
     center = np.array([50.0, 0.0, 1.0])
-    for _ in range(100):
-      point = center + np.random.randn(3) * 2
+    points = [center + np.random.randn(3) * 2 for _ in range(100)]
+    for point in points:
       tree.insert(point)
 
     # Query around center
     results = tree.radius_query(center, 3.0)
 
-    # Should find most points (within 1.5 std devs)
-    assert len(results) > 50
+    # Must return exactly the points within the radius (brute-force ground truth;
+    # with this seed that is 50 of the 100 points, ~1.5 std devs in 3D)
+    n_expected = sum(1 for p in points if np.linalg.norm(p - center) <= 3.0)
+    assert n_expected > 0
+    assert len(results) == n_expected
 
-    # Results should be sorted by distance
+    # Results should be sorted by distance, all within the radius
     distances = [r[2] for r in results]
     assert distances == sorted(distances)
+    assert all(d <= 3.0 for d in distances)
 
   def test_k_nearest(self):
     tree = Octree()

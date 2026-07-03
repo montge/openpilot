@@ -1,6 +1,7 @@
 """Tests for utils.py - common utilities."""
 
 import io
+import math
 import os
 import tempfile
 
@@ -8,11 +9,14 @@ import pytest
 
 from openpilot.common.utils import (
   CallbackReader,
+  MovingAverage,
   atomic_write,
   strip_deprecated_keys,
   run_cmd,
   run_cmd_default,
   retry,
+  sudo_read,
+  sudo_write,
   LOG_COMPRESSION_LEVEL,
   managed_proc,
   get_upload_stream,
@@ -169,7 +173,8 @@ class TestRunCmd:
     """Test run_cmd with cwd."""
     with tempfile.TemporaryDirectory() as tmpdir:
       result = run_cmd(['pwd'], cwd=tmpdir)
-      assert result == tmpdir
+      # realpath: on macOS tempdirs live under /var, a symlink to /private/var
+      assert os.path.realpath(result) == os.path.realpath(tmpdir)
 
 
 class TestRunCmdDefault:
@@ -210,7 +215,6 @@ class TestRetry:
 
   def test_retry_success_after_failures(self, mocker):
     """Test retry succeeds after initial failures."""
-    mocker.patch('openpilot.common.utils.cloudlog')
     mocker.patch('openpilot.common.utils.time.sleep')
     call_count = [0]
 
@@ -228,7 +232,6 @@ class TestRetry:
 
   def test_retry_raises_after_all_attempts(self, mocker):
     """Test retry raises exception after all attempts fail."""
-    mocker.patch('openpilot.common.utils.cloudlog')
     mocker.patch('openpilot.common.utils.time.sleep')
 
     @retry(attempts=2, delay=0.1)
@@ -242,7 +245,6 @@ class TestRetry:
 
   def test_retry_ignore_failure(self, mocker):
     """Test retry with ignore_failure=True doesn't raise."""
-    mocker.patch('openpilot.common.utils.cloudlog')
     mocker.patch('openpilot.common.utils.time.sleep')
 
     @retry(attempts=2, delay=0.1, ignore_failure=True)
@@ -399,3 +401,229 @@ class TestConstants:
     """Test LOG_COMPRESSION_LEVEL is reasonable."""
     assert LOG_COMPRESSION_LEVEL > 0
     assert LOG_COMPRESSION_LEVEL < 22  # zstd max
+
+
+class TestMovingAverage:
+  """Test MovingAverage class."""
+
+  def test_init_creates_buffer(self):
+    """Test initialization creates proper buffer."""
+    ma = MovingAverage(5)
+
+    assert ma.window_size == 5
+    assert len(ma.buffer) == 5
+    assert ma.index == 0
+    assert ma.count == 0
+    assert ma.sum == 0.0
+
+  def test_init_buffer_zeros(self):
+    """Test buffer initialized with zeros."""
+    ma = MovingAverage(3)
+
+    for val in ma.buffer:
+      assert val == 0.0
+
+  def test_get_average_empty_returns_nan(self):
+    """Test get_average returns NaN when empty."""
+    ma = MovingAverage(5)
+
+    avg = ma.get_average()
+
+    assert math.isnan(avg)
+
+  def test_add_single_value(self):
+    """Test adding a single value."""
+    ma = MovingAverage(5)
+
+    ma.add_value(10.0)
+
+    assert ma.count == 1
+    assert ma.sum == 10.0
+    assert ma.get_average() == 10.0
+
+  def test_add_multiple_values_partial_window(self):
+    """Test averaging with partial window."""
+    ma = MovingAverage(5)
+
+    ma.add_value(10.0)
+    ma.add_value(20.0)
+    ma.add_value(30.0)
+
+    assert ma.count == 3
+    assert ma.get_average() == 20.0  # (10+20+30)/3
+
+  def test_circular_buffer_overwrites(self):
+    """Test circular buffer overwrites old values."""
+    ma = MovingAverage(3)
+
+    ma.add_value(10.0)  # buffer: [10, 0, 0]
+    ma.add_value(20.0)  # buffer: [10, 20, 0]
+    ma.add_value(30.0)  # buffer: [10, 20, 30]
+    ma.add_value(40.0)  # buffer: [40, 20, 30] - overwrites 10
+
+    assert ma.count == 3  # Count stays at window size
+    assert ma.get_average() == 30.0  # (40+20+30)/3
+
+  def test_index_wraps_correctly(self):
+    """Test index wraps around circular buffer."""
+    ma = MovingAverage(3)
+
+    for i in range(7):
+      ma.add_value(float(i))
+
+    # After 7 values in size-3 buffer: index should be at 7 % 3 = 1
+    assert ma.index == 1
+
+  def test_sum_updates_correctly_on_overwrite(self):
+    """Test sum is correct when old values are replaced."""
+    ma = MovingAverage(2)
+
+    ma.add_value(100.0)
+    ma.add_value(200.0)
+    assert ma.sum == 300.0
+
+    ma.add_value(50.0)  # Replaces 100.0
+    assert ma.sum == 250.0  # 200 + 50
+
+  def test_window_size_one(self):
+    """Test MovingAverage with window size of 1."""
+    ma = MovingAverage(1)
+
+    ma.add_value(10.0)
+    assert ma.get_average() == 10.0
+
+    ma.add_value(20.0)
+    assert ma.get_average() == 20.0
+
+  def test_negative_values(self):
+    """Test with negative values."""
+    ma = MovingAverage(3)
+
+    ma.add_value(-10.0)
+    ma.add_value(-20.0)
+    ma.add_value(-30.0)
+
+    assert ma.get_average() == -20.0
+
+  def test_float_precision(self):
+    """Test float precision in calculations."""
+    ma = MovingAverage(3)
+
+    ma.add_value(0.1)
+    ma.add_value(0.2)
+    ma.add_value(0.3)
+
+    assert ma.get_average() == pytest.approx(0.2, abs=1e-10)
+
+  def test_count_never_exceeds_window_size(self):
+    """Test count never exceeds window size."""
+    ma = MovingAverage(5)
+
+    for i in range(100):
+      ma.add_value(float(i))
+
+    assert ma.count == 5
+
+  def test_step_change_response(self):
+    """Test response to step change in input."""
+    ma = MovingAverage(4)
+
+    # Initial values of 0
+    for _ in range(4):
+      ma.add_value(0.0)
+
+    assert ma.get_average() == 0.0
+
+    # Step change to 100
+    ma.add_value(100.0)
+    assert ma.get_average() == 25.0  # (0+0+0+100)/4
+
+    ma.add_value(100.0)
+    assert ma.get_average() == 50.0  # (0+0+100+100)/4
+
+
+class TestSudoWrite:
+  """Test sudo_write function (current impl: plain write, then sudo chmod retry, then sudo echo fallback)."""
+
+  def test_sudo_write_success(self, mocker):
+    """Test sudo_write with writable path does not shell out."""
+    mock_run = mocker.patch('openpilot.common.utils.subprocess.run')
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+      path = os.path.join(tmpdir, "test.txt")
+
+      sudo_write("test", path)
+
+      with open(path) as f:
+        assert f.read() == "test"
+      mock_run.assert_not_called()
+
+  def test_sudo_write_chmod_on_permission_error(self, mocker):
+    """Test sudo_write runs sudo chmod on PermissionError then retries the write."""
+    mock_run = mocker.patch('openpilot.common.utils.subprocess.run')
+
+    # Mock open to fail first, then succeed
+    call_count = [0]
+    real_open = open
+
+    def mock_open_fn(path, mode='r', *args, **kwargs):
+      if mode == 'w' and call_count[0] == 0:
+        call_count[0] += 1
+        raise PermissionError("Permission denied")
+      return real_open(path, mode, *args, **kwargs)
+
+    mocker.patch('builtins.open', mock_open_fn)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+      path = os.path.join(tmpdir, "test.txt")
+
+      sudo_write("content", path)
+
+      with real_open(path) as f:
+        assert f.read() == "content"
+      mock_run.assert_called_once()
+      assert "chmod" in mock_run.call_args[0][0]
+
+  def test_sudo_write_fallback_on_double_permission_error(self, mocker):
+    """Test sudo_write uses sudo echo fallback when chmod does not help."""
+    mock_run = mocker.patch('openpilot.common.utils.subprocess.run')
+
+    # Mock open to always fail with PermissionError on write
+    real_open = open
+
+    def mock_open_fn(path, mode='r', *args, **kwargs):
+      if mode == 'w':
+        raise PermissionError("Permission denied")
+      return real_open(path, mode, *args, **kwargs)
+
+    mocker.patch('builtins.open', mock_open_fn)
+
+    sudo_write("testval", "/some/path")
+
+    # Should have run chmod first, then the echo fallback
+    assert mock_run.call_count == 2
+    assert "chmod" in mock_run.call_args_list[0][0][0]
+    assert "echo testval" in mock_run.call_args_list[1][0][0]
+
+
+class TestSudoRead:
+  """Test sudo_read function."""
+
+  def test_sudo_read_success(self, mocker):
+    """Test sudo_read returns stripped content."""
+    mock_check_output = mocker.patch('openpilot.common.utils.subprocess.check_output')
+    mock_check_output.return_value = "file content\n"
+
+    result = sudo_read("/some/path")
+
+    assert result == "file content"
+    mock_check_output.assert_called_once_with(["sudo", "cat", "--", "/some/path"], encoding='utf8')
+
+  def test_sudo_read_failure_returns_empty(self, mocker):
+    """Test sudo_read returns empty string on failure."""
+    mock_check_output = mocker.patch('openpilot.common.utils.subprocess.check_output')
+    mock_check_output.side_effect = Exception("command failed")
+
+    result = sudo_read("/nonexistent/path")
+
+    assert result == ""

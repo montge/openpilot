@@ -41,8 +41,10 @@ class DummyProcess(ManagerProcess):
       self.stop()
     if self.proc is not None:
       return
-    # Create a simple process that sleeps
-    self.proc = Process(target=lambda: time.sleep(60), name=self.name)
+    # Create a simple process that sleeps. The target must be a module-level
+    # function (not a lambda) so it can be pickled under the "spawn" start
+    # method used on macOS.
+    self.proc = Process(target=simple_target, name=self.name)
     self.proc.start()
     self.shutting_down = False
 

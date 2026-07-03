@@ -77,20 +77,24 @@ class TestVoxelGrid:
     grid = VoxelGrid(config)
 
     point = np.array([10.0, 0.0, 0.5])
+    voxel = grid.world_to_voxel(point)
 
-    # First mark as occupied
+    # First mark as occupied: log-odds = 3 * l_occ
     for _ in range(3):
       grid.update_occupied(point)
+    prob_occupied = grid.get_probability(voxel)
 
-    # Then mark as free
+    # Each free update lowers the occupancy probability
     for _ in range(5):
       grid.update_free(point)
+    assert grid.get_probability(voxel) < prob_occupied
 
-    voxel = grid.world_to_voxel(point)
-    prob = grid.get_probability(voxel)
-
-    # Should be < 0.5 after more free updates
-    assert prob < 0.5
+    # Enough free updates to overcome the occupied evidence:
+    # log-odds goes below 0 once n_free * |l_free| > 3 * l_occ
+    n_free = int(np.ceil(3 * config.l_occ / -config.l_free)) + 1
+    for _ in range(n_free - 5):
+      grid.update_free(point)
+    assert grid.get_probability(voxel) < 0.5
 
   def test_update_ray(self):
     config = VoxelGridConfig(
