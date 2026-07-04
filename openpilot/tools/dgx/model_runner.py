@@ -340,7 +340,7 @@ class ModelRunner:
         from openpilot.selfdrive.modeld.get_model_metadata import make_metadata_dict
 
         self.input_shapes = make_metadata_dict(self.model_path)["input_shapes"]
-      except Exception:  # no embedded metadata / unparseable — fall through
+      except Exception:  # no embedded metadata / unparsable — fall through
         pass
 
     if not self.input_shapes:
