@@ -23,7 +23,7 @@ dependencies = [
   "pycapnp==2.1.0",  # 2.2 introduces a memory leak due to cyclic references
   "Cython",
   "setuptools",
-  "numpy >=2.0",
+  "numpy >=2.5.1",
 
   # vendored native dependencies
   "bzip2 @ git+https://github.com/commaai/dependencies.git@release-bzip2#subdirectory=bzip2",
