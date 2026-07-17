@@ -23,12 +23,12 @@ The CI pipeline SHALL generate comprehensive C++ code coverage reports for all t
 - **GIVEN** a pull request with C++ changes
 - **WHEN** the coverage workflow runs
 - **THEN** llvm-cov generates coverage for all C++ test directories:
-  - common/tests/
-  - system/loggerd/tests/
-  - system/camerad/test/
-  - selfdrive/pandad/tests/
-  - tools/cabana/tests/
-  - tools/replay/tests/
+  - openpilot/common/tests/
+  - openpilot/system/loggerd/tests/
+  - openpilot/system/camerad/test/
+  - openpilot/selfdrive/pandad/tests/
+  - openpilot/tools/cabana/tests/
+  - openpilot/tools/replay/tests/
 - **AND** the report is uploaded to Codecov with component flags
 
 #### Scenario: C++ coverage threshold enforced
@@ -42,8 +42,8 @@ The CI pipeline SHALL generate comprehensive C++ code coverage reports for all t
 - **GIVEN** the C++ coverage workflow has completed
 - **WHEN** a developer views the Codecov dashboard
 - **THEN** they see separate coverage metrics for:
-  - cpp-core (common, system, selfdrive/pandad)
-  - cpp-tools (tools/cabana, tools/replay)
+  - cpp-core (openpilot/common, openpilot/system, openpilot/selfdrive/pandad)
+  - cpp-tools (openpilot/tools/cabana, openpilot/tools/replay)
 - **AND** each component shows its own coverage percentage
 
 ### Requirement: MISRA Analysis in CI
@@ -112,14 +112,14 @@ All lateral control implementations SHALL have dedicated unit tests with >= 90% 
 Each Python module SHALL maintain minimum test coverage thresholds appropriate to its criticality.
 
 #### Scenario: Core module meets coverage threshold
-- **GIVEN** a core Python module (selfdrive/, system/, common/)
+- **GIVEN** a core Python module (openpilot/selfdrive/, openpilot/system/, openpilot/common/)
 - **WHEN** pytest runs with coverage measurement
 - **THEN** line coverage is >= 80%
 - **AND** branch coverage is >= 80%
 - **NOTE** The enforced minimum in codecov.yml is 80%. The aspirational target is 90%.
 
 #### Scenario: Tools module meets coverage threshold
-- **GIVEN** a tools module (openpilot/tools/lib/, tools/replay/)
+- **GIVEN** a tools module (openpilot/tools/lib/, openpilot/tools/replay/)
 - **WHEN** pytest runs with coverage measurement
 - **THEN** line coverage is >= 80%
 - **AND** branch coverage is >= 80%
@@ -132,8 +132,8 @@ Each Python module SHALL maintain minimum test coverage thresholds appropriate t
 - **AND** the report provides actionable guidance for improvement
 
 #### Scenario: Safety-critical modules have higher coverage
-- **GIVEN** a safety-critical module (selfdrive/controls/, selfdrive/monitoring/)
+- **GIVEN** a safety-critical module (openpilot/selfdrive/controls/, openpilot/selfdrive/monitoring/)
 - **WHEN** pytest runs with coverage measurement
 - **THEN** line coverage is >= 85%
 - **AND** all safety-related code paths have explicit test coverage
-- **NOTE** The enforced minimum in codecov.yml is 85% for selfdrive/monitoring/. The aspirational target is 95%.
+- **NOTE** The enforced minimum in codecov.yml is 85% for openpilot/selfdrive/monitoring/. The aspirational target is 95%.

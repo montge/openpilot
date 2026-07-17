@@ -1,87 +1,79 @@
 # MISRA C:2012 Baseline Report
 
-**Date**: 2025-12-25
-**Tool**: cppcheck 2.13.0 with MISRA addon
-**Branch**: feature/test-ci-pipelines (develop)
+**Date**: 2026-07-03
+**Tool**: cppcheck 2.21.0 with MISRA addon
+**Branch**: fork/post-sync-cleanup (post July-2026 upstream sync, `openpilot/` package layout)
+
+> Regenerated after the July 2026 upstream restructure (commaai `07ec389f4`): all code
+> moved under `openpilot/`, upstream deleted a large portion of the C++ tree, and
+> generated code is now excluded at analysis time (`-i` in `scripts/lint/cppcheck-misra.sh`)
+> rather than counted and subtracted. Numbers are therefore not directly comparable to
+> the 2025-12-25 baseline (1,003 actionable of 3,255 total).
 
 ## Executive Summary
 
 | Metric | Count |
 |--------|-------|
-| Total MISRA violations | 3,255 |
-| In generated code | 2,012 (62%) |
-| In non-generated code | **1,003** (38%) |
-| Unique rules violated | 23 |
+| Total MISRA violations | 235 |
+| In generated code | 0 (excluded from analysis) |
+| Actionable | **235** |
+| Unique rules violated | 6 |
+| C/C++ files analyzed | 37 |
 
-**Key Finding**: The majority of violations (62%) are in auto-generated code (acados MPC solver). Focus remediation efforts on the 1,003 violations in manually-written code.
-
-## Top MISRA C:2012 Violations
+## MISRA C:2012 Violations by Rule
 
 | Rule | Count | Description | Severity |
 |------|-------|-------------|----------|
-| 15.5 | 533 | A function should have a single point of exit | Advisory |
-| 8.4 | 422 | A compatible declaration shall be visible | Required |
-| 12.1 | 175 | Precedence of operators within expressions | Advisory |
-| 10.4 | 173 | Both operands shall have the same essential type | Required |
-| 11.9 | 170 | The macro NULL shall be the only permitted null pointer constant | Required |
-| 2.7 | 128 | There should be no unused parameters | Advisory |
-| 14.4 | 127 | The controlling expression of an if/while shall have boolean type | Required |
-| 17.7 | 123 | The value returned by non-void functions shall be used | Required |
-| 8.9 | 120 | An object should be defined at block scope if accessed only in a single function | Advisory |
-| 8.2 | 104 | Function types shall be in prototype form | Required |
+| 12.3 | 132 | The comma operator should not be used | Advisory |
+| 2.2 | 78 | There shall be no dead code | Required |
+| 7.1 | 16 | Octal constants shall not be used | Required |
+| 17.2 | 4 | Functions shall not call themselves, either directly or indirectly | Required |
+| 13.5 | 4 | The right hand operand of && or \|\| shall not contain persistent side effects | Required |
+| 2.3 | 1 | A project should not contain unused type declarations | Advisory |
 
-## Other cppcheck Findings
+## Other cppcheck Findings (non-MISRA)
 
 | Type | Count | Description |
 |------|-------|-------------|
-| cstyleCast | 79 | C-style cast used (prefer C++ casts) |
-| constParameterPointer | 43 | Parameter could be pointer to const |
-| constParameterCallback | 13 | Callback parameter could be const |
-| variableScope | 10 | Variable scope could be reduced |
-| preprocessorErrorDirective | 6 | #error directive encountered |
+| dangerousTypeCast | 375 | C-style cast between incompatible types |
+| shadowVariable | 171 | Local variable shadows outer variable |
+| cstyleCast | 136 | C-style cast used (prefer C++ casts) |
+| knownConditionTrueFalse | 39 | Condition is always true/false |
+| uninitMemberVarNoCtor | 31 | Member variable not initialized (no constructor) |
+| variableScope | 13 | Variable scope could be reduced |
+| constParameterPointer | 13 | Parameter could be pointer to const |
 
 ## Files Analyzed
 
-| Directory | Files | Purpose |
-|-----------|-------|---------|
-| selfdrive/ | 52 | Driving functionality |
-| system/ | 24 | System services |
-| common/ | 12 | Common utilities |
-| **Total** | **88** | |
+`openpilot/selfdrive`, `openpilot/system`, `openpilot/common` — 37 C/C++ files total
+(submodules, `.venv`, acados `c_generated_code`, and `locationd/models/generated` excluded).
+Files with at least one finding: system 17, selfdrive 7, common 6.
 
 ## Generated Code Exclusions
 
-The following paths contain auto-generated code and should be excluded from MISRA compliance requirements:
+Excluded from analysis entirely (`-i` / `--suppress` in `scripts/lint/cppcheck-misra.sh`):
 
-- `selfdrive/controls/lib/lateral_mpc_lib/c_generated_code/` (acados lateral MPC)
-- `selfdrive/controls/lib/longitudinal_mpc_lib/c_generated_code/` (acados longitudinal MPC)
-- `cereal/gen/` (Cap'n Proto generated code)
+- `openpilot/selfdrive/controls/lib/lateral_mpc_lib/c_generated_code/` (acados lateral MPC)
+- `openpilot/selfdrive/controls/lib/longitudinal_mpc_lib/c_generated_code/` (acados longitudinal MPC)
+- `openpilot/selfdrive/locationd/models/generated/` (Kalman filter codegen)
+- `openpilot/cereal/gen/` (Cap'n Proto generated code)
 
 ## Priority Remediation
 
-### High Priority (Required Rules)
+### High Priority (Required rules)
 
-1. **Rule 8.4** (422 violations): Add forward declarations to headers
-2. **Rule 10.4** (173 violations): Fix mixed type arithmetic
-3. **Rule 14.4** (127 violations): Use explicit boolean comparisons
-4. **Rule 17.7** (123 violations): Check return values
+1. **Rule 2.2** (78 violations): remove dead code
+2. **Rule 7.1** (16 violations): replace octal constants
+3. **Rule 17.2** (4 violations): eliminate recursion or document deviation
+4. **Rule 13.5** (4 violations): hoist side effects out of `&&`/`||` operands
 
-### Medium Priority (Advisory Rules)
+### Medium Priority (Advisory rules)
 
-1. **Rule 15.5** (533 violations): Refactor functions for single exit (low priority)
-2. **Rule 12.1** (175 violations): Add explicit parentheses
-3. **Rule 2.7** (128 violations): Remove or mark unused parameters
+1. **Rule 12.3** (132 violations): avoid the comma operator (mostly macro/loop idioms)
+2. **Rule 2.3** (1 violation): drop unused type declaration
 
-## Baseline Threshold
+## CI Threshold
 
-For CI quality gates, start with:
-- **Non-blocking**: Report findings, don't fail the build
-- **Track progress**: Count should decrease over time
-- **Exclude generated**: Focus on manually-written code
-
-## Next Steps
-
-1. [ ] Exclude generated code from MISRA analysis
-2. [ ] Fix high-priority Required rule violations
-3. [ ] Set up differential analysis (new violations only)
-4. [ ] Ratchet down violation count over time
+`.github/workflows/misra.yml` gates (non-blocking) on actionable findings from
+`reports/cppcheck-misra-report.txt` with `BASELINE=250` (235 actual + small buffer).
+Ratchet the threshold down as violations are fixed.

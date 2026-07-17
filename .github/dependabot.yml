@@ -1,29 +1,14 @@
 # Dependabot configuration for automated dependency updates
 # https://docs.github.com/en/code-security/dependabot/dependabot-version-updates
+#
+# Fork policy (montge/openpilot): upstream commaai/openpilot owns pyproject.toml,
+# uv.lock, and all submodule pins — those update via upstream syncs, not fork-local
+# dependabot PRs (upstream runs its own package-update bot). Only GitHub Actions
+# versions are checked here, since the fork carries its own workflows
+# (codecov, sonarcloud, misra, nvidia-compat, ...) that upstream never touches.
 
 version: 2
 updates:
-  # Python dependencies (uv/pip)
-  - package-ecosystem: "pip"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-    open-pull-requests-limit: 5
-    labels:
-      - "dependencies"
-      - "python"
-    commit-message:
-      prefix: "chore(deps)"
-    # Group minor/patch updates to reduce PR noise
-    groups:
-      python-minor:
-        patterns:
-          - "*"
-        update-types:
-          - "minor"
-          - "patch"
-
   # GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
@@ -40,15 +25,3 @@ updates:
       actions:
         patterns:
           - "*"
-
-  # Git submodules
-  - package-ecosystem: "gitsubmodule"
-    directory: "/"
-    schedule:
-      interval: "monthly"
-    open-pull-requests-limit: 3
-    labels:
-      - "dependencies"
-      - "submodule"
-    commit-message:
-      prefix: "chore(deps)"
