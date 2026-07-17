@@ -51,32 +51,60 @@ route_id/
 
 **Extracted data per frame**:
 - Camera frame (YUV420 → RGB → normalized)
-- Desire vector (8-dim: lane changes, turns)
+- Desire vector (8-dim per frame: lane changes, turns; the model consumes a 25-frame `desire_pulse` history, shape (25, 8))
 - Traffic convention (2-dim: left/right hand drive)
 - GPS coordinates (for filtering/validation)
 - Vehicle state (speed, steering angle, etc.)
 
 ### 2. Teacher Model (TensorRT)
 
-Uses pre-trained comma models to generate pseudo-labels:
+Uses the pre-trained comma supercombo model to generate pseudo-labels. Since the
+July 2026 upstream restructure there is no separate vision stage: the combined
+`driving_supercombo.onnx` does vision + policy in a single forward pass.
 
 ```python
-# Teacher generates targets at 800+ FPS
-teacher_vision = TensorRTEngine("driving_vision.onnx")
-teacher_policy = TensorRTEngine("driving_policy.onnx")
+# Teacher generates targets (937 FPS measured on GB10, TensorRT 10.14, 2026-07)
+teacher = TensorRTEngine("driving_supercombo.onnx")
 
-# For each batch of frames
-features = teacher_vision(frames)           # Visual features
-targets = teacher_policy(features, desire)  # Path predictions
+# Model metadata (input_shapes, output_shapes, output_slices, model_checkpoint)
+# is embedded in the ONNX metadata_props -- there is no sidecar *_metadata.pkl
+from openpilot.selfdrive.modeld.get_model_metadata import make_metadata_dict
+metadata = make_metadata_dict("driving_supercombo.onnx")
+output_slices = metadata["output_slices"]
+
+# For each frame: one forward pass with the 6 supercombo inputs
+outputs = teacher(
+    img=img,                          # (1, 12, 128, 256) uint8, road camera
+    big_img=big_img,                  # (1, 12, 128, 256) uint8, wide camera
+    features_buffer=features_buffer,  # (1, 24, 512) float, rolling recurrent state
+    desire_pulse=desire_pulse,        # (1, 25, 8) float
+    traffic_convention=traffic,       # (1, 2) float
+    action_t=action_t,                # (1, 2) float
+)  # -> single flat output vector (1, 2576)
+
+# Roll the recurrent state: this frame's hidden_state (512) feeds the next frame
+hidden = outputs[:, output_slices["hidden_state"]]
+features_buffer = np.concatenate([features_buffer[:, 1:], hidden[:, None]], axis=1)
 ```
 
-**Outputs (pseudo-labels)**:
+**Outputs (pseudo-labels)**: the flat `outputs` vector is decomposed with
+`output_slices` (meta, desire_pred, pose, wide_from_device_euler, road_transform,
+lane_lines, lane_lines_prob, road_edges, lead, lead_prob, hidden_state, plan,
+desire_state, pad) and parsed with `Parser().parse_outputs()` from
+`openpilot.selfdrive.modeld.parse_model_outputs`:
 - Path predictions (33 future timestamps × 2 coords)
 - Lane line positions
 - Road edge positions
 - Lead vehicle detection
 
 ### 3. DoRA Fine-Tuning
+
+> **Known limitation (validated on DGX Spark, 2026-07)**: loading the student
+> currently fails — neither onnx2pytorch nor onnx2torch can convert the
+> opset-20 `driving_supercombo.onnx` to PyTorch (missing Cast v19, Gelu v20,
+> Reshape `allowzero`, and axes-as-input Reduce* v18). The TensorRT teacher
+> below works fully. Alternatives: fine-tune in tinygrad, or pin the last
+> split-model release for torch experiments.
 
 **DoRA** (Weight-Decomposed Low-Rank Adaptation):
 - Decomposes weights into magnitude and direction
@@ -103,7 +131,7 @@ class DoRALayer(nn.Module):
 ```
 
 **Target layers for adaptation**:
-- Final dense layers in policy network
+- Final dense layers in the supercombo policy head
 - GRU hidden state projections
 - Output heads (paths, lanes, edges)
 
@@ -140,27 +168,39 @@ def train_epoch(student, teacher, dataloader, optimizer, device):
     student.train()
 
     for batch in dataloader:
-        frames = batch['frames'].to(device)        # (B, T, C, H, W)
-        desire = batch['desire'].to(device)        # (B, T, 8)
-        traffic = batch['traffic'].to(device)      # (B, 2)
+        frames = batch['frames'].to(device)              # (B, T, C, H, W) road camera
+        big_frames = batch['big_frames'].to(device)      # (B, T, C, H, W) wide camera
+        desire_pulse = batch['desire_pulse'].to(device)  # (B, T, 25, 8)
+        traffic = batch['traffic'].to(device)            # (B, 2)
+        action_t = batch['action_t'].to(device)          # (B, 2)
 
-        # Teacher generates pseudo-labels (no grad)
+        # Teacher generates pseudo-labels (no grad): one supercombo pass per
+        # frame, rolling the previous frames' hidden_state through features_buffer
         with torch.no_grad():
-            features = teacher.vision(frames)
-            targets = teacher.policy(features, desire, traffic)
+            feat_buf = torch.zeros(frames.shape[0], 24, 512, device=device)
+            targets = []
+            for t in range(frames.shape[1]):
+                out = teacher(frames[:, t], big_frames[:, t], feat_buf,
+                              desire_pulse[:, t], traffic, action_t)
+                targets.append(out)
+                hidden = out[:, output_slices["hidden_state"]]  # (B, 512)
+                feat_buf = torch.cat([feat_buf[:, 1:], hidden.unsqueeze(1)], dim=1)
 
-        # Student forward pass
-        hidden = None
+        # Student forward pass (same rolling recurrent state)
+        student_buf = torch.zeros(frames.shape[0], 24, 512, device=device)
         total_loss = 0
 
         for t in range(frames.shape[1]):
             pred, hidden = student(
                 frames[:, t],
-                desire[:, t],
+                big_frames[:, t],
+                student_buf,
+                desire_pulse[:, t],
                 traffic,
-                hidden
+                action_t,
             )
-            loss = compute_loss(pred, targets[:, t])
+            student_buf = torch.cat([student_buf[:, 1:], hidden.unsqueeze(1)], dim=1)
+            loss = compute_loss(pred, targets[t])
             total_loss += loss
 
         # Backward pass (only DoRA params have gradients)
@@ -188,10 +228,12 @@ def merge_dora_weights(model):
 def export_to_onnx(model, path):
     """Export merged model to ONNX for comma device."""
     dummy_inputs = {
-        'img': torch.randn(1, 12, 128, 256),
-        'big_img': torch.randn(1, 12, 128, 256),
-        'desire': torch.randn(1, 8),
+        'img': torch.randint(0, 256, (1, 12, 128, 256), dtype=torch.uint8),
+        'big_img': torch.randint(0, 256, (1, 12, 128, 256), dtype=torch.uint8),
+        'features_buffer': torch.randn(1, 24, 512),
+        'desire_pulse': torch.randn(1, 25, 8),
         'traffic_convention': torch.randn(1, 2),
+        'action_t': torch.randn(1, 2),
     }
     torch.onnx.export(model, dummy_inputs, path, opset_version=14)
 ```
@@ -225,7 +267,7 @@ openpilot/tools/dgx/
 
 DGX Spark advantages:
 - 128GB unified memory = large batch sizes
-- TensorRT teacher at 800+ FPS = fast pseudo-label generation
+- TensorRT teacher at 937 FPS (supercombo, measured on GB10 2026-07) = fast pseudo-label generation
 - Single device = no distributed training complexity
 
 ## Usage
@@ -245,7 +287,7 @@ python openpilot/tools/dgx/training/train.py \
 # 3. Export to ONNX
 python openpilot/tools/dgx/training/export.py \
     --checkpoint best_model.pt \
-    --output custom_driving_policy.onnx
+    --output custom_driving_supercombo.onnx
 ```
 
 ## Next Steps

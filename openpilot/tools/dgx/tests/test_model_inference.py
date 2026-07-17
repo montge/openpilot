@@ -92,7 +92,7 @@ class TestModelRunner:
     from openpilot.tools.dgx.model_runner import Backend, ModelRunner, Precision
 
     runner = ModelRunner(
-      model_path="openpilot/selfdrive/modeld/models/driving_policy.onnx",
+      model_path="openpilot/selfdrive/modeld/models/driving_supercombo.onnx",
       backend=Backend.CPU,  # Use CPU for init test
       precision=Precision.FP32,
     )
@@ -191,20 +191,96 @@ class TestModelLoading:
 
     assert len(onnx_files) > 0 or len(pkl_files) > 0, f"No model files found in {model_dir}"
 
-  @requires_gpu
-  def test_load_driving_policy_metadata(self, model_dir: Path):
-    """Test loading driving policy metadata."""
-    metadata_path = model_dir / "driving_policy_metadata.pkl"
-    if not metadata_path.exists():
-      pytest.skip("Metadata file not found (run model compilation first)")
+class TestSupercomboContract:
+  """Contract tests against the combined driving_supercombo.onnx.
 
-    import pickle
+  The driving model's metadata (input_shapes, output_slices, ...) is embedded
+  in the ONNX metadata_props — there is no sidecar *_metadata.pkl anymore.
+  These run on CPU: metadata extraction only parses the protobuf header, and
+  the parse tests use random vectors, never the model itself.
+  """
 
-    with open(metadata_path, "rb") as f:
-      metadata = pickle.load(f)
+  MODEL_PATH = Path("openpilot/selfdrive/modeld/models/driving_supercombo.onnx")
 
-    assert "input_shapes" in metadata
-    assert "output_shapes" in metadata or "output_slices" in metadata
+  EXPECTED_INPUTS = {"img", "big_img", "desire_pulse", "traffic_convention", "features_buffer", "action_t"}
+  EXPECTED_SLICES = {
+    "plan", "lane_lines", "lane_lines_prob", "road_edges", "lead", "lead_prob",
+    "meta", "desire_state", "desire_pred", "pose", "wide_from_device_euler",
+    "road_transform", "hidden_state",
+  }
+
+  @pytest.fixture
+  def metadata(self) -> dict:
+    if not self.MODEL_PATH.exists():
+      pytest.skip(f"{self.MODEL_PATH} not found")
+    from openpilot.selfdrive.modeld.get_model_metadata import make_metadata_dict
+
+    try:
+      return make_metadata_dict(self.MODEL_PATH)
+    except Exception as e:
+      pytest.skip(f"could not parse embedded metadata (git-lfs pointer not pulled?): {e}")
+
+  @pytest.fixture
+  def output_len(self, metadata: dict) -> int:
+    return next(iter(metadata["output_shapes"].values()))[-1]
+
+  def test_embedded_metadata_inputs(self, metadata: dict):
+    from openpilot.selfdrive.modeld.constants import ModelConstants
+
+    input_shapes = metadata["input_shapes"]
+    assert set(input_shapes) == self.EXPECTED_INPUTS
+    assert input_shapes["img"] == input_shapes["big_img"]
+    assert input_shapes["img"][0] == 1 and input_shapes["img"][1] == 6 * ModelConstants.N_FRAMES
+    assert input_shapes["features_buffer"][-1] == ModelConstants.FEATURE_LEN
+    assert input_shapes["desire_pulse"][-1] == ModelConstants.DESIRE_LEN
+    assert input_shapes["traffic_convention"] == (1, ModelConstants.TRAFFIC_CONVENTION_LEN)
+
+  def test_output_slices_cover_output(self, metadata: dict, output_len: int):
+    from openpilot.selfdrive.modeld.constants import ModelConstants
+
+    slices = metadata["output_slices"]
+    assert self.EXPECTED_SLICES <= set(slices)
+    hidden = slices["hidden_state"]
+    assert hidden.stop - hidden.start == ModelConstants.FEATURE_LEN
+    for name, sl in slices.items():
+      lo, hi, _ = sl.indices(output_len)
+      assert 0 <= lo <= hi <= output_len, f"slice {name}={sl} outside output of len {output_len}"
+
+  def test_parse_supercombo_outputs(self, metadata: dict, output_len: int):
+    from openpilot.selfdrive.modeld.constants import ModelConstants
+    from openpilot.tools.dgx.training.teacher import parse_supercombo_outputs
+
+    rng = np.random.default_rng(0)
+    raw = rng.standard_normal((2, output_len), dtype=np.float32)
+    parsed = parse_supercombo_outputs(raw, metadata["output_slices"])
+
+    assert parsed["plan"].shape == (2, ModelConstants.IDX_N, ModelConstants.PLAN_WIDTH)
+    assert parsed["plan_stds"].shape == parsed["plan"].shape
+    assert np.all(parsed["plan_stds"] > 0)
+    assert parsed["lane_lines"].shape == (2, ModelConstants.NUM_LANE_LINES, ModelConstants.IDX_N, ModelConstants.LANE_LINES_WIDTH)
+    assert parsed["road_edges"].shape == (2, ModelConstants.NUM_ROAD_EDGES, ModelConstants.IDX_N, ModelConstants.ROAD_EDGES_WIDTH)
+    assert parsed["desire_state"].shape == (2, ModelConstants.DESIRE_PRED_WIDTH)
+    np.testing.assert_allclose(parsed["desire_state"].sum(axis=-1), 1.0, atol=1e-5)  # softmaxed
+    # hidden_state passes through unparsed, and parsing must not mutate raw
+    np.testing.assert_array_equal(parsed["hidden_state"], raw[:, metadata["output_slices"]["hidden_state"]])
+
+  def test_extract_path_distribution_matches_parser(self, metadata: dict, output_len: int):
+    """Torch (student) path extraction agrees with the numpy (teacher) parser."""
+    torch = pytest.importorskip("torch")
+    from openpilot.selfdrive.modeld.constants import Plan
+    from openpilot.tools.dgx.training.teacher import parse_supercombo_outputs
+    from openpilot.tools.dgx.training.train import extract_path_distribution
+
+    rng = np.random.default_rng(1)
+    raw = rng.standard_normal((2, output_len), dtype=np.float32)
+
+    mean, std = extract_path_distribution(torch.from_numpy(raw.copy()), metadata["output_slices"])
+    parsed = parse_supercombo_outputs(raw, metadata["output_slices"])
+
+    assert mean.shape == (2, 1, 33, 3) and std.shape == (2, 1, 33, 3)
+    assert bool((std > 0).all())
+    np.testing.assert_allclose(mean.numpy()[:, 0], parsed["plan"][:, :, Plan.POSITION], rtol=1e-5)
+    np.testing.assert_allclose(std.numpy()[:, 0], parsed["plan_stds"][:, :, Plan.POSITION], rtol=1e-5)
 
 
 class TestMemoryUtils:

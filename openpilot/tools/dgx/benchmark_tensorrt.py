@@ -109,8 +109,7 @@ def main():
 
   models_dir = "openpilot/selfdrive/modeld/models"
   models = [
-    ("driving_policy.onnx", f"{models_dir}/driving_policy.onnx"),
-    ("driving_vision.onnx", f"{models_dir}/driving_vision.onnx"),
+    ("driving_supercombo.onnx", f"{models_dir}/driving_supercombo.onnx"),
     ("dmonitoring_model.onnx", f"{models_dir}/dmonitoring_model.onnx"),
   ]
 
@@ -143,21 +142,19 @@ def main():
   total = sum(results.values())
   print(f"[Combined Pipeline]: {total:.3f}ms ({1000 / total:.1f} FPS)")
 
-  # Comparison with tinygrad
+  # Comparison with tinygrad CUDA (measure via benchmark_inference.py; the old
+  # split-model numbers don't apply to driving_supercombo)
   print("\n[Comparison with tinygrad CUDA]")
-  tinygrad_times = {
-    "driving_policy.onnx": 58,
-    "driving_vision.onnx": 366,
-    "dmonitoring_model.onnx": 328,
+  tinygrad_times: dict[str, float] = {
+    "dmonitoring_model.onnx": 328,  # historical (2026-01, Blackwell)
   }
   for name, ms in results.items():
     tinygrad_ms = tinygrad_times.get(name, 0)
     if tinygrad_ms > 0:
       speedup = tinygrad_ms / ms
       print(f"  {name}: {speedup:.0f}x faster")
-
-  tinygrad_total = sum(tinygrad_times.values())
-  print(f"\n  Combined: {tinygrad_total / total:.0f}x faster than tinygrad CUDA")
+    else:
+      print(f"  {name}: no tinygrad baseline yet — run benchmark_inference.py to measure")
 
   # Comparison with comma 3X
   comma3x_ms = 50  # ~20 FPS target

@@ -61,12 +61,11 @@ print(f'EON: {HARDWARE.get_device_type()}')
 ```bash
 python openpilot/tools/dgx/benchmark_tensorrt.py --runs 50 --warmup 10
 ```
-Expected results (DGX Spark GB10):
-- [ ] driving_policy: < 0.5ms (>2000 FPS)
-- [ ] driving_vision: < 2ms (>500 FPS)
-- [ ] dmonitoring: < 1ms (>1000 FPS)
-- [ ] Combined: < 3ms (>300 FPS)
-- [ ] No CUDA errors or warnings
+Expected results (DGX Spark GB10; measured 2026-07-03, TensorRT 10.14):
+- [x] driving_supercombo: < 2.5ms (measured 1.07ms, 937 FPS)
+- [x] dmonitoring: < 1ms (measured 0.26ms, 3,891 FPS)
+- [x] Combined: < 3.5ms (measured 1.32ms, 755 FPS)
+- [x] No CUDA errors (two benign FP16 clamp precision warnings during engine build)
 
 ### 2.2 tinygrad CUDA Benchmark
 ```bash
@@ -84,8 +83,7 @@ Device.DEFAULT = 'CUDA'
 # Attempt to load each model
 import onnx
 models = [
-    'openpilot/selfdrive/modeld/models/driving_policy.onnx',
-    'openpilot/selfdrive/modeld/models/driving_vision.onnx',
+    'openpilot/selfdrive/modeld/models/driving_supercombo.onnx',
     'openpilot/selfdrive/modeld/models/dmonitoring_model.onnx',
 ]
 for m in models:
@@ -98,6 +96,11 @@ for m in models:
 ```
 - [ ] All models load successfully
 - [ ] No ONNX parsing errors
+- [ ] Embedded supercombo metadata (input_shapes, output_slices) is readable via
+      `openpilot.selfdrive.modeld.get_model_metadata.make_metadata_dict(model_path)`
+
+Note: `big_driving_supercombo.onnx` (~1.75GB) is only used with comma's USB AMD GPU
+and is not part of this checklist.
 
 ## 3. GPU Monitoring
 

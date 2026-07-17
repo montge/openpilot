@@ -17,7 +17,11 @@ import torch.nn as nn  # type: ignore[import-not-found]
 import torch.optim as optim  # type: ignore[import-not-found]
 from torch.utils.data import DataLoader  # type: ignore[import-not-found]
 
+import numpy as np
+
 # Local imports
+from openpilot.selfdrive.modeld.constants import ModelConstants, Plan
+from openpilot.selfdrive.modeld.get_model_metadata import make_metadata_dict
 from openpilot.tools.dgx.training.dora import apply_dora_to_model, count_parameters, get_dora_parameters
 from openpilot.tools.dgx.training.losses import CombinedTrainingLoss
 
@@ -26,6 +30,13 @@ def load_student_model(onnx_path: str, device: torch.device) -> nn.Module:
   """Load student model from ONNX and convert to PyTorch.
 
   Uses onnx2pytorch for conversion, then wraps for training.
+
+  KNOWN LIMITATION (validated on DGX Spark, 2026-07): neither onnx2pytorch
+  (0.5.3) nor onnx2torch can convert the opset-20 driving_supercombo.onnx —
+  they miss Cast v19, Gelu v20, Reshape allowzero=1, and the v18
+  axes-as-input Reduce* ops. Options until a converter catches up:
+  fine-tune in tinygrad (the model already runs there), or pin the last
+  split-model release (pre July 2026) for torch-based experiments.
   """
   try:
     import onnx
@@ -35,7 +46,14 @@ def load_student_model(onnx_path: str, device: torch.device) -> nn.Module:
 
   print(f"Loading student model from {onnx_path}...")
   onnx_model = onnx.load(onnx_path)
-  pytorch_model = ConvertModel(onnx_model)
+  try:
+    pytorch_model = ConvertModel(onnx_model)
+  except (KeyError, NotImplementedError) as e:
+    opsets = [(o.domain or "ai.onnx", o.version) for o in onnx_model.opset_import]
+    msg = f"onnx2pytorch cannot convert {onnx_path} (opsets {opsets}): {e!r}."
+    msg += " The combined driving_supercombo.onnx uses opset 20, which current ONNX->PyTorch converters do not support"
+    msg += " (Cast v19, Gelu v20, Reshape allowzero, Reduce* v18). See the load_student_model docstring for options."
+    raise RuntimeError(msg) from e
   pytorch_model = pytorch_model.to(device)
 
   return pytorch_model
@@ -111,14 +129,89 @@ def create_route_dataloader(data_path: str, batch_size: int):
   return create_dataloader(dataset, batch_size=batch_size)
 
 
+class DummyTeacher:
+  """Zero-label stand-in for --dry-run, shaped like TeacherModel outputs."""
+
+  def __init__(self, metadata: dict):
+    self.input_shapes = metadata["input_shapes"]
+    self.output_slices = metadata["output_slices"]
+    self.output_len = next(iter(metadata["output_shapes"].values()))[-1]
+
+  def generate_labels(self, img, big_img, desire, traffic_convention, **kwargs) -> dict[str, np.ndarray]:
+    b = img.shape[0]
+    return {
+      "features": np.zeros((b, ModelConstants.FEATURE_LEN), dtype=np.float32),
+      "raw_outputs": np.zeros((b, self.output_len), dtype=np.float32),
+      "path_mean": np.zeros((b, 1, ModelConstants.IDX_N, 3), dtype=np.float32),
+      "path_std": np.ones((b, 1, ModelConstants.IDX_N, 3), dtype=np.float32),
+      "path_prob": np.ones((b, 1), dtype=np.float32),
+    }
+
+
+def student_forward(
+  student: nn.Module,
+  img: torch.Tensor,
+  big_img: torch.Tensor,
+  desire: torch.Tensor,
+  traffic_convention: torch.Tensor,
+  input_shapes: dict[str, tuple[int, ...]],
+  device: torch.device,
+) -> torch.Tensor:
+  """Run the supercombo student and return flat (batch, N) outputs.
+
+  The ONNX graph has fixed batch-1 shapes, so samples run one at a time.
+  Inputs are passed positionally in graph-input order; desire goes into the
+  last desire_pulse step (as modeld does), recurrent/action inputs are zero.
+  """
+  outs = []
+  for i in range(img.shape[0]):
+    inputs = []
+    for name, shape in input_shapes.items():
+      if name == "img":
+        t = img[i : i + 1].float()
+      elif name == "big_img":
+        t = big_img[i : i + 1].float()
+      elif name == "desire_pulse":
+        t = torch.zeros(shape, dtype=torch.float32, device=device)
+        t[0, -1, :] = desire[i].float()
+      elif name == "traffic_convention":
+        t = traffic_convention[i : i + 1].float()
+      else:  # features_buffer, action_t: cold start
+        t = torch.zeros(shape, dtype=torch.float32, device=device)
+      inputs.append(t)
+    out = student(*inputs)
+    if isinstance(out, (list, tuple)):
+      out = out[0]
+    outs.append(out.reshape(1, -1))
+  return torch.cat(outs, dim=0)
+
+
+def extract_path_distribution(flat: torch.Tensor, output_slices: dict[str, slice]) -> tuple[torch.Tensor, torch.Tensor]:
+  """Differentiably extract the plan position MDN from flat model outputs.
+
+  Mirrors Parser.parse_mdn for the single-hypothesis plan head: first half of
+  the slice is the mean, second half log-std. Returns path position mean/std
+  shaped (batch, 1, IDX_N, 3) for the distillation loss.
+  """
+  plan_raw = flat[:, output_slices["plan"]]
+  b = plan_raw.shape[0]
+  n = plan_raw.shape[1] // 2
+  shape = (b, ModelConstants.IDX_N, ModelConstants.PLAN_WIDTH)
+  mean = plan_raw[:, :n].reshape(shape)
+  std = torch.exp(plan_raw[:, n : 2 * n].clamp(max=11)).reshape(shape)
+  return mean[:, None, :, Plan.POSITION], std[:, None, :, Plan.POSITION]
+
+
 def train_epoch(
   student: nn.Module,
-  teacher,  # TeacherModel (TensorRT)
+  teacher,  # TeacherModel (TensorRT) or DummyTeacher
   dataloader: DataLoader,
   optimizer: optim.Optimizer,
   criterion: nn.Module,
   device: torch.device,
   epoch: int,
+  input_shapes: dict[str, tuple[int, ...]],
+  output_slices: dict[str, slice],
   log_interval: int = 10,
 ) -> dict[str, float]:
   """Train for one epoch."""
@@ -129,11 +222,18 @@ def train_epoch(
   start_time = time.perf_counter()
 
   for batch_idx, batch in enumerate(dataloader):
-    # Move to device
-    img = batch["img"].to(device)
-    big_img = batch["big_img"].to(device)
+    # Move to device (route dataloader emits road_frame/wide_frame)
+    img = batch.get("img", batch.get("road_frame")).to(device)
+    big_img = batch.get("big_img", batch.get("wide_frame")).to(device)
     desire = batch["desire"].to(device)
     traffic = batch["traffic_convention"].to(device)
+
+    # The model wants two temporally stacked 6-channel frames (12 channels);
+    # single-frame samples are duplicated as a cold-start approximation
+    if img.shape[1] == 6:
+      img = torch.cat([img, img], dim=1)
+    if big_img.shape[1] == 6:
+      big_img = torch.cat([big_img, big_img], dim=1)
 
     # Generate teacher labels (no grad, uses TensorRT)
     with torch.no_grad():
@@ -145,15 +245,13 @@ def train_epoch(
         traffic_convention=traffic.cpu().numpy(),
       )
 
-    # Student forward pass
-    # TODO: Implement proper forward pass based on model architecture
-    student_pred = student(img.float(), big_img.float())
+    # Student forward pass: flat (batch, N) supercombo outputs
+    student_flat = student_forward(student, img, big_img, desire, traffic, input_shapes, device)
+    path_mean, path_std = extract_path_distribution(student_flat, output_slices)
 
-    # Compute loss
-    # TODO: Format predictions properly
     loss_dict = criterion(
-      student_pred={"raw": student_pred},
-      teacher_pred={"raw": torch.from_numpy(teacher_labels["raw_outputs"]).to(device)},
+      student_pred={"path_mean": path_mean, "path_std": path_std},
+      teacher_pred={k: torch.from_numpy(teacher_labels[k]).float().to(device) for k in ("path_mean", "path_std", "path_prob")},
     )
     loss = loss_dict["total"]
 
@@ -180,7 +278,7 @@ def train_epoch(
 def main():
   parser = argparse.ArgumentParser(description="DoRA fine-tuning for openpilot")
   parser.add_argument("--data", type=str, default=None, help="Training data: path, 'ci' for CI segments, or 'comma_car_segments'")
-  parser.add_argument("--model", type=str, default="openpilot/selfdrive/modeld/models/driving_policy.onnx")
+  parser.add_argument("--model", type=str, default="openpilot/selfdrive/modeld/models/driving_supercombo.onnx")
   parser.add_argument("--epochs", type=int, default=10, help="Number of epochs")
   parser.add_argument("--batch-size", type=int, default=32, help="Batch size")
   parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate")
@@ -230,11 +328,14 @@ def main():
   # Setup loss
   criterion = CombinedTrainingLoss(path_weight=1.0, feature_weight=0.1)
 
+  # Model I/O specs from the ONNX-embedded metadata (input_shapes, output_slices)
+  metadata = make_metadata_dict(args.model)
+
   # Setup teacher (TensorRT)
   print("\nLoading teacher model...")
   if args.dry_run:
     print("Dry run - using dummy teacher")
-    teacher = None  # Would use dummy labels
+    teacher = DummyTeacher(metadata)
   else:
     from openpilot.tools.dgx.training.teacher import create_teacher
 
@@ -264,6 +365,8 @@ def main():
       criterion=criterion,
       device=device,
       epoch=epoch,
+      input_shapes=metadata["input_shapes"],
+      output_slices=metadata["output_slices"],
     )
 
     print(f"\nEpoch {epoch} complete:")
