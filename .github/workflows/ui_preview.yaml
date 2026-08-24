@@ -39,7 +39,7 @@ jobs:
           submodules: true
 
       - name: Waiting for ui generation to end
-        uses: lewagon/wait-on-check-action@1d57e2c51a58d812d2765e036a028b6bdb5a6154
+        uses: lewagon/wait-on-check-action@369769072fe522a3a8a85c03c96af1e5242a1994
         with:
           ref: ${{ env.SHA }}
           check-name: ${{ env.UI_JOB_NAME }}
@@ -53,7 +53,7 @@ jobs:
           echo "run_id=$(curl https://api.github.com/repos/${{ github.repository }}/commits/${{ env.SHA }}/check-runs | jq -r '.check_runs[] | select(.name == "${{ env.UI_JOB_NAME }}") | .html_url | capture("(?<number>[0-9]+)") | .number')" >> $GITHUB_OUTPUT
 
       - name: Getting proposed ui
-        uses: dawidd6/action-download-artifact@b6e2e70617bc3265edd6dab6c906732b2f1ae151
+        uses: dawidd6/action-download-artifact@d63b86af1b34672e53c440b1b83979861906bad7
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           run_id: ${{ steps.get_run_id.outputs.run_id }}
