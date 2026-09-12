@@ -20,6 +20,9 @@ concurrency:
 env:
   CI: 1
   PYTHONPATH: ${{ github.workspace }}
+  # fork: the fork keeps pytest as its test runner (see pyproject.toml [testing]),
+  # so unit_tests below runs pytest rather than upstream's `tools/op.sh test`.
+  PYTEST: pytest --continue-on-collection-errors --durations=0 -n logical
   GIT_CONFIG_COUNT: 1
   GIT_CONFIG_KEY_0: lfs.fetchexclude
   GIT_CONFIG_VALUE_0: openpilot/selfdrive/modeld/models/big_driving_supercombo.onnx
@@ -108,7 +111,11 @@ jobs:
       timeout-minutes: ${{ contains(runner.name, 'nsc') && 2 || 20 }}
       env:
         RAYLIB_BACKEND: headless
-      run: tools/op.sh test
+      run: |
+        source .venv/bin/activate
+        # Pre-compile Python bytecode so each pytest worker doesn't need to
+        $PYTEST --collect-only -m 'not slow' -qq
+        MAX_EXAMPLES=1 $PYTEST -m 'not slow'
 
   process_replay:
     name: process replay
