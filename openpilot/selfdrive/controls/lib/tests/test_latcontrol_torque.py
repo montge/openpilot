@@ -161,7 +161,7 @@ class TestLatControlTorqueInit:
 
 
 class TestLatControlTorqueUpdateLiveParams:
-  """Test update_live_torque_params method."""
+  """Test update_torque_parameters method."""
 
   def test_updates_lat_accel_factor(self, mocker):
     """Test updating latAccelFactor."""
@@ -169,7 +169,7 @@ class TestLatControlTorqueUpdateLiveParams:
     CI = create_mock_ci(mocker)
     controller = LatControlTorque(CP, CI, 0.01)
 
-    controller.update_live_torque_params(2.0, 0.1, 0.2)
+    controller.update_torque_parameters(2.0, 0.1, 0.2)
 
     assert controller.torque_params.latAccelFactor == 2.0
 
@@ -179,7 +179,7 @@ class TestLatControlTorqueUpdateLiveParams:
     CI = create_mock_ci(mocker)
     controller = LatControlTorque(CP, CI, 0.01)
 
-    controller.update_live_torque_params(1.0, 0.5, 0.1)
+    controller.update_torque_parameters(1.0, 0.5, 0.1)
 
     assert controller.torque_params.latAccelOffset == 0.5
 
@@ -189,18 +189,18 @@ class TestLatControlTorqueUpdateLiveParams:
     CI = create_mock_ci(mocker)
     controller = LatControlTorque(CP, CI, 0.01)
 
-    controller.update_live_torque_params(1.0, 0.0, 0.3)
+    controller.update_torque_parameters(1.0, 0.0, 0.3)
 
     assert controller.torque_params.friction == 0.3
 
   def test_calls_update_limits(self, mocker):
-    """Test that update_live_torque_params calls update_limits."""
+    """Test that update_torque_parameters calls update_limits."""
     CP = create_mock_cp(mocker)
     CI = create_mock_ci(mocker)
     controller = LatControlTorque(CP, CI, 0.01)
     mocker.patch.object(controller, 'update_limits')
 
-    controller.update_live_torque_params(1.0, 0.0, 0.1)
+    controller.update_torque_parameters(1.0, 0.0, 0.1)
 
     controller.update_limits.assert_called_once()
 

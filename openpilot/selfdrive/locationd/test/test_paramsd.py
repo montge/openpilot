@@ -1,11 +1,11 @@
 import random
 import numpy as np
 
+from openpilot.common.test import OpenpilotTestCase
 from openpilot.cereal import messaging
 from openpilot.selfdrive.locationd.paramsd import (
   VehicleParamsLearner,
   retrieve_initial_vehicle_params,
-  migrate_cached_vehicle_params_if_needed,
   check_valid_with_hysteresis,
   MAX_ANGLE_OFFSET_DELTA,
   ROLL_MAX_DELTA,
@@ -26,61 +26,32 @@ from openpilot.common.params import Params
 from openpilot.tools.lib.logreader import LogReader
 
 
-def get_random_live_parameters(CP):
-  msg = messaging.new_message("liveParameters")
-  msg.liveParameters.steerRatio = (random.random() + 0.5) * CP.steerRatio
-  msg.liveParameters.stiffnessFactor = random.random()
-  msg.liveParameters.angleOffsetAverageDeg = random.random()
-  msg.liveParameters.debugFilterState.std = [random.random() for _ in range(CarKalman.P_initial.shape[0])]
+def get_random_vehicle_parameters(CP):
+  msg = messaging.new_message("vehicleParameters")
+  msg.vehicleParameters.steerRatio = (random.random() + 0.5) * CP.steerRatio
+  msg.vehicleParameters.stiffnessFactor = random.random()
+  msg.vehicleParameters.angleOffsetAverageDeg = random.random()
+  msg.vehicleParameters.debugFilterState.std = [random.random() for _ in range(CarKalman.P_initial.shape[0])]
   return msg
 
 
-class TestParamsd:
+class TestParamsd(OpenpilotTestCase):
   def test_read_saved_params(self):
     params = Params()
 
     lr = migrate(LogReader(TEST_ROUTE), [migrate_carParams])
     CP = next(m for m in lr if m.which() == "carParams").carParams
 
-    msg = get_random_live_parameters(CP)
+    msg = get_random_vehicle_parameters(CP)
     params.put("LiveParametersV2", msg.to_bytes(), block=True)
     params.put("CarParamsPrevRoute", CP.as_builder().to_bytes(), block=True)
 
-    migrate_cached_vehicle_params_if_needed(params)  # this is not tested here but should not mess anything up or throw an error
     sr, sf, offset, p_init = retrieve_initial_vehicle_params(params, CP, replay=True, debug=True)
-    np.testing.assert_allclose(sr, msg.liveParameters.steerRatio)
-    np.testing.assert_allclose(sf, msg.liveParameters.stiffnessFactor)
-    np.testing.assert_allclose(offset, msg.liveParameters.angleOffsetAverageDeg)
+    np.testing.assert_allclose(sr, msg.vehicleParameters.steerRatio)
+    np.testing.assert_allclose(sf, msg.vehicleParameters.stiffnessFactor)
+    np.testing.assert_allclose(offset, msg.vehicleParameters.angleOffsetAverageDeg)
     np.testing.assert_equal(p_init.shape, CarKalman.P_initial.shape)
-    np.testing.assert_allclose(np.diagonal(p_init), msg.liveParameters.debugFilterState.std)
-
-  # TODO Remove this test after the support for old format is removed
-  def test_read_saved_params_old_format(self):
-    params = Params()
-
-    lr = migrate(LogReader(TEST_ROUTE), [migrate_carParams])
-    CP = next(m for m in lr if m.which() == "carParams").carParams
-
-    msg = get_random_live_parameters(CP)
-    params.put("LiveParameters", msg.liveParameters.to_dict(), block=True)
-    params.put("CarParamsPrevRoute", CP.as_builder().to_bytes(), block=True)
-    params.remove("LiveParametersV2")
-
-    migrate_cached_vehicle_params_if_needed(params)
-    sr, sf, offset, _ = retrieve_initial_vehicle_params(params, CP, replay=True, debug=True)
-    np.testing.assert_allclose(sr, msg.liveParameters.steerRatio)
-    np.testing.assert_allclose(sf, msg.liveParameters.stiffnessFactor)
-    np.testing.assert_allclose(offset, msg.liveParameters.angleOffsetAverageDeg)
-    assert params.get("LiveParametersV2") is not None
-
-  def test_read_saved_params_corrupted_old_format(self):
-    params = Params()
-    params.put("LiveParameters", {}, block=True)
-    params.remove("LiveParametersV2")
-
-    migrate_cached_vehicle_params_if_needed(params)
-    assert params.get("LiveParameters") is None
-    assert params.get("LiveParametersV2") is None
+    np.testing.assert_allclose(np.diagonal(p_init), msg.vehicleParameters.debugFilterState.std)
 
 
 class TestCheckValidWithHysteresis:
@@ -270,17 +241,17 @@ class TestVehicleParamsLearnerHandleLog:
     assert not learner.active
 
   def test_handle_live_calibration(self, mocker):
-    """Test handle_log with liveCalibration feeds calibrator."""
+    """Test handle_log with extrinsicsCalibration feeds calibrator."""
     learner = self._create_learner()
     msg = mocker.MagicMock()
     msg.rpyCalib = [0.0, 0.0, 0.0]
     msg.calStatus = 1
 
     # Should not raise
-    learner.handle_log(1.0, 'liveCalibration', msg)
+    learner.handle_log(1.0, 'extrinsicsCalibration', msg)
 
   def test_handle_live_pose_updates_yaw_rate(self, mocker):
-    """Test handle_log with livePose updates observed yaw rate."""
+    """Test handle_log with deviceMotion updates observed yaw rate."""
     learner = self._create_learner()
     msg = mocker.MagicMock()
     msg.angularVelocityDevice.valid = True
@@ -314,7 +285,7 @@ class TestVehicleParamsLearnerHandleLog:
     msg.posenetOK = True
     msg.sensorsOK = True
 
-    learner.handle_log(1.0, 'livePose', msg)
+    learner.handle_log(1.0, 'deviceMotion', msg)
 
     # The yaw rate should have been processed
     assert isinstance(learner.observed_yaw_rate, float)
@@ -355,7 +326,7 @@ class TestVehicleParamsLearnerHandleLog:
     msg.posenetOK = True
     msg.sensorsOK = True
 
-    learner.handle_log(1.0, 'livePose', msg)
+    learner.handle_log(1.0, 'deviceMotion', msg)
 
     # With invalid yaw rate, observed_yaw_rate should be set to 0
     assert learner.observed_yaw_rate == 0.0
@@ -396,7 +367,7 @@ class TestVehicleParamsLearnerHandleLog:
     msg.posenetOK = True
     msg.sensorsOK = False  # sensorsOK = False makes roll invalid
 
-    learner.handle_log(1.0, 'livePose', msg)
+    learner.handle_log(1.0, 'deviceMotion', msg)
 
     # With invalid roll, observed_roll should be set to 0
     assert learner.observed_roll == 0.0
@@ -412,7 +383,7 @@ class TestVehicleParamsLearnerHandleLog:
     learner.handle_log(1.0, 'carState', carstate_msg)
     assert learner.active
 
-    # Now send livePose with posenetOK=True
+    # Now send deviceMotion with posenetOK=True
     msg = mocker.MagicMock()
     msg.angularVelocityDevice.valid = True
     msg.angularVelocityDevice.x = 0.0
@@ -446,7 +417,7 @@ class TestVehicleParamsLearnerHandleLog:
     msg.sensorsOK = True
 
     # Should not raise - the filter should be updated
-    learner.handle_log(2.0, 'livePose', msg)
+    learner.handle_log(2.0, 'deviceMotion', msg)
 
 
 class TestVehicleParamsLearnerGetMsg:
@@ -477,32 +448,32 @@ class TestVehicleParamsLearnerGetMsg:
     learner = self._create_learner()
     msg = learner.get_msg(valid=True)
 
-    assert msg.liveParameters.steerRatio is not None
-    assert msg.liveParameters.steerRatio > 0
+    assert msg.vehicleParameters.steerRatio is not None
+    assert msg.vehicleParameters.steerRatio > 0
 
   def test_get_msg_includes_angle_offset(self):
     """Test get_msg includes angle offset fields."""
     learner = self._create_learner()
     msg = learner.get_msg(valid=True)
 
-    assert msg.liveParameters.angleOffsetAverageDeg is not None
-    assert msg.liveParameters.angleOffsetDeg is not None
+    assert msg.vehicleParameters.angleOffsetAverageDeg is not None
+    assert msg.vehicleParameters.angleOffsetDeg is not None
 
   def test_get_msg_includes_roll(self):
     """Test get_msg includes roll field."""
     learner = self._create_learner()
     msg = learner.get_msg(valid=True)
 
-    assert msg.liveParameters.roll is not None
+    assert msg.vehicleParameters.roll is not None
 
   def test_get_msg_with_debug(self):
     """Test get_msg with debug flag includes filter state."""
     learner = self._create_learner()
     msg = learner.get_msg(valid=True, debug=True)
 
-    assert msg.liveParameters.debugFilterState is not None
-    assert len(msg.liveParameters.debugFilterState.value) > 0
-    assert len(msg.liveParameters.debugFilterState.std) > 0
+    assert msg.vehicleParameters.debugFilterState is not None
+    assert len(msg.vehicleParameters.debugFilterState.value) > 0
+    assert len(msg.vehicleParameters.debugFilterState.std) > 0
 
   def test_get_msg_steer_ratio_validity(self):
     """Test get_msg sets steerRatioValid correctly."""
@@ -510,7 +481,7 @@ class TestVehicleParamsLearnerGetMsg:
     msg = learner.get_msg(valid=True)
 
     # With default initialization, steer ratio should be valid
-    assert msg.liveParameters.steerRatioValid
+    assert msg.vehicleParameters.steerRatioValid
 
   def test_get_msg_stiffness_validity(self):
     """Test get_msg sets stiffnessFactorValid correctly."""
@@ -518,7 +489,7 @@ class TestVehicleParamsLearnerGetMsg:
     msg = learner.get_msg(valid=True)
 
     # With default initialization, stiffness should be valid
-    assert msg.liveParameters.stiffnessFactorValid
+    assert msg.vehicleParameters.stiffnessFactorValid
 
   def test_get_msg_clips_angle_offset(self):
     """Test get_msg clips angle offset within delta limits."""
@@ -529,7 +500,7 @@ class TestVehicleParamsLearnerGetMsg:
     msg = learner.get_msg(valid=True)
 
     # Angle offset should be within reasonable bounds
-    assert abs(msg.liveParameters.angleOffsetDeg) <= OFFSET_MAX + 1
+    assert abs(msg.vehicleParameters.angleOffsetDeg) <= OFFSET_MAX + 1
 
 
 class TestRetrieveInitialVehicleParams:
@@ -553,7 +524,7 @@ class TestRetrieveInitialVehicleParams:
     """Test retrieve resets stiffness to 1.0 when not in replay mode."""
     params = Params()
     CP = get_test_car_params()
-    msg = get_random_live_parameters(CP)
+    msg = get_random_vehicle_parameters(CP)
     params.put("LiveParametersV2", msg.to_bytes(), block=True)
     params.put("CarParamsPrevRoute", CP.as_builder().to_bytes(), block=True)
 
@@ -566,42 +537,11 @@ class TestRetrieveInitialVehicleParams:
     """Test retrieve keeps stiffness in replay mode."""
     params = Params()
     CP = get_test_car_params()
-    msg = get_random_live_parameters(CP)
+    msg = get_random_vehicle_parameters(CP)
     params.put("LiveParametersV2", msg.to_bytes(), block=True)
     params.put("CarParamsPrevRoute", CP.as_builder().to_bytes(), block=True)
 
     sr, sf, offset, _ = retrieve_initial_vehicle_params(params, CP, replay=True, debug=False)
 
     # Stiffness should match saved value
-    np.testing.assert_allclose(sf, msg.liveParameters.stiffnessFactor)
-
-
-class TestMigrateCachedVehicleParams:
-  """Test migrate_cached_vehicle_params_if_needed."""
-
-  def test_migrate_skips_if_new_format_exists(self):
-    """Test migration skips if new format already exists."""
-    params = Params()
-    new_msg = messaging.new_message("liveParameters")
-    new_msg.liveParameters.steerRatio = 15.0
-    params.put("LiveParametersV2", new_msg.to_bytes(), block=True)
-    params.put("LiveParameters", {"steerRatio": 10.0}, block=True)
-
-    migrate_cached_vehicle_params_if_needed(params)
-
-    # Should not have overwritten new format
-    from openpilot.cereal import log
-
-    with log.Event.from_bytes(params.get("LiveParametersV2")) as migrated:
-      assert migrated.liveParameters.steerRatio == 15.0
-
-  def test_migrate_skips_if_old_format_missing(self):
-    """Test migration skips if old format is missing."""
-    params = Params()
-    params.remove("LiveParameters")
-    params.remove("LiveParametersV2")
-
-    # Should not raise
-    migrate_cached_vehicle_params_if_needed(params)
-
-    assert params.get("LiveParametersV2") is None
+    np.testing.assert_allclose(sf, msg.vehicleParameters.stiffnessFactor)

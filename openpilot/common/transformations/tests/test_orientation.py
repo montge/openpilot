@@ -1,7 +1,9 @@
 import numpy as np
-import pytest
 
-from openpilot.common.transformations.orientation import euler2quat, quat2euler, euler2rot, rot2euler, rot2quat, quat2rot, ned_euler_from_ecef
+from openpilot.common.test import OpenpilotTestCase
+from openpilot.common.transformations.orientation import euler2quat, quat2euler, euler2rot, rot2euler, \
+                                               rot2quat, quat2rot, \
+                                               ned_euler_from_ecef
 
 eulers = np.array(
   [
@@ -44,7 +46,7 @@ ned_eulers = np.array(
 )
 
 
-class TestOrientation:
+class TestOrientation(OpenpilotTestCase):
   def test_quat_euler(self):
     for i, eul in enumerate(eulers):
       np.testing.assert_allclose(quats[i], euler2quat(eul), rtol=1e-7)
@@ -76,13 +78,13 @@ class TestOrientation:
     # np.testing.assert_allclose(ned_eulers, ned_euler_from_ecef(ecef_positions, eulers), rtol=1e-7)
 
   def test_inputs(self):
-    with pytest.raises(ValueError):
+    with self.assertRaises(ValueError):
       euler2quat([1, 2])
 
-    with pytest.raises(ValueError):
+    with self.assertRaises(ValueError):
       quat2rot([1, 2, 3])
 
-    with pytest.raises(IndexError):
+    with self.assertRaises(IndexError):
       rot2quat(np.zeros((2, 2)))
 
   def test_euler_rot_consistency(self):

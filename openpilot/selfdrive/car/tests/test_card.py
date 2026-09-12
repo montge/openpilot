@@ -446,7 +446,7 @@ class TestStatePublish:
     assert 'carParams' in call_args
 
   def test_state_publish_sends_live_tracks_when_radar_data(self, mocker):
-    """Test that liveTracks is published when radar data is available"""
+    """Test that radarTracks is published when radar data is available"""
     mocker.patch('openpilot.selfdrive.car.card.messaging')
     mock_params_class = mocker.patch('openpilot.selfdrive.car.card.Params')
 
@@ -474,7 +474,7 @@ class TestStatePublish:
     car_obj.state_publish(CS, RD)
 
     call_args = [call[0][0] for call in car_obj.pm.send.call_args_list]
-    assert 'liveTracks' in call_args
+    assert 'radarTracks' in call_args
 
 
 class TestSecOCKey:

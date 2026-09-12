@@ -6,7 +6,7 @@ Verifies that no CAN actuation messages are sent when in shadow mode.
 from __future__ import annotations
 
 import os
-from unittest.mock import patch  # noqa: TID251
+from unittest.mock import patch
 
 
 class TestControlsdShadowMode:

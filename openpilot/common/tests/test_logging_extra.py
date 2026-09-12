@@ -511,7 +511,7 @@ class TestSwagFormatterMessageException:
     # Create a record with list args (not tuple) to test the fallback path
     record = logging.LogRecord(name="test", level=logging.INFO, pathname="test.py", lineno=1, msg="test %s", args=(), exc_info=None)
     # Manually set args to a list to work with the fallback code
-    record.args = []
+    record.args = []  # ty: ignore[invalid-assignment]  # exercising the non-tuple args path
     mocker.patch.object(record, 'getMessage', side_effect=ValueError("format error"))
 
     result = formatter.format_dict(record)
@@ -527,7 +527,7 @@ class TestSwagFormatterMessageException:
 
     record = logging.LogRecord(name="test", level=logging.INFO, pathname="test.py", lineno=1, msg="test %d", args=("not_a_number",), exc_info=None)
     # Manually set args to a list to work with the fallback code
-    record.args = ["not_a_number"]
+    record.args = ["not_a_number"]  # ty: ignore[invalid-assignment]  # exercising the non-tuple args path
     mocker.patch.object(record, 'getMessage', side_effect=TypeError("format error"))
 
     result = formatter.format_dict(record)

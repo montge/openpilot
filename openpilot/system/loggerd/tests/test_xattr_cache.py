@@ -16,7 +16,7 @@ class TestGetXattr:
 
   def test_getxattr_returns_value(self, mocker):
     """Test getxattr returns attribute value."""
-    mock_xattr = mocker.patch('openpilot.system.loggerd.xattr_cache.xattr.getxattr', return_value=b"test_value")
+    mock_xattr = mocker.patch('openpilot.system.loggerd.xattr_cache._getxattr', return_value=b"test_value")
 
     result = getxattr("/path/to/file", "user.test")
 
@@ -25,7 +25,7 @@ class TestGetXattr:
 
   def test_getxattr_caches_result(self, mocker):
     """Test getxattr caches the result."""
-    mock_xattr = mocker.patch('openpilot.system.loggerd.xattr_cache.xattr.getxattr', return_value=b"cached_value")
+    mock_xattr = mocker.patch('openpilot.system.loggerd.xattr_cache._getxattr', return_value=b"cached_value")
 
     # First call
     result1 = getxattr("/path/to/file", "user.attr")
@@ -34,14 +34,14 @@ class TestGetXattr:
 
     assert result1 == b"cached_value"
     assert result2 == b"cached_value"
-    # Should only call xattr.getxattr once
+    # Should only call _getxattr once
     mock_xattr.assert_called_once()
 
   def test_getxattr_returns_none_for_enodata(self, mocker):
     """Test getxattr returns None when attribute not set (ENODATA)."""
     error = OSError()
     error.errno = errno.ENODATA
-    mocker.patch('openpilot.system.loggerd.xattr_cache.xattr.getxattr', side_effect=error)
+    mocker.patch('openpilot.system.loggerd.xattr_cache._getxattr', side_effect=error)
 
     result = getxattr("/path/to/file", "user.missing")
 
@@ -51,7 +51,7 @@ class TestGetXattr:
     """Test getxattr caches None result."""
     error = OSError()
     error.errno = errno.ENODATA
-    mock_xattr = mocker.patch('openpilot.system.loggerd.xattr_cache.xattr.getxattr', side_effect=error)
+    mock_xattr = mocker.patch('openpilot.system.loggerd.xattr_cache._getxattr', side_effect=error)
 
     # First call
     result1 = getxattr("/path/to/file", "user.missing")
@@ -60,14 +60,14 @@ class TestGetXattr:
 
     assert result1 is None
     assert result2 is None
-    # Should only call xattr.getxattr once
+    # Should only call _getxattr once
     mock_xattr.assert_called_once()
 
   def test_getxattr_raises_other_errors(self, mocker):
     """Test getxattr raises non-ENODATA errors."""
     error = OSError()
     error.errno = errno.EACCES  # Permission denied
-    mocker.patch('openpilot.system.loggerd.xattr_cache.xattr.getxattr', side_effect=error)
+    mocker.patch('openpilot.system.loggerd.xattr_cache._getxattr', side_effect=error)
 
     with pytest.raises(OSError) as ctx:
       getxattr("/path/to/file", "user.attr")
@@ -76,7 +76,7 @@ class TestGetXattr:
 
   def test_getxattr_different_paths_cached_separately(self, mocker):
     """Test different paths are cached separately."""
-    mock_xattr = mocker.patch('openpilot.system.loggerd.xattr_cache.xattr.getxattr', return_value=b"value")
+    mock_xattr = mocker.patch('openpilot.system.loggerd.xattr_cache._getxattr', return_value=b"value")
 
     getxattr("/path/one", "user.attr")
     getxattr("/path/two", "user.attr")
@@ -86,7 +86,7 @@ class TestGetXattr:
 
   def test_getxattr_different_attrs_cached_separately(self, mocker):
     """Test different attributes are cached separately."""
-    mock_xattr = mocker.patch('openpilot.system.loggerd.xattr_cache.xattr.getxattr', return_value=b"value")
+    mock_xattr = mocker.patch('openpilot.system.loggerd.xattr_cache._getxattr', return_value=b"value")
 
     getxattr("/path/file", "user.attr1")
     getxattr("/path/file", "user.attr2")
@@ -104,15 +104,15 @@ class TestSetXattr:
 
   def test_setxattr_calls_xattr(self, mocker):
     """Test setxattr calls xattr.setxattr."""
-    mock_xattr = mocker.patch('openpilot.system.loggerd.xattr_cache.xattr.setxattr')
+    mock_xattr = mocker.patch('openpilot.system.loggerd.xattr_cache._setxattr')
     setxattr("/path/to/file", "user.test", b"value")
 
     mock_xattr.assert_called_once_with("/path/to/file", "user.test", b"value")
 
   def test_setxattr_invalidates_cache(self, mocker):
     """Test setxattr invalidates cached value."""
-    mocker.patch('openpilot.system.loggerd.xattr_cache.xattr.getxattr', return_value=b"old_value")
-    mocker.patch('openpilot.system.loggerd.xattr_cache.xattr.setxattr')
+    mocker.patch('openpilot.system.loggerd.xattr_cache._getxattr', return_value=b"old_value")
+    mocker.patch('openpilot.system.loggerd.xattr_cache._setxattr')
 
     # Populate cache
     getxattr("/path/file", "user.attr")
@@ -126,7 +126,7 @@ class TestSetXattr:
 
   def test_setxattr_does_not_error_on_uncached(self, mocker):
     """Test setxattr works when key not in cache."""
-    mock_xattr = mocker.patch('openpilot.system.loggerd.xattr_cache.xattr.setxattr')
+    mock_xattr = mocker.patch('openpilot.system.loggerd.xattr_cache._setxattr')
     # Should not raise even though key is not cached
     setxattr("/new/path", "user.new", b"value")
 
@@ -134,8 +134,8 @@ class TestSetXattr:
 
   def test_setxattr_only_invalidates_specific_key(self, mocker):
     """Test setxattr only invalidates the specific key."""
-    mocker.patch('openpilot.system.loggerd.xattr_cache.xattr.getxattr', return_value=b"value")
-    mocker.patch('openpilot.system.loggerd.xattr_cache.xattr.setxattr')
+    mocker.patch('openpilot.system.loggerd.xattr_cache._getxattr', return_value=b"value")
+    mocker.patch('openpilot.system.loggerd.xattr_cache._setxattr')
 
     # Populate cache with multiple keys
     getxattr("/path/file", "user.attr1")
@@ -158,8 +158,8 @@ class TestCacheIntegration:
 
   def test_set_then_get_refetches(self, mocker):
     """Test that get after set refetches the value."""
-    mock_getxattr = mocker.patch('openpilot.system.loggerd.xattr_cache.xattr.getxattr', side_effect=[b"old_value", b"new_value"])
-    mocker.patch('openpilot.system.loggerd.xattr_cache.xattr.setxattr')
+    mock_getxattr = mocker.patch('openpilot.system.loggerd.xattr_cache._getxattr', side_effect=[b"old_value", b"new_value"])
+    mocker.patch('openpilot.system.loggerd.xattr_cache._setxattr')
 
     # Get initial value
     result1 = getxattr("/path", "user.attr")

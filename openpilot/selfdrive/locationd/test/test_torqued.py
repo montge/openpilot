@@ -2,6 +2,7 @@
 
 import numpy as np
 
+from openpilot.common.test import OpenpilotTestCase
 from opendbc.car.structs import car
 from openpilot.selfdrive.locationd.torqued import (
   TorqueEstimator,
@@ -59,7 +60,7 @@ class TestTorqueBuckets:
   def test_add_point_in_bounds(self):
     """Test adding a point within bucket bounds."""
     buckets = TorqueBuckets(
-      x_bounds=STEER_BUCKET_BOUNDS, min_points=MIN_BUCKET_POINTS, min_points_total=MIN_POINTS_TOTAL, points_per_bucket=POINTS_PER_BUCKET, rowsize=3
+      x_bounds=STEER_BUCKET_BOUNDS, min_points=MIN_BUCKET_POINTS.tolist(), min_points_total=MIN_POINTS_TOTAL, points_per_bucket=POINTS_PER_BUCKET, rowsize=3
     )
     buckets.add_point(0.05, 0.5)  # Should go in (0, 0.1) bucket
     assert len(buckets.buckets[(0, 0.1)]) == 1
@@ -67,7 +68,7 @@ class TestTorqueBuckets:
   def test_add_point_stores_correct_format(self):
     """Test points are stored as [x, 1.0, y]."""
     buckets = TorqueBuckets(
-      x_bounds=STEER_BUCKET_BOUNDS, min_points=MIN_BUCKET_POINTS, min_points_total=MIN_POINTS_TOTAL, points_per_bucket=POINTS_PER_BUCKET, rowsize=3
+      x_bounds=STEER_BUCKET_BOUNDS, min_points=MIN_BUCKET_POINTS.tolist(), min_points_total=MIN_POINTS_TOTAL, points_per_bucket=POINTS_PER_BUCKET, rowsize=3
     )
     buckets.add_point(0.15, 0.8)  # Should go in (0.1, 0.2) bucket
     # Get points and verify
@@ -76,7 +77,7 @@ class TestTorqueBuckets:
   def test_add_point_outside_bounds_ignored(self):
     """Test points outside all bounds are ignored."""
     buckets = TorqueBuckets(
-      x_bounds=STEER_BUCKET_BOUNDS, min_points=MIN_BUCKET_POINTS, min_points_total=MIN_POINTS_TOTAL, points_per_bucket=POINTS_PER_BUCKET, rowsize=3
+      x_bounds=STEER_BUCKET_BOUNDS, min_points=MIN_BUCKET_POINTS.tolist(), min_points_total=MIN_POINTS_TOTAL, points_per_bucket=POINTS_PER_BUCKET, rowsize=3
     )
     initial_total = len(buckets)
     buckets.add_point(1.0, 0.5)  # Outside bounds (max is 0.5)
@@ -197,7 +198,7 @@ class TestTorqueEstimatorGetMsg:
     msg = est.get_msg()
 
     assert msg is not None
-    assert msg.liveTorqueParameters is not None
+    assert msg.lateralTorqueParameters is not None
 
   def test_get_msg_contains_version(self, mocker):
     """Test get_msg includes correct version."""
@@ -206,7 +207,7 @@ class TestTorqueEstimatorGetMsg:
     est = TorqueEstimator(cp)
     msg = est.get_msg()
 
-    assert msg.liveTorqueParameters.version == VERSION
+    assert msg.lateralTorqueParameters.version == VERSION
 
   def test_get_msg_valid_flag(self, mocker):
     """Test get_msg respects valid flag."""
@@ -228,7 +229,7 @@ class TestTorqueEstimatorGetMsg:
     msg = est.get_msg()
 
     # Initially zero calibration
-    assert msg.liveTorqueParameters.calPerc == 0
+    assert msg.lateralTorqueParameters.calPerc == 0
 
 
 class TestConstants:
@@ -342,7 +343,7 @@ class TestTorqueEstimatorGetMsgAdvanced:
     msg = est.get_msg(with_points=True)
 
     # Points should be included when with_points=True
-    assert msg.liveTorqueParameters.points is not None
+    assert msg.lateralTorqueParameters.points is not None
 
   def test_get_msg_use_params_false_for_non_allowed_car(self, mocker):
     """Test useParams is False for non-allowed car."""
@@ -353,7 +354,7 @@ class TestTorqueEstimatorGetMsgAdvanced:
     est = TorqueEstimator(cp)
     msg = est.get_msg()
 
-    assert msg.liveTorqueParameters.useParams is False
+    assert msg.lateralTorqueParameters.useParams is False
 
 
 class TestTorqueEstimatorCacheRestoration:
@@ -374,14 +375,14 @@ class TestTorqueEstimatorCacheRestoration:
 
     # Create cached LiveTorqueParameters
     cached_event = log.Event.new_message()
-    cached_event.init('liveTorqueParameters')
-    cached_event.liveTorqueParameters.version = VERSION
-    cached_event.liveTorqueParameters.liveValid = True
-    cached_event.liveTorqueParameters.latAccelFactorFiltered = 2.6
-    cached_event.liveTorqueParameters.latAccelOffsetFiltered = 0.05
-    cached_event.liveTorqueParameters.frictionCoefficientFiltered = 0.12
-    cached_event.liveTorqueParameters.decay = 150
-    cached_event.liveTorqueParameters.points = []
+    cached_event.init('lateralTorqueParameters')
+    cached_event.lateralTorqueParameters.version = VERSION
+    cached_event.lateralTorqueParameters.valid = True
+    cached_event.lateralTorqueParameters.latAccelFactorFiltered = 2.6
+    cached_event.lateralTorqueParameters.latAccelOffsetFiltered = 0.05
+    cached_event.lateralTorqueParameters.frictionCoefficientFiltered = 0.12
+    cached_event.lateralTorqueParameters.decay = 150
+    cached_event.lateralTorqueParameters.points = []
     cached_event_bytes = cached_event.to_bytes()
 
     # Mock Params
@@ -417,10 +418,10 @@ class TestTorqueEstimatorCacheRestoration:
 
     # Create cached LiveTorqueParameters with different version
     cached_event = log.Event.new_message()
-    cached_event.init('liveTorqueParameters')
-    cached_event.liveTorqueParameters.version = VERSION + 1  # Wrong version
-    cached_event.liveTorqueParameters.liveValid = True
-    cached_event.liveTorqueParameters.decay = 150
+    cached_event.init('lateralTorqueParameters')
+    cached_event.lateralTorqueParameters.version = VERSION + 1  # Wrong version
+    cached_event.lateralTorqueParameters.valid = True
+    cached_event.lateralTorqueParameters.decay = 150
     cached_event_bytes = cached_event.to_bytes()
 
     mock_params = mocker.MagicMock()
@@ -456,7 +457,7 @@ class TestTorqueEstimatorCacheRestoration:
     mock_params.remove.assert_called_with("LiveTorqueParameters")
 
   def test_restore_cache_not_live_valid(self, mocker):
-    """Test cache restoration with liveValid=False still restores points."""
+    """Test cache restoration with valid=False still restores points."""
     from openpilot.cereal import log
 
     cached_cp = car.CarParams()
@@ -468,11 +469,11 @@ class TestTorqueEstimatorCacheRestoration:
     cached_cp_bytes = cached_cp.to_bytes()
 
     cached_event = log.Event.new_message()
-    cached_event.init('liveTorqueParameters')
-    cached_event.liveTorqueParameters.version = VERSION
-    cached_event.liveTorqueParameters.liveValid = False  # Not live valid
-    cached_event.liveTorqueParameters.decay = 180
-    cached_event.liveTorqueParameters.points = []
+    cached_event.init('lateralTorqueParameters')
+    cached_event.lateralTorqueParameters.version = VERSION
+    cached_event.lateralTorqueParameters.valid = False  # Not live valid
+    cached_event.lateralTorqueParameters.decay = 180
+    cached_event.lateralTorqueParameters.points = []
     cached_event_bytes = cached_event.to_bytes()
 
     mock_params = mocker.MagicMock()
@@ -495,23 +496,24 @@ class TestTorqueEstimatorCacheRestoration:
     assert est.decay == 180
 
 
-def test_cal_percent():
-  est = TorqueEstimator(car.CarParams())
-  msg = est.get_msg()
-  assert msg.liveTorqueParameters.calPerc == 0
+class TestTorqued(OpenpilotTestCase):
+  def test_cal_percent(self):
+    est = TorqueEstimator(car.CarParams())
+    msg = est.get_msg()
+    assert msg.lateralTorqueParameters.calPerc == 0
 
-  for (low, high), min_pts in zip(est.filtered_points.buckets.keys(), est.filtered_points.buckets_min_points.values(), strict=True):
-    for _ in range(int(min_pts)):
-      est.filtered_points.add_point((low + high) / 2.0, 0.0)
+    for (low, high), min_pts in zip(est.filtered_points.buckets.keys(), est.filtered_points.buckets_min_points.values(), strict=True):
+      for _ in range(int(min_pts)):
+        est.filtered_points.add_point((low + high) / 2.0, 0.0)
 
-  # enough bucket points, but not enough total points
-  msg = est.get_msg()
-  assert msg.liveTorqueParameters.calPerc == (len(est.filtered_points) / est.min_points_total * 100 + 100) / 2
+    # enough bucket points, but not enough total points
+    msg = est.get_msg()
+    assert msg.lateralTorqueParameters.calPerc == (len(est.filtered_points) / est.min_points_total * 100 + 100) / 2
 
-  # add enough points to bucket with most capacity
-  key = list(est.filtered_points.buckets)[0]
-  for _ in range(est.min_points_total - len(est.filtered_points)):
-    est.filtered_points.add_point((key[0] + key[1]) / 2.0, 0.0)
+    # add enough points to bucket with most capacity
+    key = list(est.filtered_points.buckets)[0]
+    for _ in range(est.min_points_total - len(est.filtered_points)):
+      est.filtered_points.add_point((key[0] + key[1]) / 2.0, 0.0)
 
-  msg = est.get_msg()
-  assert msg.liveTorqueParameters.calPerc == 100
+    msg = est.get_msg()
+    assert msg.lateralTorqueParameters.calPerc == 100

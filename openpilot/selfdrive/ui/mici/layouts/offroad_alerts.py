@@ -11,7 +11,7 @@ from openpilot.common.hardware import HARDWARE
 from openpilot.system.ui.widgets import Widget
 from openpilot.system.ui.widgets.label import UnifiedLabel
 from openpilot.system.ui.widgets.scroller import Scroller
-from openpilot.system.ui.lib.application import gui_app, FontWeight
+from openpilot.system.ui.lib.application import gui_app, FontWeight, TextAlignment, TextAlignmentVertical
 from openpilot.system.ui.lib.multilang import tr
 
 REFRESH_INTERVAL = 5.0  # seconds
@@ -62,12 +62,12 @@ class AlertItem(Widget):
     self._icon_green = gui_app.texture("icons_mici/offroad_alerts/green_wheel.png", self.ICON_SIZE, self.ICON_SIZE)
 
     self._title_label = UnifiedLabel(text="", font_size=32, font_weight=FontWeight.SEMI_BOLD, text_color=self.TEXT_COLOR,
-                                     alignment=rl.GuiTextAlignment.TEXT_ALIGN_LEFT,
-                                     alignment_vertical=rl.GuiTextAlignmentVertical.TEXT_ALIGN_TOP, line_height=0.95)
+                                     alignment=TextAlignment.LEFT,
+                                     alignment_vertical=TextAlignmentVertical.TOP, line_height=0.95)
 
     self._body_label = UnifiedLabel(text="", font_size=28, font_weight=FontWeight.ROMAN, text_color=self.TEXT_COLOR,
-                                    alignment=rl.GuiTextAlignment.TEXT_ALIGN_LEFT,
-                                    alignment_vertical=rl.GuiTextAlignmentVertical.TEXT_ALIGN_BOTTOM, line_height=0.95)
+                                    alignment=TextAlignment.LEFT,
+                                    alignment_vertical=TextAlignmentVertical.BOTTOM, line_height=0.95)
 
     self._title_text = ""
     self._body_text = ""
@@ -200,8 +200,8 @@ class MiciOffroadAlerts(Scroller):
 
     # Create empty state label
     self._empty_label = UnifiedLabel(tr("no alerts"), 65, FontWeight.DISPLAY, rl.WHITE,
-                                     alignment=rl.GuiTextAlignment.TEXT_ALIGN_CENTER,
-                                     alignment_vertical=rl.GuiTextAlignmentVertical.TEXT_ALIGN_MIDDLE)
+                                     alignment=TextAlignment.CENTER,
+                                     alignment_vertical=TextAlignmentVertical.MIDDLE)
 
     # Build initial alert list
     self._build_alerts()
@@ -250,12 +250,12 @@ class MiciOffroadAlerts(Scroller):
                               {alert_data.key: self.params.get(alert_data.key) for alert_data in self.sorted_alerts})
       time.sleep(REFRESH_INTERVAL)
 
-  def _refresh(self) -> int:
+  def _refresh(self, pending_params: dict) -> int:
     """Refresh alerts from params and return active count."""
     active_count = 0
 
     # Handle UpdateAvailable alert specially
-    update_available = self._pending_params["UpdateAvailable"]
+    update_available = pending_params["UpdateAvailable"]
     update_alert_data = next((alert_data for alert_data in self.sorted_alerts if alert_data.key == "UpdateAvailable"), None)
 
     if update_alert_data:
@@ -263,7 +263,7 @@ class MiciOffroadAlerts(Scroller):
         version_string = ""
 
         # Get new version description and parse version and date
-        new_desc = self._pending_params["UpdaterNewDescription"] or ""
+        new_desc = pending_params["UpdaterNewDescription"] or ""
         if new_desc:
           # format: "version / branch / commit / date"
           parts = new_desc.split(" / ")
@@ -284,7 +284,7 @@ class MiciOffroadAlerts(Scroller):
         continue  # Skip, already handled above
 
       text = ""
-      alert_json = self._pending_params[alert_data.key]
+      alert_json = pending_params[alert_data.key]
 
       if alert_json:
         text = alert_json.get("text", "").replace("%1", alert_json.get("extra", ""))
@@ -311,8 +311,9 @@ class MiciOffroadAlerts(Scroller):
   def _update_state(self):
     """Periodically refresh alerts."""
     # Refresh alerts when thread updates params
-    if self._pending_params is not None:
-      self._refresh()
+    pending_params = self._pending_params
+    if pending_params is not None:
+      self._refresh(pending_params)
       self._pending_params = None
 
   def _render(self, rect: rl.Rectangle):

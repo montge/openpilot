@@ -7,7 +7,7 @@ against test scenarios and collects performance metrics.
 
 import random
 from dataclasses import dataclass, field
-from typing import Optional, Any
+from typing import Any
 from collections.abc import Iterator
 import numpy as np
 
@@ -33,7 +33,7 @@ class Scenario:
   name: str
   description: str = ""
   states: list[AlgorithmState] = field(default_factory=list)
-  ground_truth: Optional[list[float]] = None  # Expected outputs for each state
+  ground_truth: list[float] | None = None  # Expected outputs for each state
   metadata: dict[str, Any] = field(default_factory=dict)
 
   def __len__(self) -> int:
@@ -42,7 +42,7 @@ class Scenario:
   def __iter__(self) -> Iterator[AlgorithmState]:
     return iter(self.states)
 
-  def with_ground_truth(self) -> Iterator[tuple[AlgorithmState, Optional[float]]]:
+  def with_ground_truth(self) -> Iterator[tuple[AlgorithmState, float | None]]:
     """Iterate over states with their ground truth values."""
     if self.ground_truth is None:
       for state in self.states:
@@ -79,7 +79,7 @@ class ScenarioRunner:
     self,
     deterministic: bool = True,
     random_seed: int = 42,
-    safety_limits: Optional[tuple[float, float]] = None,
+    safety_limits: tuple[float, float] | None = None,
   ):
     """
     Initialize scenario runner.

@@ -16,16 +16,10 @@ LongCtrlState = car.CarControl.Actuators.LongControlState
 HYPOTHESIS_SETTINGS = settings(max_examples=50, deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])
 
 
-def create_mock_cp(mocker, v_ego_starting=0.5, stop_accel=-2.0, starting_state=True, start_accel=1.2, stopping_decel_rate=0.8):
+def create_mock_cp(mocker, stop_accel=-2.0):
   """Create a mock CarParams for LongControl."""
   CP = mocker.MagicMock()
-  CP.vEgoStarting = v_ego_starting
   CP.stopAccel = stop_accel
-  CP.startingState = starting_state
-  CP.startAccel = start_accel
-  CP.stoppingDecelRate = stopping_decel_rate
-  CP.longitudinalTuning.kpBP = [0.0]
-  CP.longitudinalTuning.kpV = [1.0]
   CP.longitudinalTuning.kiBP = [0.0]
   CP.longitudinalTuning.kiV = [0.1]
   return CP
@@ -125,63 +119,43 @@ class TestLongControlProperties:
 class TestLongControlStateTransProperties:
   """Property-based tests for state machine transitions."""
 
-  @given(
-    v_ego=st.floats(min_value=0.0, max_value=50.0, allow_nan=False, allow_infinity=False),
-  )
-  @HYPOTHESIS_SETTINGS
-  def test_inactive_always_transitions_to_off(self, mocker, v_ego):
+  def test_inactive_always_transitions_to_off(self):
     """Property: Inactive always results in off state."""
-    CP = create_mock_cp(mocker)
-
     for initial_state in [LongCtrlState.off, LongCtrlState.stopping, LongCtrlState.starting, LongCtrlState.pid]:
       result = long_control_state_trans(
-        CP, active=False, long_control_state=initial_state, v_ego=v_ego, should_stop=False, brake_pressed=False, cruise_standstill=False
+        active=False, long_control_state=initial_state, should_stop=False, brake_pressed=False, cruise_standstill=False
       )
       assert result == LongCtrlState.off
 
-  @given(
-    v_ego=st.floats(min_value=0.0, max_value=50.0, allow_nan=False, allow_infinity=False),
-  )
-  @HYPOTHESIS_SETTINGS
-  def test_stopping_condition_leads_to_stopping(self, mocker, v_ego):
+  def test_stopping_condition_leads_to_stopping(self):
     """Property: should_stop=True eventually leads to stopping state."""
-    CP = create_mock_cp(mocker)
-
-    for initial_state in [LongCtrlState.starting, LongCtrlState.pid]:
+    for initial_state in [LongCtrlState.off, LongCtrlState.stopping, LongCtrlState.pid]:
       result = long_control_state_trans(
-        CP, active=True, long_control_state=initial_state, v_ego=v_ego, should_stop=True, brake_pressed=False, cruise_standstill=False
+        active=True, long_control_state=initial_state, should_stop=True, brake_pressed=False, cruise_standstill=False
       )
       assert result == LongCtrlState.stopping
 
-  @given(
-    v_ego=st.floats(min_value=2.0, max_value=50.0, allow_nan=False, allow_infinity=False),
-  )
-  @HYPOTHESIS_SETTINGS
-  def test_started_condition_leads_to_pid(self, mocker, v_ego):
-    """Property: High speed with starting state transitions to pid."""
-    CP = create_mock_cp(mocker, v_ego_starting=1.0)
-    assume(v_ego > CP.vEgoStarting)
-
-    result = long_control_state_trans(
-      CP, active=True, long_control_state=LongCtrlState.starting, v_ego=v_ego, should_stop=False, brake_pressed=False, cruise_standstill=False
-    )
-    assert result == LongCtrlState.pid
+  def test_starting_conditions_lead_to_pid(self):
+    """Property: clear starting conditions transition off/stopping straight to pid."""
+    for initial_state in [LongCtrlState.off, LongCtrlState.stopping]:
+      result = long_control_state_trans(
+        active=True, long_control_state=initial_state, should_stop=False, brake_pressed=False, cruise_standstill=False
+      )
+      assert result == LongCtrlState.pid
 
   @given(
-    v_ego=st.floats(min_value=0.0, max_value=50.0, allow_nan=False, allow_infinity=False),
+    active=st.booleans(),
     should_stop=st.booleans(),
     brake_pressed=st.booleans(),
     standstill=st.booleans(),
   )
   @HYPOTHESIS_SETTINGS
-  def test_state_always_valid(self, mocker, v_ego, should_stop, brake_pressed, standstill):
+  def test_state_always_valid(self, active, should_stop, brake_pressed, standstill):
     """Property: State transition always produces a valid state."""
-    CP = create_mock_cp(mocker)
-
     valid_states = {LongCtrlState.off, LongCtrlState.stopping, LongCtrlState.starting, LongCtrlState.pid}
 
     for initial_state in valid_states:
       result = long_control_state_trans(
-        CP, active=True, long_control_state=initial_state, v_ego=v_ego, should_stop=should_stop, brake_pressed=brake_pressed, cruise_standstill=standstill
+        active=active, long_control_state=initial_state, should_stop=should_stop, brake_pressed=brake_pressed, cruise_standstill=standstill
       )
       assert result in valid_states, f"Invalid state: {result}"

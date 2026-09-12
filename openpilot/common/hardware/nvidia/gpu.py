@@ -10,7 +10,6 @@ import subprocess
 import shutil
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Optional
 
 
 @dataclass
@@ -64,7 +63,7 @@ class GPUInfo:
     return self.compute_capability >= (10, 0)
 
 
-def _run_nvidia_smi(args: list[str]) -> Optional[str]:
+def _run_nvidia_smi(args: list[str]) -> str | None:
   """Run nvidia-smi with given arguments."""
   nvidia_smi = shutil.which('nvidia-smi')
   if nvidia_smi is None:
@@ -97,7 +96,7 @@ def is_nvidia_available() -> bool:
 
 
 @lru_cache(maxsize=1)
-def get_cuda_version() -> Optional[str]:
+def get_cuda_version() -> str | None:
   """Get CUDA version from nvidia-smi."""
   output = _run_nvidia_smi(['--query-gpu=driver_version', '--format=csv,noheader'])
   if output is None:
@@ -224,7 +223,7 @@ def is_dgx_spark() -> bool:
   return any(gpu.is_dgx_spark for gpu in gpus)
 
 
-def get_best_gpu() -> Optional[GPUInfo]:
+def get_best_gpu() -> GPUInfo | None:
   """Get the best available GPU for inference."""
   gpus = get_nvidia_gpus()
   if not gpus:
@@ -241,7 +240,7 @@ def get_best_gpu() -> Optional[GPUInfo]:
   )
 
 
-def get_recommended_precision(gpu: Optional[GPUInfo] = None) -> str:
+def get_recommended_precision(gpu: GPUInfo | None = None) -> str:
   """Get recommended precision for a GPU."""
   if gpu is None:
     gpu = get_best_gpu()

@@ -35,7 +35,6 @@ import subprocess
 import sys
 import threading
 import time
-from typing import Optional
 
 # Ensure openpilot root is in path
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -56,7 +55,8 @@ except ImportError as e:
 VIPC_AVAILABLE = False
 try:
   import av  # type: ignore[import-not-found]
-  from msgq.visionipc import VisionIpcServer, VisionStreamType
+  from msgq.visionipc import VisionIpcServer
+  from openpilot.cereal.visionipc import VisionStreamType
   from openpilot.cereal import messaging
 
   VIPC_AVAILABLE = True
@@ -64,7 +64,7 @@ except ImportError:
   pass
 
 
-def jpeg_to_nv12(jpeg_data: bytes, target_width: int, target_height: int) -> Optional[bytes]:
+def jpeg_to_nv12(jpeg_data: bytes, target_width: int, target_height: int) -> bytes | None:
   """Decode JPEG to NV12 format."""
   # Decode JPEG to BGR
   img_array = np.frombuffer(jpeg_data, dtype=np.uint8)
@@ -115,7 +115,7 @@ class InferenceServer:
     self.running = False
     self.frame_count = 0
     self.result_count = 0
-    self.modeld_proc: Optional[subprocess.Popen[bytes]] = None
+    self.modeld_proc: subprocess.Popen[bytes] | None = None
 
     # ZeroMQ context
     self.zmq_ctx = zmq.Context()
@@ -139,7 +139,7 @@ class InferenceServer:
       print("Initializing VisionIPC server...")
       self.vipc_server = VisionIpcServer("camerad")
       self.vipc_server.create_buffers(
-        VisionStreamType.VISION_STREAM_ROAD,
+        VisionStreamType.VISION_STREAM_NARROW_ROAD,
         20,  # buffer count
         width,
         height,
@@ -220,7 +220,7 @@ class InferenceServer:
       return
 
     self.vipc_server.send(
-      VisionStreamType.VISION_STREAM_ROAD,
+      VisionStreamType.VISION_STREAM_NARROW_ROAD,
       nv12_data,
       frame_id,
       timestamp_ns,  # timestamp_sof

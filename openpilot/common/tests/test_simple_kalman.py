@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from openpilot.common.test import OpenpilotTestCase
 from openpilot.common.simple_kalman import KF1D, get_kalman_gain
 
 
@@ -62,7 +63,7 @@ class TestGetKalmanGain:
     assert K_high_r[0, 0] < K_low_r[0, 0]
 
 
-class TestKF1D:
+class TestKF1D(OpenpilotTestCase):
   """Test KF1D Kalman filter class."""
 
   def setup_method(self):
@@ -192,13 +193,13 @@ class TestKF1D:
 
   def test_noisy_measurements(self):
     """Test filter smooths noisy measurements."""
-    np.random.seed(42)
+    rng = np.random.default_rng(42)
     true_value = 100.0
     noise_std = 10.0
 
     values = []
     for _ in range(200):
-      noisy = true_value + np.random.normal(0, noise_std)
+      noisy = true_value + rng.normal(0, noise_std)
       self.kf.update(noisy)
       values.append(self.kf.x0_0)
 

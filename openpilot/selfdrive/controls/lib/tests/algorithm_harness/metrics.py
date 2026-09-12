@@ -7,7 +7,6 @@ performance, including tracking accuracy, smoothness, latency, and safety margin
 
 import time
 from dataclasses import dataclass
-from typing import Optional
 import numpy as np
 
 
@@ -53,7 +52,7 @@ class MetricsCollector:
     metrics = collector.compute_metrics()
   """
 
-  def __init__(self, safety_limits: Optional[tuple[float, float]] = None):
+  def __init__(self, safety_limits: tuple[float, float] | None = None):
     """
     Initialize metrics collector.
 
@@ -71,8 +70,8 @@ class MetricsCollector:
     self._latencies: list[float] = []
     self._saturated: list[bool] = []
     self._safety_margins: list[float] = []
-    self._step_start_time: Optional[float] = None
-    self._run_start_time: Optional[float] = None
+    self._step_start_time: float | None = None
+    self._run_start_time: float | None = None
 
   def start_run(self) -> None:
     """Mark the start of a benchmark run."""
@@ -85,7 +84,7 @@ class MetricsCollector:
   def end_step(
     self,
     output: float,
-    target: Optional[float] = None,
+    target: float | None = None,
     saturated: bool = False,
   ) -> None:
     """

@@ -2,6 +2,7 @@ import json
 from Crypto.PublicKey import RSA
 from pathlib import Path
 
+from openpilot.common.test import OpenpilotTestCase
 from openpilot.common.params import Params
 from openpilot.system.athena.registration import register, is_registered_device, UNREGISTERED_DONGLE_ID
 from openpilot.system.athena.tests.helpers import MockResponse
@@ -33,7 +34,7 @@ class TestIsRegisteredDevice:
     assert is_registered_device() is False
 
 
-class TestRegistration:
+class TestRegistration(OpenpilotTestCase):
   def setup_method(self):
     # clear params and setup key paths
     self.params = Params()

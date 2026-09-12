@@ -104,9 +104,9 @@ class TestServiceList:
     """Test deviceState should_log is True."""
     assert SERVICE_LIST['deviceState'].should_log is True
 
-  def test_roadEncodeIdx_should_not_log(self):
-    """Test roadEncodeIdx should_log is False."""
-    assert SERVICE_LIST['roadEncodeIdx'].should_log is False
+  def test_narrowRoadEncodeIdx_should_not_log(self):
+    """Test narrowRoadEncodeIdx should_log is False."""
+    assert SERVICE_LIST['narrowRoadEncodeIdx'].should_log is False
 
   def test_frequencies_positive(self):
     """Test all frequencies are non-negative."""

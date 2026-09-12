@@ -2,7 +2,12 @@
 
 import signal
 import time
+from collections.abc import ValuesView
 from multiprocessing import Process
+from typing import cast
+
+from opendbc.car.structs import car
+from openpilot.common.params import Params
 
 from openpilot.system.manager.process import (
   join_process,
@@ -49,9 +54,6 @@ class TestManagerProcess:
     """Create a concrete ManagerProcess for testing."""
 
     class ConcreteProcess(ManagerProcess):
-      def prepare(self):
-        pass
-
       def start(self):
         pass
 
@@ -127,16 +129,8 @@ class TestManagerProcess:
     result = mp.stop()
     assert result is None
 
-  def test_restart_stops_and_starts(self, mocker):
-    """Test restart calls stop and start."""
-    mp = self._create_manager_process()
-    mp.stop = mocker.MagicMock(return_value=0)
-    mp.start = mocker.MagicMock()
-
-    mp.restart()
-
-    mp.stop.assert_called_once_with(sig=signal.SIGKILL)
-    mp.start.assert_called_once()
+  # fork: upstream removed ManagerProcess.prepare() and .restart() -- processes are
+  # started and stopped directly now.
 
 
 class TestNativeProcess:
@@ -162,17 +156,6 @@ class TestNativeProcess:
     assert proc.cmdline == ["./test"]
     assert proc.enabled is True
     assert proc.sigkill is False
-
-  def test_prepare_does_nothing(self):
-    """Test prepare() does nothing for native processes."""
-    proc = NativeProcess(
-      name="test",
-      cwd=".",
-      cmdline=["./test"],
-      should_run=lambda s, p, c: True,
-    )
-    # Should not raise
-    proc.prepare()
 
   def test_start_when_already_running(self, mocker):
     """Test start() does nothing if process is already running."""
@@ -204,14 +187,12 @@ class TestPythonProcess:
       should_run=should_run,
       enabled=True,
       sigkill=False,
-      restart_if_crash=True,
     )
 
     assert proc.name == "test_python"
     assert proc.module == "openpilot.system.test"
     assert proc.enabled is True
     assert proc.sigkill is False
-    assert proc.restart_if_crash is True
 
   def test_start_when_already_running(self, mocker):
     """Test start() does nothing if process is already running."""
@@ -252,16 +233,6 @@ class TestDaemonProcess:
     result = DaemonProcess.should_run(False, None, None)
     assert result is True
 
-  def test_prepare_does_nothing(self):
-    """Test prepare() does nothing for daemon processes."""
-    proc = DaemonProcess(
-      name="test",
-      module="test_module",
-      param_name="TestPid",
-    )
-    # Should not raise
-    proc.prepare()
-
   def test_stop_does_nothing(self):
     """Test stop() does nothing for daemon processes."""
     proc = DaemonProcess(
@@ -274,8 +245,17 @@ class TestDaemonProcess:
     assert result is None
 
 
+def as_procs(procs) -> ValuesView[ManagerProcess]:
+  """ensure_running expects a ValuesView, as managed_processes.values() gives in manager.py."""
+  return cast(ValuesView[ManagerProcess], {p.name: p for p in procs}.values())
+
+
 class TestEnsureRunning:
   """Test ensure_running function."""
+
+  def setup_method(self):
+    self.params = Params()
+    self.CP = car.CarParams.new_message()
 
   def _create_mock_process(self, mocker, name, enabled=True, should_run_val=True):
     """Create a mock ManagerProcess."""
@@ -283,7 +263,6 @@ class TestEnsureRunning:
     mock_proc.name = name
     mock_proc.enabled = enabled
     mock_proc.should_run = mocker.MagicMock(return_value=should_run_val)
-    mock_proc.restart_if_crash = False
     mock_proc.proc = None
     return mock_proc
 
@@ -292,7 +271,7 @@ class TestEnsureRunning:
     proc1 = self._create_mock_process(mocker, "proc1")
     proc2 = self._create_mock_process(mocker, "proc2")
 
-    running = ensure_running([proc1, proc2], started=True)
+    running = ensure_running(as_procs([proc1, proc2]), started=True, params=self.params, CP=self.CP)
 
     assert len(running) == 2
     proc1.start.assert_called_once()
@@ -303,7 +282,7 @@ class TestEnsureRunning:
     proc1 = self._create_mock_process(mocker, "proc1", enabled=True)
     proc2 = self._create_mock_process(mocker, "proc2", enabled=False)
 
-    running = ensure_running([proc1, proc2], started=True)
+    running = ensure_running(as_procs([proc1, proc2]), started=True, params=self.params, CP=self.CP)
 
     assert len(running) == 1
     proc1.start.assert_called_once()
@@ -314,7 +293,7 @@ class TestEnsureRunning:
     proc1 = self._create_mock_process(mocker, "proc1")
     proc2 = self._create_mock_process(mocker, "proc2")
 
-    running = ensure_running([proc1, proc2], started=True, not_run=["proc2"])
+    running = ensure_running(as_procs([proc1, proc2]), started=True, params=self.params, CP=self.CP, not_run=["proc2"])
 
     assert len(running) == 1
     proc1.start.assert_called_once()
@@ -325,20 +304,7 @@ class TestEnsureRunning:
     proc1 = self._create_mock_process(mocker, "proc1", should_run_val=True)
     proc2 = self._create_mock_process(mocker, "proc2", should_run_val=False)
 
-    running = ensure_running([proc1, proc2], started=True)
+    running = ensure_running(as_procs([proc1, proc2]), started=True, params=self.params, CP=self.CP)
 
     assert len(running) == 1
     proc2.stop.assert_called_once_with(block=False)
-
-  def test_ensure_running_restarts_crashed_procs(self, mocker):
-    """Test ensure_running restarts crashed processes with restart_if_crash."""
-    proc = self._create_mock_process(mocker, "proc1")
-    proc.restart_if_crash = True
-    proc.proc = mocker.MagicMock()
-    proc.proc.is_alive.return_value = False
-    proc.proc.exitcode = 1
-
-    running = ensure_running([proc], started=True)
-
-    assert len(running) == 1
-    proc.restart.assert_called_once()

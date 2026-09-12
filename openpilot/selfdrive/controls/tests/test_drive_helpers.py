@@ -6,6 +6,7 @@ from openpilot.selfdrive.controls.lib.drive_helpers import (
   smooth_value,
   clip_curvature,
   get_accel_from_plan,
+  should_stop,
   curv_from_psis,
   get_curvature_from_plan,
   MIN_SPEED,
@@ -166,7 +167,12 @@ class TestClipCurvature:
 
 
 class TestGetAccelFromPlan:
-  """Tests for the get_accel_from_plan function."""
+  """Tests for the get_accel_from_plan function.
+
+  fork: upstream split the stop decision out of get_accel_from_plan -- it now returns
+  a_target alone, and should_stop(v_ego, a_target) is a separate helper with the
+  vEgoStopping threshold folded in as a constant. TestShouldStop below covers it.
+  """
 
   def test_valid_plan_interpolation(self):
     """Valid plan should interpolate acceleration correctly."""
@@ -174,9 +180,8 @@ class TestGetAccelFromPlan:
     speeds = np.array([10.0, 10.5, 11.0, 11.5, 12.0])
     accels = np.array([1.0, 1.0, 1.0, 1.0, 1.0])
 
-    a_target, should_stop = get_accel_from_plan(speeds, accels, t_idxs, action_t=0.05)
+    a_target = get_accel_from_plan(speeds, accels, t_idxs, action_t=0.05)
     assert a_target != 0.0
-    assert not should_stop
 
   def test_invalid_plan_returns_zero(self):
     """Plan with mismatched lengths should return zero accel."""
@@ -184,42 +189,30 @@ class TestGetAccelFromPlan:
     speeds = np.array([10.0, 10.5])  # Wrong length
     accels = np.array([1.0, 1.0])
 
-    a_target, should_stop = get_accel_from_plan(speeds, accels, t_idxs, action_t=0.05)
+    a_target = get_accel_from_plan(speeds, accels, t_idxs, action_t=0.05)
     assert a_target == 0.0
-    assert should_stop  # v_target=0 < vEgoStopping
 
-  def test_should_stop_when_target_below_threshold(self):
-    """Should stop when both v_target and v_target_1sec are below threshold."""
-    t_idxs = np.array([0.0, 0.5, 1.0, 1.5, 2.0])
-    # All speeds are very low so interpolation at any point is below threshold
-    speeds = np.array([0.01, 0.01, 0.01, 0.01, 0.01])
-    accels = np.array([0.0, 0.0, 0.0, 0.0, 0.0])
 
-    a_target, should_stop = get_accel_from_plan(speeds, accels, t_idxs, action_t=0.1, vEgoStopping=0.05)
-    assert should_stop
+class TestShouldStop:
+  """Tests for the should_stop helper."""
 
-  def test_should_not_stop_when_target_above_threshold(self):
-    """Should not stop when targets are above vEgoStopping threshold."""
-    t_idxs = np.array([0.0, 0.5, 1.0, 1.5, 2.0])
-    speeds = np.array([10.0, 10.0, 10.0, 10.0, 10.0])  # Constant speed
-    accels = np.array([0.0, 0.0, 0.0, 0.0, 0.0])
+  def test_stops_when_slow_and_decelerating(self):
+    """Stop when v_ego is below the threshold and a_target is not commanding accel."""
+    assert should_stop(v_ego=0.01, a_target=0.0)
 
-    a_target, should_stop = get_accel_from_plan(speeds, accels, t_idxs, action_t=0.1, vEgoStopping=0.05)
-    assert not should_stop
+  def test_no_stop_when_moving(self):
+    """Do not stop while still moving at speed."""
+    assert not should_stop(v_ego=10.0, a_target=0.0)
 
-  def test_custom_vEgoStopping_threshold(self):
-    """Custom vEgoStopping threshold should be respected."""
-    t_idxs = np.array([0.0, 0.5, 1.0, 1.5, 2.0])
-    speeds = np.array([0.5, 0.4, 0.3, 0.2, 0.1])  # Slow speeds
-    accels = np.array([-0.2, -0.2, -0.2, -0.2, -0.2])
+  def test_no_stop_when_accelerating(self):
+    """Do not stop when a_target commands meaningful acceleration."""
+    assert not should_stop(v_ego=0.01, a_target=1.0)
 
-    # With high threshold, should stop
-    _, should_stop_high = get_accel_from_plan(speeds, accels, t_idxs, action_t=0.1, vEgoStopping=1.0)
-    # With low threshold, should not stop
-    _, should_stop_low = get_accel_from_plan(speeds, accels, t_idxs, action_t=0.1, vEgoStopping=0.01)
-
-    assert should_stop_high
-    assert not should_stop_low
+  def test_threshold_boundaries(self):
+    """Either condition alone is not enough to stop."""
+    assert not should_stop(v_ego=0.3, a_target=0.0)   # at the speed threshold
+    assert not should_stop(v_ego=0.0, a_target=0.1)   # at the accel threshold
+    assert should_stop(v_ego=0.29, a_target=0.09)
 
 
 class TestCurvFromPsis:

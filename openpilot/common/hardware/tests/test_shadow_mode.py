@@ -7,7 +7,7 @@ No actual hardware required.
 from __future__ import annotations
 
 import os
-from unittest.mock import MagicMock, patch  # noqa: TID251
+from unittest.mock import MagicMock, patch
 
 
 class TestShadowModeEnvironment:

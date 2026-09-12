@@ -9,7 +9,6 @@ from openpilot.common.git import (
   get_short_branch,
   get_branch,
   get_origin,
-  get_normalized_origin,
 )
 
 
@@ -145,37 +144,3 @@ class TestGetOrigin:
     result = get_origin()
 
     assert result == "git@github.com:user/repo.git"
-
-
-class TestGetNormalizedOrigin:
-  """Test get_normalized_origin function."""
-
-  def test_normalize_https_url(self, mocker):
-    """Test normalizing HTTPS URL."""
-    get_normalized_origin.cache_clear()
-    mock_origin = mocker.patch('openpilot.common.git.get_origin')
-    mock_origin.return_value = "https://github.com/user/repo.git"
-
-    result = get_normalized_origin()
-
-    assert result == "github.com/user/repo"
-
-  def test_normalize_ssh_url(self, mocker):
-    """Test normalizing SSH URL."""
-    get_normalized_origin.cache_clear()
-    mock_origin = mocker.patch('openpilot.common.git.get_origin')
-    mock_origin.return_value = "git@github.com:user/repo.git"
-
-    result = get_normalized_origin()
-
-    assert result == "github.com/user/repo"
-
-  def test_normalize_removes_git_extension(self, mocker):
-    """Test .git extension is removed."""
-    get_normalized_origin.cache_clear()
-    mock_origin = mocker.patch('openpilot.common.git.get_origin')
-    mock_origin.return_value = "https://github.com/user/repo.git"
-
-    result = get_normalized_origin()
-
-    assert ".git" not in result

@@ -9,8 +9,9 @@ from openpilot.selfdrive.controls.lib.longitudinal_planner import (
   LongitudinalPlanner,
   get_max_accel,
   get_coast_accel,
-  limit_accel_in_turns,
+  get_cruise_accel,
   A_CRUISE_MAX_VALS,
+  A_CRUISE_MIN,
   A_CRUISE_MAX_BP,
   ALLOW_THROTTLE_THRESHOLD,
   MIN_ALLOW_THROTTLE_SPEED,
@@ -19,14 +20,13 @@ from openpilot.selfdrive.controls.lib.drive_helpers import CONTROL_N
 from openpilot.selfdrive.car.cruise import V_CRUISE_UNSET
 
 
-def create_mock_cp(mocker, steer_ratio=15.0, wheelbase=2.7, openpilot_long=True, actuator_delay=0.2, v_ego_stopping=0.5):
+def create_mock_cp(mocker, steer_ratio=15.0, wheelbase=2.7, openpilot_long=True, actuator_delay=0.2):
   """Create a mock CarParams for testing."""
   CP = mocker.MagicMock()
   CP.steerRatio = steer_ratio
   CP.wheelbase = wheelbase
   CP.openpilotLongitudinalControl = openpilot_long
   CP.longitudinalActuatorDelay = actuator_delay
-  CP.vEgoStopping = v_ego_stopping
   return CP
 
 
@@ -101,14 +101,14 @@ def create_mock_sm(
     model_msg = create_mock_model_msg(mocker)
 
   radar_state = mocker.MagicMock()
-  radar_state.leadOne.status = False
+  radar_state.leadOne.present = False
 
   # Create sm mock with proper __getitem__ behavior
   messages = {
     'carState': car_state,
     'selfdriveState': selfdrive_state,
     'controlsState': controls_state,
-    'liveParameters': live_params,
+    'vehicleParameters': live_params,
     'carControl': car_control,
     'modelV2': model_msg,
     'radarState': radar_state,
@@ -179,60 +179,54 @@ class TestGetCoastAccel:
     assert result < -1.0
 
 
-class TestLimitAccelInTurns:
-  """Test limit_accel_in_turns function."""
+class TestCruiseAccelInTurns:
+  """Test the lateral-accel limiting inside get_cruise_accel.
 
-  def test_straight_no_limit(self, mocker):
-    """Test no limiting when driving straight."""
+  fork: upstream removed limit_accel_in_turns and folded its a_total_max / a_y budget
+  into get_cruise_accel's non-e2e branch, so these exercise it through that entry point.
+  """
+
+  def _accel(self, mocker, v_ego, angle_steers, v_cruise_delta=5.0, a_cruise_prev=0.0, dt=1.0):
+    """Ask for more accel than the turn budget allows and see what comes back.
+
+    dt is deliberately large so the jerk clamp around a_cruise_prev does not bind.
+    """
     CP = create_mock_cp(mocker)
-    a_target = [ACCEL_MIN, 1.5]
+    return get_cruise_accel(
+      e2e=False, v_cruise=v_ego + v_cruise_delta, v_ego=v_ego, a_cruise_prev=a_cruise_prev,
+      angle_steers=angle_steers, CP=CP, dt=dt, accel_coast=0.0, allow_throttle=True,
+    )
 
-    result = limit_accel_in_turns(20.0, 0.0, a_target, CP)
-
-    assert result[0] == ACCEL_MIN
-    assert result[1] == pytest.approx(1.5, abs=1e-3)
+  def test_straight_limited_by_max_accel(self, mocker):
+    """Test straight driving is bounded by get_max_accel, not lateral accel."""
+    assert self._accel(mocker, 20.0, 0.0) == pytest.approx(get_max_accel(20.0), abs=1e-3)
 
   def test_turn_limits_accel(self, mocker):
     """Test accel is limited during turns."""
-    CP = create_mock_cp(mocker)
-    a_target = [ACCEL_MIN, 2.0]
-
-    # Large steering angle should limit accel
-    result = limit_accel_in_turns(25.0, 30.0, a_target, CP)
-
-    assert result[0] == ACCEL_MIN
-    assert result[1] < 2.0
-
-  def test_min_accel_unchanged(self, mocker):
-    """Test minimum accel is never changed."""
-    CP = create_mock_cp(mocker)
-    a_target = [-2.0, 1.5]
-
-    result = limit_accel_in_turns(20.0, 45.0, a_target, CP)
-
-    assert result[0] == -2.0
+    assert self._accel(mocker, 25.0, 30.0) < self._accel(mocker, 25.0, 0.0)
 
   def test_low_speed_less_limiting(self, mocker):
     """Test less limiting at low speeds."""
-    CP = create_mock_cp(mocker)
-    a_target = [ACCEL_MIN, 1.5]
-
-    result_low = limit_accel_in_turns(5.0, 30.0, a_target, CP)
-    result_high = limit_accel_in_turns(30.0, 30.0, a_target, CP)
-
-    # Low speed should allow more accel
-    assert result_low[1] > result_high[1]
+    assert self._accel(mocker, 5.0, 30.0) > self._accel(mocker, 30.0, 30.0)
 
   def test_negative_angle(self, mocker):
     """Test works with negative steering angles."""
+    assert self._accel(mocker, 20.0, 30.0) == pytest.approx(self._accel(mocker, 20.0, -30.0), abs=1e-5)
+
+  def test_floored_at_a_cruise_min(self, mocker):
+    """Test a deceleration request is floored at A_CRUISE_MIN."""
     CP = create_mock_cp(mocker)
-    a_target = [ACCEL_MIN, 1.5]
+    result = get_cruise_accel(
+      e2e=False, v_cruise=0.0, v_ego=30.0, a_cruise_prev=A_CRUISE_MIN,
+      angle_steers=0.0, CP=CP, dt=1.0, accel_coast=0.0, allow_throttle=True,
+    )
+    assert result >= A_CRUISE_MIN
 
-    result_pos = limit_accel_in_turns(20.0, 30.0, a_target, CP)
-    result_neg = limit_accel_in_turns(20.0, -30.0, a_target, CP)
-
-    # Should be symmetric
-    assert result_pos[1] == pytest.approx(result_neg[1], abs=1e-5)
+  def test_jerk_clamp_limits_change(self, mocker):
+    """Test the accel step is bounded by the jerk table around a_cruise_prev."""
+    # small dt -> the jerk clamp binds, so the result stays near a_cruise_prev
+    result = self._accel(mocker, 20.0, 0.0, a_cruise_prev=0.0, dt=0.01)
+    assert result == pytest.approx(0.0, abs=0.05)
 
 
 class TestLongitudinalPlannerInit:
@@ -249,7 +243,7 @@ class TestLongitudinalPlannerInit:
     assert planner.CP == CP
     assert planner.fcw is False
     assert planner.allow_throttle is True
-    assert planner.a_desired == 0.0
+    assert planner.a_cruise == 0.0
     assert planner.output_a_target == 0.0
     assert planner.output_should_stop is False
 
@@ -261,7 +255,7 @@ class TestLongitudinalPlannerInit:
 
     planner = LongitudinalPlanner(CP, init_v=10.0, init_a=1.0)
 
-    assert planner.a_desired == 1.0
+    assert planner.a_cruise == 1.0
     assert planner.v_desired_filter.x == 10.0
 
   def test_init_trajectories_shape(self, mocker):
@@ -276,67 +270,14 @@ class TestLongitudinalPlannerInit:
     assert len(planner.a_desired_trajectory) == CONTROL_N
     assert len(planner.j_desired_trajectory) == CONTROL_N
 
-  def test_init_prev_accel_clip(self, mocker):
-    """Test initial accel clip values."""
-    mock_mpc = mocker.MagicMock()
-    mocker.patch('openpilot.selfdrive.controls.lib.longitudinal_planner.LongitudinalMpc', return_value=mock_mpc)
-    CP = create_mock_cp(mocker)
+# fork: upstream removed LongitudinalPlanner.prev_accel_clip and its per-frame 0.05
+# rate limit; the equivalent smoothing now lives in get_cruise_accel's J_CRUISE_VALS jerk
+# clamp, covered by TestCruiseAccelInTurns above.
 
-    planner = LongitudinalPlanner(CP)
-
-    assert planner.prev_accel_clip[0] == ACCEL_MIN
-    assert planner.prev_accel_clip[1] == ACCEL_MAX
-
-
-class TestLongitudinalPlannerParseModel:
-  """Test LongitudinalPlanner.parse_model static method."""
-
-  def test_valid_model(self, mocker):
-    """Test parsing valid model message."""
-    model = create_mock_model_msg(mocker, valid=True, throttle_prob=0.8)
-
-    x, v, a, j, throttle_prob = LongitudinalPlanner.parse_model(model)
-
-    assert len(x) == len(v)
-    assert len(v) == len(a)
-    assert throttle_prob == pytest.approx(0.8)
-    # Should have valid values, not zeros
-    assert np.max(x) > 0
-
-  def test_invalid_model_zeros(self, mocker):
-    """Test parsing invalid model returns zeros."""
-    model = create_mock_model_msg(mocker, valid=False)
-
-    x, v, a, j, throttle_prob = LongitudinalPlanner.parse_model(model)
-
-    np.testing.assert_array_equal(x, np.zeros_like(x))
-    np.testing.assert_array_equal(v, np.zeros_like(v))
-    np.testing.assert_array_equal(a, np.zeros_like(a))
-
-  def test_missing_throttle_prob(self, mocker):
-    """Test default throttle prob when missing."""
-    model = mocker.MagicMock()
-    model.position.x = list(np.zeros(ModelConstants.IDX_N))
-    model.velocity.x = list(np.zeros(ModelConstants.IDX_N))
-    model.acceleration.x = list(np.zeros(ModelConstants.IDX_N))
-    model.meta.disengagePredictions.gasPressProbs = []
-
-    _, _, _, _, throttle_prob = LongitudinalPlanner.parse_model(model)
-
-    assert throttle_prob == 1.0
-
-  def test_single_throttle_prob(self, mocker):
-    """Test single element throttle prob defaults to 1.0."""
-    model = mocker.MagicMock()
-    model.position.x = list(np.zeros(ModelConstants.IDX_N))
-    model.velocity.x = list(np.zeros(ModelConstants.IDX_N))
-    model.acceleration.x = list(np.zeros(ModelConstants.IDX_N))
-    model.meta.disengagePredictions.gasPressProbs = [0.5]  # Only one element
-
-    _, _, _, _, throttle_prob = LongitudinalPlanner.parse_model(model)
-
-    assert throttle_prob == 1.0
-
+# fork: upstream removed LongitudinalPlanner.parse_model -- the position/velocity/
+# acceleration interpolation moved into the MPC call path and throttle_prob is now read
+# inline in update(). The throttle_prob threshold behavior it used to cover is exercised
+# through update() by the allow-throttle tests below.
 
 class TestLongitudinalPlannerUpdate:
   """Test LongitudinalPlanner.update method."""
@@ -352,13 +293,13 @@ class TestLongitudinalPlannerUpdate:
     CP = create_mock_cp(mocker)
 
     planner = LongitudinalPlanner(CP)
-    planner.a_desired = 2.0  # Set non-zero
+    planner.a_cruise = 2.0  # Set non-zero
 
     sm = create_mock_sm(mocker, v_ego=10.0, long_control_off=True)
     planner.update(sm)
 
     # a_desired should be clipped to cruise limits
-    assert planner.a_desired <= get_max_accel(10.0)
+    assert planner.a_cruise <= get_max_accel(10.0)
 
   def test_update_cruise_not_initialized(self, mocker):
     """Test reset when cruise not initialized."""
@@ -437,12 +378,12 @@ class TestLongitudinalPlannerUpdate:
     CP = create_mock_cp(mocker)
 
     planner = LongitudinalPlanner(CP)
-    sm = create_mock_sm(mocker, force_decel=True)
+    sm = create_mock_sm(mocker, force_decel=True, v_ego=15.0)
     planner.update(sm)
 
-    # mpc.update should have been called with v_cruise=0
-    args = mock_mpc.update.call_args
-    assert args[0][1] == 0.0  # v_cruise argument
+    # fork: upstream stopped passing v_cruise into mpc.update; forceDecel now zeroes
+    # v_cruise on the way into get_cruise_accel, so the cruise target goes negative.
+    assert planner.a_cruise < 0.0
 
   def test_update_allow_throttle_low_prob(self, mocker):
     """Test allow_throttle is False when throttle_prob is low."""
@@ -576,7 +517,7 @@ class TestLongitudinalPlannerPublish:
     mock_messaging.new_message.return_value = mock_plan
 
     sm = create_mock_sm(mocker)
-    sm['radarState'].leadOne.status = True
+    sm['radarState'].leadOne.present = True
     pm = mocker.MagicMock()
 
     planner.publish(sm, pm)

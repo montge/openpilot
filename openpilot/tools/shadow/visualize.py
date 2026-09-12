@@ -143,7 +143,7 @@ def plot_error_histogram(
   ])
   ax.text(0.95, 0.95, stats_text, transform=ax.transAxes, fontsize=10,
           verticalalignment='top', horizontalalignment='right',
-          bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+          bbox={'boxstyle': 'round', 'facecolor': 'wheat', 'alpha': 0.5})
 
   plt.tight_layout()
 
@@ -508,7 +508,7 @@ def plot_summary_dashboard(
   ])
   ax2.text(0.1, 0.9, summary_text, transform=ax2.transAxes, fontsize=10,
            verticalalignment='top', fontfamily='monospace',
-           bbox=dict(boxstyle='round', facecolor='lightgray', alpha=0.5))
+           bbox={'boxstyle': 'round', 'facecolor': 'lightgray', 'alpha': 0.5})
 
   # 3. Accel time series (middle row, spans 2 columns)
   ax3 = fig.add_subplot(gs[1, :2])

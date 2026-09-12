@@ -1,18 +1,16 @@
 import pytest
-import numpy as np
 
 from opendbc.car.structs import car
-from opendbc.car.interfaces import ACCEL_MIN, ACCEL_MAX
 from openpilot.selfdrive.controls.lib.longitudinal_planner import (
   LongitudinalPlanner,
   get_max_accel,
   get_coast_accel,
-  limit_accel_in_turns,
+  get_cruise_accel,
   A_CRUISE_MAX_VALS,
+  A_CRUISE_MIN,
   ALLOW_THROTTLE_THRESHOLD,
   MIN_ALLOW_THROTTLE_SPEED,
 )
-from openpilot.selfdrive.modeld.constants import ModelConstants
 
 
 class TestGetMaxAccel:
@@ -58,8 +56,12 @@ class TestGetCoastAccel:
     assert result > -0.3  # Less deceleration (or acceleration) downhill
 
 
-class TestLimitAccelInTurns:
-  """Tests for limit_accel_in_turns helper function."""
+class TestCruiseAccelInTurns:
+  """Tests for the lateral-accel limiting inside get_cruise_accel.
+
+  fork: upstream removed limit_accel_in_turns and folded its a_total_max / a_y budget
+  into get_cruise_accel's non-e2e branch, so these exercise it through that entry point.
+  """
 
   def _create_car_params(self, steer_ratio=15.0, wheelbase=2.7):
     """Create CarParams with steering geometry."""
@@ -68,97 +70,59 @@ class TestLimitAccelInTurns:
     CP.wheelbase = wheelbase
     return CP
 
-  def test_straight_line_limited_by_total_max(self):
-    """Straight driving still respects a_total_max based on speed."""
-    CP = self._create_car_params()
-    a_target = [ACCEL_MIN, 2.0]
-    # At 20 m/s, a_total_max is 1.7 (from _A_TOTAL_MAX_BP/V lookup)
-    result = limit_accel_in_turns(v_ego=20.0, angle_steers=0.0, a_target=a_target, CP=CP)
-    assert result[0] == a_target[0]
-    assert result[1] == pytest.approx(1.7, abs=0.01)  # Limited by a_total_max at 20 m/s
+  def _accel(self, v_ego, angle_steers, CP, v_cruise_delta=5.0, a_cruise_prev=0.0, dt=1.0):
+    """Ask for more accel than the turn budget allows and see what comes back.
 
-  def test_straight_line_below_total_max_unchanged(self):
-    """Request below a_total_max should pass through unchanged."""
+    dt is deliberately large so the jerk clamp around a_cruise_prev does not bind.
+    """
+    return get_cruise_accel(
+      e2e=False, v_cruise=v_ego + v_cruise_delta, v_ego=v_ego, a_cruise_prev=a_cruise_prev,
+      angle_steers=angle_steers, CP=CP, dt=dt, accel_coast=0.0, allow_throttle=True,
+    )
+
+  def test_straight_line_limited_by_max_accel(self):
+    """Straight driving is limited by get_max_accel, not by lateral accel."""
     CP = self._create_car_params()
-    a_target = [ACCEL_MIN, 1.0]  # Below a_total_max at any speed
-    result = limit_accel_in_turns(v_ego=20.0, angle_steers=0.0, a_target=a_target, CP=CP)
-    assert result[0] == a_target[0]
-    assert result[1] == pytest.approx(a_target[1], abs=0.01)  # Unchanged
+    assert self._accel(20.0, 0.0, CP) == pytest.approx(get_max_accel(20.0), abs=0.01)
 
   def test_high_lateral_accel_limits(self):
-    """High lateral acceleration in turn should limit longitudinal accel."""
+    """High lateral acceleration in a turn should limit longitudinal accel."""
     CP = self._create_car_params()
-    a_target = [ACCEL_MIN, 2.0]
-    # Large steering angle at speed creates high lateral accel
-    result = limit_accel_in_turns(v_ego=30.0, angle_steers=45.0, a_target=a_target, CP=CP)
-    assert result[1] < a_target[1]  # Should be limited
+    straight = self._accel(30.0, 0.0, CP)
+    turning = self._accel(30.0, 45.0, CP)
+    assert turning < straight
 
   def test_low_speed_less_lateral_effect(self):
-    """At low speeds, lateral accel is lower so less limiting."""
+    """Lateral accel scales with v^2, so the same angle costs less when slow."""
     CP = self._create_car_params()
-    a_target = [ACCEL_MIN, 2.0]
-    result = limit_accel_in_turns(v_ego=5.0, angle_steers=45.0, a_target=a_target, CP=CP)
-    # Low speed should have less lateral accel effect
-    assert result[1] >= 0.0  # Should still allow some accel
+    slow = self._accel(5.0, 45.0, CP)
+    fast = self._accel(30.0, 45.0, CP)
+    assert slow > fast
+    assert slow >= 0.0
 
-  def test_min_accel_unchanged(self):
-    """Minimum accel limit should never change."""
+  def test_e2e_skips_turn_limiting(self):
+    """In e2e mode the lateral budget is not applied."""
     CP = self._create_car_params()
-    a_target = [ACCEL_MIN, 2.0]
-    result = limit_accel_in_turns(v_ego=30.0, angle_steers=45.0, a_target=a_target, CP=CP)
-    assert result[0] == a_target[0]
+    turning = get_cruise_accel(
+      e2e=True, v_cruise=35.0, v_ego=30.0, a_cruise_prev=0.0,
+      angle_steers=45.0, CP=CP, dt=1.0, accel_coast=0.0, allow_throttle=True,
+    )
+    assert turning > self._accel(30.0, 45.0, CP)
+
+  def test_never_below_a_cruise_min(self):
+    """A deceleration request is floored at A_CRUISE_MIN."""
+    CP = self._create_car_params()
+    result = get_cruise_accel(
+      e2e=False, v_cruise=0.0, v_ego=30.0, a_cruise_prev=A_CRUISE_MIN,
+      angle_steers=0.0, CP=CP, dt=1.0, accel_coast=0.0, allow_throttle=True,
+    )
+    assert result >= A_CRUISE_MIN
 
 
-class TestParseModel:
-  """Tests for LongitudinalPlanner.parse_model static method."""
-
-  def _create_model_msg(self, mocker, n_elements=ModelConstants.IDX_N, throttle_prob=1.0):
-    """Create a modelV2 message with specified array sizes."""
-    model = mocker.MagicMock()
-    model.position.x = list(np.linspace(0, 100, n_elements))
-    model.velocity.x = list(np.linspace(10, 20, n_elements))
-    model.acceleration.x = list(np.linspace(0, 2, n_elements))
-    if throttle_prob is not None:
-      model.meta.disengagePredictions.gasPressProbs = [0.0, throttle_prob]
-    else:
-      model.meta.disengagePredictions.gasPressProbs = []
-    return model
-
-  def test_valid_model_parsed_correctly(self, mocker):
-    """Valid model with correct array lengths should parse successfully."""
-    model = self._create_model_msg(mocker, n_elements=ModelConstants.IDX_N)
-    x, v, a, j, throttle_prob = LongitudinalPlanner.parse_model(model)
-
-    assert len(x) > 0
-    assert len(v) > 0
-    assert len(a) > 0
-    assert len(j) > 0
-    assert throttle_prob == 1.0
-
-  def test_invalid_model_returns_zeros(self, mocker):
-    """Invalid model with wrong array lengths should return zeros."""
-    model = self._create_model_msg(mocker, n_elements=5)  # Wrong size
-    x, v, a, j, throttle_prob = LongitudinalPlanner.parse_model(model)
-
-    assert np.all(x == 0)
-    assert np.all(v == 0)
-    assert np.all(a == 0)
-    assert np.all(j == 0)
-
-  def test_missing_throttle_prob_defaults_to_one(self, mocker):
-    """Missing throttle probability should default to 1.0."""
-    model = self._create_model_msg(mocker, n_elements=ModelConstants.IDX_N, throttle_prob=None)
-    _, _, _, _, throttle_prob = LongitudinalPlanner.parse_model(model)
-
-    assert throttle_prob == 1.0
-
-  def test_low_throttle_prob(self, mocker):
-    """Low throttle probability should be returned correctly."""
-    model = self._create_model_msg(mocker, n_elements=ModelConstants.IDX_N, throttle_prob=0.2)
-    _, _, _, _, throttle_prob = LongitudinalPlanner.parse_model(model)
-
-    assert throttle_prob == pytest.approx(0.2, abs=0.01)
-
+# fork: upstream removed LongitudinalPlanner.parse_model -- the position/velocity/
+# acceleration interpolation moved into the MPC call path and throttle_prob is now read
+# inline in update(). The throttle_prob threshold behavior it used to cover is exercised
+# through update() by the allow-throttle tests below.
 
 class TestLongitudinalPlannerInit:
   """Tests for LongitudinalPlanner initialization."""
@@ -170,7 +134,6 @@ class TestLongitudinalPlannerInit:
     CP.wheelbase = 2.7
     CP.openpilotLongitudinalControl = True
     CP.longitudinalActuatorDelay = 0.5
-    CP.vEgoStopping = 0.5
     return CP
 
   def test_initial_values(self):
@@ -180,7 +143,7 @@ class TestLongitudinalPlannerInit:
 
     assert planner.fcw is False
     assert planner.allow_throttle is True
-    assert planner.a_desired == 0.0
+    assert planner.a_cruise == 0.0
     assert planner.output_a_target == 0.0
     assert planner.output_should_stop is False
 
@@ -189,7 +152,7 @@ class TestLongitudinalPlannerInit:
     CP = self._create_car_params()
     planner = LongitudinalPlanner(CP, init_v=10.0, init_a=1.5)
 
-    assert planner.a_desired == 1.5
+    assert planner.a_cruise == 1.5
     assert planner.v_desired_filter.x == pytest.approx(10.0, abs=0.01)
 
   def test_trajectory_arrays_initialized(self):
@@ -263,28 +226,6 @@ class TestFCWLogic:
     assert fcw is False
 
 
-class TestAccelClipping:
-  """Tests for acceleration clipping behavior."""
-
-  def test_accel_limits_initialized(self):
-    """prev_accel_clip should be initialized to full range."""
-    CP = car.CarParams.new_message()
-    CP.steerRatio = 15.0
-    CP.wheelbase = 2.7
-    planner = LongitudinalPlanner(CP)
-    assert planner.prev_accel_clip[0] == ACCEL_MIN
-    assert planner.prev_accel_clip[1] == ACCEL_MAX
-
-  def test_accel_clip_rate_limiting(self):
-    """Accel clip should be rate limited by 0.05 per step."""
-    prev_clip = [ACCEL_MIN, 1.0]
-    new_clip = [ACCEL_MIN, 2.0]
-    rate_limit = 0.05
-
-    # Simulate rate limiting logic from update()
-    clipped = [0.0, 0.0]
-    for idx in range(2):
-      clipped[idx] = np.clip(new_clip[idx], prev_clip[idx] - rate_limit, prev_clip[idx] + rate_limit)
-
-    assert clipped[0] == prev_clip[0]  # Min unchanged
-    assert clipped[1] == pytest.approx(prev_clip[1] + rate_limit, abs=0.001)  # Max rate limited
+# fork: upstream removed LongitudinalPlanner.prev_accel_clip and its per-frame 0.05
+# rate limit; the equivalent smoothing now lives in get_cruise_accel's J_CRUISE_VALS jerk
+# clamp, covered by TestCruiseAccelInTurns above.

@@ -1,4 +1,10 @@
-"""Tests for selfdrive/controls/lib/longcontrol.py - longitudinal control."""
+"""Tests for selfdrive/controls/lib/longcontrol.py - longitudinal control.
+
+fork: upstream removed the STARTING state from the longitudinal state machine, along
+with the CP and v_ego arguments to long_control_state_trans and CP.stoppingDecelRate's
+role in the stopping ramp. The STARTING transition tests that used to live here are
+gone with the state; what remains covers every transition still reachable.
+"""
 
 import numpy as np
 
@@ -12,13 +18,7 @@ from openpilot.selfdrive.controls.lib.longcontrol import (
 def create_mock_cp(mocker):
   """Create a mock CarParams for testing."""
   CP = mocker.MagicMock()
-  CP.vEgoStarting = 0.3
-  CP.startingState = True
   CP.stopAccel = -2.0
-  CP.startAccel = 1.2
-  CP.stoppingDecelRate = 0.8
-  CP.longitudinalTuning.kpBP = [0.0, 5.0, 35.0]
-  CP.longitudinalTuning.kpV = [0.0, 0.0, 0.0]
   CP.longitudinalTuning.kiBP = [0.0, 35.0]
   CP.longitudinalTuning.kiV = [0.0, 0.0]
   return CP
@@ -38,161 +38,98 @@ def create_mock_cs(mocker):
 class TestLongControlStateTrans:
   """Test long_control_state_trans state machine."""
 
-  def test_off_stays_off_when_not_active(self, mocker):
+  def test_off_stays_off_when_not_active(self):
     """Test OFF stays OFF when not active."""
-    CP = create_mock_cp(mocker)
     result = long_control_state_trans(
-      CP, active=False, long_control_state=LongCtrlState.off, v_ego=10.0, should_stop=False, brake_pressed=False, cruise_standstill=False
+      active=False, long_control_state=LongCtrlState.off, should_stop=False, brake_pressed=False, cruise_standstill=False
     )
     assert result == LongCtrlState.off
 
-  def test_off_to_stopping_when_should_stop(self, mocker):
+  def test_off_to_stopping_when_should_stop(self):
     """Test OFF -> STOPPING when should_stop is True."""
-    CP = create_mock_cp(mocker)
     result = long_control_state_trans(
-      CP, active=True, long_control_state=LongCtrlState.off, v_ego=10.0, should_stop=True, brake_pressed=False, cruise_standstill=False
+      active=True, long_control_state=LongCtrlState.off, should_stop=True, brake_pressed=False, cruise_standstill=False
     )
     assert result == LongCtrlState.stopping
 
-  def test_off_to_stopping_when_brake_pressed(self, mocker):
+  def test_off_to_stopping_when_brake_pressed(self):
     """Test OFF -> STOPPING when brake is pressed."""
-    CP = create_mock_cp(mocker)
     result = long_control_state_trans(
-      CP, active=True, long_control_state=LongCtrlState.off, v_ego=10.0, should_stop=False, brake_pressed=True, cruise_standstill=False
+      active=True, long_control_state=LongCtrlState.off, should_stop=False, brake_pressed=True, cruise_standstill=False
     )
     assert result == LongCtrlState.stopping
 
-  def test_off_to_stopping_when_cruise_standstill(self, mocker):
+  def test_off_to_stopping_when_cruise_standstill(self):
     """Test OFF -> STOPPING when cruise standstill."""
-    CP = create_mock_cp(mocker)
     result = long_control_state_trans(
-      CP, active=True, long_control_state=LongCtrlState.off, v_ego=10.0, should_stop=False, brake_pressed=False, cruise_standstill=True
+      active=True, long_control_state=LongCtrlState.off, should_stop=False, brake_pressed=False, cruise_standstill=True
     )
     assert result == LongCtrlState.stopping
 
-  def test_off_to_starting_with_starting_state(self, mocker):
-    """Test OFF -> STARTING when conditions met and startingState True."""
-    CP = create_mock_cp(mocker)
-    CP.startingState = True
+  def test_off_to_pid_when_starting_conditions_met(self):
+    """Test OFF -> PID when starting conditions are met."""
     result = long_control_state_trans(
-      CP, active=True, long_control_state=LongCtrlState.off, v_ego=0.1, should_stop=False, brake_pressed=False, cruise_standstill=False
-    )
-    assert result == LongCtrlState.starting
-
-  def test_off_to_pid_without_starting_state(self, mocker):
-    """Test OFF -> PID when conditions met and startingState False."""
-    CP = create_mock_cp(mocker)
-    CP.startingState = False
-    result = long_control_state_trans(
-      CP, active=True, long_control_state=LongCtrlState.off, v_ego=0.1, should_stop=False, brake_pressed=False, cruise_standstill=False
+      active=True, long_control_state=LongCtrlState.off, should_stop=False, brake_pressed=False, cruise_standstill=False
     )
     assert result == LongCtrlState.pid
 
   # STOPPING state transitions
-  def test_stopping_to_starting(self, mocker):
-    """Test STOPPING -> STARTING when conditions met."""
-    CP = create_mock_cp(mocker)
-    CP.startingState = True
+  def test_stopping_to_pid(self):
+    """Test STOPPING -> PID when starting conditions are met."""
     result = long_control_state_trans(
-      CP, active=True, long_control_state=LongCtrlState.stopping, v_ego=0.1, should_stop=False, brake_pressed=False, cruise_standstill=False
-    )
-    assert result == LongCtrlState.starting
-
-  def test_stopping_to_pid(self, mocker):
-    """Test STOPPING -> PID when starting without startingState."""
-    CP = create_mock_cp(mocker)
-    CP.startingState = False
-    result = long_control_state_trans(
-      CP, active=True, long_control_state=LongCtrlState.stopping, v_ego=0.1, should_stop=False, brake_pressed=False, cruise_standstill=False
+      active=True, long_control_state=LongCtrlState.stopping, should_stop=False, brake_pressed=False, cruise_standstill=False
     )
     assert result == LongCtrlState.pid
 
-  def test_stopping_stays_stopping_when_should_stop(self, mocker):
+  def test_stopping_stays_stopping_when_should_stop(self):
     """Test STOPPING stays STOPPING when should_stop is True."""
-    CP = create_mock_cp(mocker)
     result = long_control_state_trans(
-      CP, active=True, long_control_state=LongCtrlState.stopping, v_ego=0.1, should_stop=True, brake_pressed=False, cruise_standstill=False
+      active=True, long_control_state=LongCtrlState.stopping, should_stop=True, brake_pressed=False, cruise_standstill=False
     )
     assert result == LongCtrlState.stopping
 
-  def test_stopping_to_off_when_not_active(self, mocker):
+  def test_stopping_stays_stopping_when_brake_pressed(self):
+    """Test STOPPING stays STOPPING while the brake is held."""
+    result = long_control_state_trans(
+      active=True, long_control_state=LongCtrlState.stopping, should_stop=False, brake_pressed=True, cruise_standstill=False
+    )
+    assert result == LongCtrlState.stopping
+
+  def test_stopping_to_off_when_not_active(self):
     """Test STOPPING -> OFF when not active."""
-    CP = create_mock_cp(mocker)
     result = long_control_state_trans(
-      CP, active=False, long_control_state=LongCtrlState.stopping, v_ego=10.0, should_stop=False, brake_pressed=False, cruise_standstill=False
-    )
-    assert result == LongCtrlState.off
-
-  # STARTING state transitions
-  def test_starting_to_stopping(self, mocker):
-    """Test STARTING -> STOPPING when should_stop."""
-    CP = create_mock_cp(mocker)
-    result = long_control_state_trans(
-      CP, active=True, long_control_state=LongCtrlState.starting, v_ego=0.1, should_stop=True, brake_pressed=False, cruise_standstill=False
-    )
-    assert result == LongCtrlState.stopping
-
-  def test_starting_to_pid_when_started(self, mocker):
-    """Test STARTING -> PID when v_ego > vEgoStarting."""
-    CP = create_mock_cp(mocker)
-    CP.vEgoStarting = 0.3
-    result = long_control_state_trans(
-      CP, active=True, long_control_state=LongCtrlState.starting, v_ego=0.5, should_stop=False, brake_pressed=False, cruise_standstill=False
-    )
-    assert result == LongCtrlState.pid
-
-  def test_starting_stays_starting_below_threshold(self, mocker):
-    """Test STARTING stays STARTING when below vEgoStarting."""
-    CP = create_mock_cp(mocker)
-    CP.vEgoStarting = 0.3
-    result = long_control_state_trans(
-      CP, active=True, long_control_state=LongCtrlState.starting, v_ego=0.2, should_stop=False, brake_pressed=False, cruise_standstill=False
-    )
-    assert result == LongCtrlState.starting
-
-  def test_starting_to_off_when_not_active(self, mocker):
-    """Test STARTING -> OFF when not active."""
-    CP = create_mock_cp(mocker)
-    result = long_control_state_trans(
-      CP, active=False, long_control_state=LongCtrlState.starting, v_ego=0.1, should_stop=False, brake_pressed=False, cruise_standstill=False
+      active=False, long_control_state=LongCtrlState.stopping, should_stop=False, brake_pressed=False, cruise_standstill=False
     )
     assert result == LongCtrlState.off
 
   # PID state transitions
-  def test_pid_to_stopping(self, mocker):
+  def test_pid_to_stopping(self):
     """Test PID -> STOPPING when should_stop."""
-    CP = create_mock_cp(mocker)
     result = long_control_state_trans(
-      CP, active=True, long_control_state=LongCtrlState.pid, v_ego=10.0, should_stop=True, brake_pressed=False, cruise_standstill=False
+      active=True, long_control_state=LongCtrlState.pid, should_stop=True, brake_pressed=False, cruise_standstill=False
     )
     assert result == LongCtrlState.stopping
 
-  def test_pid_stays_pid_when_driving(self, mocker):
+  def test_pid_stays_pid_when_driving(self):
     """Test PID stays PID when conditions normal."""
-    CP = create_mock_cp(mocker)
-    CP.vEgoStarting = 0.3
     result = long_control_state_trans(
-      CP, active=True, long_control_state=LongCtrlState.pid, v_ego=10.0, should_stop=False, brake_pressed=False, cruise_standstill=False
+      active=True, long_control_state=LongCtrlState.pid, should_stop=False, brake_pressed=False, cruise_standstill=False
     )
     assert result == LongCtrlState.pid
 
-  def test_pid_to_off_when_not_active(self, mocker):
-    """Test PID -> OFF when not active."""
-    CP = create_mock_cp(mocker)
+  def test_pid_stays_pid_when_brake_pressed(self):
+    """Test PID stays PID when the brake is pressed but should_stop is False."""
     result = long_control_state_trans(
-      CP, active=False, long_control_state=LongCtrlState.pid, v_ego=10.0, should_stop=False, brake_pressed=False, cruise_standstill=False
+      active=True, long_control_state=LongCtrlState.pid, should_stop=False, brake_pressed=True, cruise_standstill=False
+    )
+    assert result == LongCtrlState.pid
+
+  def test_pid_to_off_when_not_active(self):
+    """Test PID -> OFF when not active."""
+    result = long_control_state_trans(
+      active=False, long_control_state=LongCtrlState.pid, should_stop=False, brake_pressed=False, cruise_standstill=False
     )
     assert result == LongCtrlState.off
-
-  def test_pid_stays_pid_when_below_vego_starting(self, mocker):
-    """Test PID stays PID even when v_ego < vEgoStarting (started_condition is False)."""
-    CP = create_mock_cp(mocker)
-    CP.vEgoStarting = 0.3
-    # v_ego below vEgoStarting, but we're already in PID so we stay there
-    result = long_control_state_trans(
-      CP, active=True, long_control_state=LongCtrlState.pid, v_ego=0.1, should_stop=False, brake_pressed=False, cruise_standstill=False
-    )
-    assert result == LongCtrlState.pid
 
 
 class TestLongControl:
@@ -241,26 +178,9 @@ class TestLongControl:
 
     assert lc.long_control_state == LongCtrlState.stopping
 
-  def test_update_starting_state(self, mocker):
-    """Test update in STARTING state uses startAccel."""
-    CP = create_mock_cp(mocker)
-    lc = LongControl(CP)
-    lc.long_control_state = LongCtrlState.stopping
-    CS = create_mock_cs(mocker)
-    CS.vEgo = 0.1
-    accel_limits = [-3.5, 2.0]
-
-    # Transition to starting
-    output = lc.update(active=True, CS=CS, a_target=0.5, should_stop=False, accel_limits=accel_limits)
-
-    # Should be in starting and using startAccel
-    assert lc.long_control_state == LongCtrlState.starting
-    assert abs(output - CP.startAccel) < 0.2
-
   def test_update_pid_state(self, mocker):
     """Test update in PID state uses PID controller."""
     CP = create_mock_cp(mocker)
-    CP.startingState = False
     lc = LongControl(CP)
     lc.long_control_state = LongCtrlState.stopping
     CS = create_mock_cs(mocker)
@@ -278,14 +198,14 @@ class TestLongControl:
     """Test output is clamped to accel_limits."""
     CP = create_mock_cp(mocker)
     lc = LongControl(CP)
-    lc.long_control_state = LongCtrlState.starting
     CS = create_mock_cs(mocker)
-    CS.vEgo = 0.1
+    CS.vEgo = 5.0
     accel_limits = [-1.0, 1.0]  # Narrow limits
 
-    # startAccel is 1.2, should be clamped to 1.0
-    output = lc.update(active=True, CS=CS, a_target=0.5, should_stop=False, accel_limits=accel_limits)
+    # a_target well above the positive limit, should be clamped to it
+    output = lc.update(active=True, CS=CS, a_target=5.0, should_stop=False, accel_limits=accel_limits)
 
+    assert lc.long_control_state == LongCtrlState.pid
     assert output <= accel_limits[1]
     assert output >= accel_limits[0]
 

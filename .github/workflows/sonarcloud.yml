@@ -94,10 +94,10 @@ jobs:
       - name: Run tests with coverage
         run: |
           source .venv/bin/activate
-          pytest --cov=selfdrive --cov=system --cov=tools --cov=common \
+          pytest --cov=openpilot \
             --cov-report=xml:coverage.xml \
-            -m "not slow and not tici" \
-            --ignore=tinygrad_repo --ignore=third_party \
+            -m "not slow" \
+            --ignore=tinygrad_repo \
             -x -n auto --timeout=300 || true
 
       - name: Check for SonarCloud token

@@ -32,10 +32,8 @@ EXCLUDES=(
   -i .venv
   # Generated code
   --suppress="*:openpilot/cereal/gen/*"
-  --suppress="*:openpilot/selfdrive/controls/lib/lateral_mpc_lib/c_generated_code/*"
   --suppress="*:openpilot/selfdrive/controls/lib/longitudinal_mpc_lib/c_generated_code/*"
   --suppress="*:openpilot/selfdrive/locationd/models/generated/*"
-  -i openpilot/selfdrive/controls/lib/lateral_mpc_lib/c_generated_code
   -i openpilot/selfdrive/controls/lib/longitudinal_mpc_lib/c_generated_code
   -i openpilot/selfdrive/locationd/models/generated
 )

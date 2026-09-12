@@ -8,7 +8,7 @@ LongControl) to implement the AlgorithmInterface protocol for use with the test 
 import math
 from dataclasses import dataclass, field
 from collections.abc import Callable
-from typing import Any, Optional
+from typing import Any
 
 from openpilot.selfdrive.controls.lib.tests.algorithm_harness.interface import (
   LateralAlgorithmState,
@@ -87,7 +87,7 @@ class LongitudinalControlConfig:
 
 def create_mock_lateral_dependencies(
   config: LateralControlConfig,
-  steer_from_curvature_fn: Optional[Callable] = None,
+  steer_from_curvature_fn: Callable | None = None,
 ) -> tuple[Any, Any]:
   """
   Create mock CarParams and CarInterface for lateral controllers.
@@ -169,7 +169,7 @@ class LatControlPIDAdapter:
     output = adapter.update(state)
   """
 
-  def __init__(self, config: Optional[LateralControlConfig] = None):
+  def __init__(self, config: LateralControlConfig | None = None):
     """Initialize with optional configuration."""
     self.config = config or LateralControlConfig()
     self._controller = None
@@ -227,7 +227,7 @@ class LatControlPIDAdapter:
 class LatControlTorqueAdapter:
   """Adapter wrapping LatControlTorque for the test harness."""
 
-  def __init__(self, config: Optional[LateralControlConfig] = None):
+  def __init__(self, config: LateralControlConfig | None = None):
     """Initialize with optional configuration."""
     self.config = config or LateralControlConfig()
     self._controller = None
@@ -281,7 +281,7 @@ class LatControlTorqueAdapter:
 class LongControlAdapter:
   """Adapter wrapping LongControl for the test harness."""
 
-  def __init__(self, config: Optional[LongitudinalControlConfig] = None):
+  def __init__(self, config: LongitudinalControlConfig | None = None):
     """Initialize with optional configuration."""
     self.config = config or LongitudinalControlConfig()
     self._controller = None

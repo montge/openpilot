@@ -3,6 +3,7 @@ import random
 import numpy as np
 
 import openpilot.cereal.messaging as messaging
+from openpilot.common.test import OpenpilotTestCase
 from openpilot.cereal import log
 from openpilot.common.params import Params
 from openpilot.selfdrive.locationd.calibrationd import (
@@ -44,18 +45,18 @@ def process_messages(
     )
 
 
-class TestCalibrationd:
+class TestCalibrationd(OpenpilotTestCase):
   def test_read_saved_params(self):
-    msg = messaging.new_message('liveCalibration')
-    msg.liveCalibration.validBlocks = random.randint(1, 10)
-    msg.liveCalibration.rpyCalib = [random.random() for _ in range(3)]
-    msg.liveCalibration.height = [random.random() for _ in range(1)]
+    msg = messaging.new_message('extrinsicsCalibration')
+    msg.extrinsicsCalibration.validBlocks = random.randint(1, 10)
+    msg.extrinsicsCalibration.rpyCalib = [random.random() for _ in range(3)]
+    msg.extrinsicsCalibration.height = [random.random() for _ in range(1)]
     Params().put("CalibrationParams", msg.to_bytes(), block=True)
     c = Calibrator(param_put=True)
 
-    np.testing.assert_allclose(msg.liveCalibration.rpyCalib, c.rpy)
-    np.testing.assert_allclose(msg.liveCalibration.height, c.height)
-    assert msg.liveCalibration.validBlocks == c.valid_blocks
+    np.testing.assert_allclose(msg.extrinsicsCalibration.rpyCalib, c.rpy)
+    np.testing.assert_allclose(msg.extrinsicsCalibration.height, c.height)
+    assert msg.extrinsicsCalibration.validBlocks == c.valid_blocks
 
   def test_calibration_basics(self):
     c = Calibrator(param_put=False)
@@ -99,7 +100,7 @@ class TestCalibrationd:
     np.testing.assert_allclose(c.rpy, [0.0, 0.0, 0.0], atol=1e-3)
     process_messages(c, [0.0, MAX_ALLOWED_PITCH_SPREAD * 0.9, MAX_ALLOWED_YAW_SPREAD * 0.9], BLOCK_SIZE + 10)
     assert c.valid_blocks == INPUTS_NEEDED + 1
-    assert c.cal_status == log.LiveCalibrationData.Status.calibrated
+    assert c.cal_status == log.ExtrinsicsCalibration.Status.calibrated
 
     c = Calibrator(param_put=False)
     process_messages(c, [0.0, 0.0, 0.0], BLOCK_SIZE * INPUTS_NEEDED)
@@ -107,7 +108,7 @@ class TestCalibrationd:
     np.testing.assert_allclose(c.rpy, [0.0, 0.0, 0.0])
     process_messages(c, [0.0, MAX_ALLOWED_PITCH_SPREAD * 1.1, 0.0], BLOCK_SIZE + 10)
     assert c.valid_blocks == 1
-    assert c.cal_status == log.LiveCalibrationData.Status.recalibrating
+    assert c.cal_status == log.ExtrinsicsCalibration.Status.recalibrating
     np.testing.assert_allclose(c.rpy, [0.0, MAX_ALLOWED_PITCH_SPREAD * 1.1, 0.0], atol=1e-2)
 
     c = Calibrator(param_put=False)
@@ -116,7 +117,7 @@ class TestCalibrationd:
     np.testing.assert_allclose(c.rpy, [0.0, 0.0, 0.0])
     process_messages(c, [0.0, 0.0, MAX_ALLOWED_YAW_SPREAD * 1.1], BLOCK_SIZE + 10)
     assert c.valid_blocks == 1
-    assert c.cal_status == log.LiveCalibrationData.Status.recalibrating
+    assert c.cal_status == log.ExtrinsicsCalibration.Status.recalibrating
     np.testing.assert_allclose(c.rpy, [0.0, 0.0, MAX_ALLOWED_YAW_SPREAD * 1.1], atol=1e-2)
 
 
@@ -277,16 +278,16 @@ class TestCalibratorMethods:
     c = Calibrator(param_put=False)
     msg = c.get_msg(valid=True)
     assert msg.valid
-    assert msg.liveCalibration.validBlocks == c.valid_blocks
+    assert msg.extrinsicsCalibration.validBlocks == c.valid_blocks
 
   def test_calibrator_get_msg_not_car(self):
     """Test get_msg with not_car flag."""
     c = Calibrator(param_put=False)
     c.not_car = True
     msg = c.get_msg(valid=True)
-    assert msg.liveCalibration.validBlocks == INPUTS_NEEDED
-    assert msg.liveCalibration.calStatus == log.LiveCalibrationData.Status.calibrated
-    assert msg.liveCalibration.calPerc == 100.0
+    assert msg.extrinsicsCalibration.validBlocks == INPUTS_NEEDED
+    assert msg.extrinsicsCalibration.calStatus == log.ExtrinsicsCalibration.Status.calibrated
+    assert msg.extrinsicsCalibration.calPerc == 100.0
 
   def test_calibrator_get_valid_idxs(self):
     """Test get_valid_idxs returns correct indices."""
@@ -306,13 +307,13 @@ class TestCalibratorMethods:
     c = Calibrator(param_put=False)
     c.valid_blocks = INPUTS_NEEDED - 1
     c.update_status()
-    assert c.cal_status == log.LiveCalibrationData.Status.uncalibrated
+    assert c.cal_status == log.ExtrinsicsCalibration.Status.uncalibrated
 
   def test_calibrator_update_status_calibrated(self):
     """Test update_status with valid calibration."""
     c = Calibrator(param_put=False)
     process_messages(c, [0.0, 0.0, 0.0], BLOCK_SIZE * INPUTS_NEEDED)
-    assert c.cal_status == log.LiveCalibrationData.Status.calibrated
+    assert c.cal_status == log.ExtrinsicsCalibration.Status.calibrated
 
 
 class TestCalibrationConstants:

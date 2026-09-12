@@ -2,12 +2,12 @@ import os
 from typing import cast
 
 from openpilot.common.hardware.base import HardwareBase
-from openpilot.common.hardware.tici.hardware import Tici
-from openpilot.common.hardware.pc.hardware import Pc
+from openpilot.common.hardware.comma.hardware import HardwareComma
+from openpilot.common.hardware.pc.hardware import HardwarePc
 
-TICI = os.path.isfile('/TICI')
 AGNOS = os.path.isfile('/AGNOS')
-PC = not TICI
+COMMA_HARDWARE = AGNOS
+PC = not COMMA_HARDWARE
 
 # Check for NVIDIA GPU (DGX Spark, RTX, etc.)
 NVIDIA_GPU = False
@@ -30,14 +30,14 @@ if NVIDIA_GPU:
     pass
 
 
-if TICI:
-  HARDWARE = cast(HardwareBase, Tici())
+if COMMA_HARDWARE:
+  HARDWARE = cast(HardwareBase, HardwareComma())
 elif NVIDIA_GPU:
   from openpilot.common.hardware.nvidia.hardware import NvidiaPC
 
   HARDWARE = cast(HardwareBase, NvidiaPC())
 else:
-  HARDWARE = cast(HardwareBase, Pc())
+  HARDWARE = cast(HardwareBase, HardwarePc())
 
 # Shadow mode detection (for parallel testing devices)
 from openpilot.common.hardware.shadow_mode import (

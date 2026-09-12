@@ -138,7 +138,7 @@ class TestPIDControllerProperties:
   def test_speed_interpolation(self, speed):
     """Property: Gain interpolation works with speed-dependent gains."""
     # Speed-dependent kp: low at low speed, high at high speed
-    k_p = [[0, 20, 40], [0.5, 1.0, 1.5]]
+    k_p = [[0.0, 20.0, 40.0], [0.5, 1.0, 1.5]]
     pid = PIDController(k_p=k_p, k_i=0.0)
 
     pid.update(error=1.0, speed=speed)
