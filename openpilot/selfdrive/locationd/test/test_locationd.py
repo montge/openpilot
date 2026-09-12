@@ -69,9 +69,9 @@ def create_car_state_msg(v_ego):
 
 
 def create_live_calibration_msg(rpy_calib):
-  """Create a liveCalibration message for testing."""
-  msg = messaging.new_message('liveCalibration')
-  msg.liveCalibration.rpyCalib = rpy_calib
+  """Create a extrinsicsCalibration message for testing."""
+  msg = messaging.new_message('extrinsicsCalibration')
+  msg.extrinsicsCalibration.rpyCalib = rpy_calib
   return msg
 
 
@@ -106,8 +106,8 @@ class TestInitXyzMeasurement:
 
   def test_init_measurement_valid(self):
     """Test initializing an XYZ measurement with valid flag true."""
-    msg = messaging.new_message('livePose')
-    measurement = msg.livePose.init('orientationNED')
+    msg = messaging.new_message('deviceMotion')
+    measurement = msg.deviceMotion.init('orientationNED')
     values = np.array([0.1, 0.2, 0.3])
     stds = np.array([0.01, 0.02, 0.03])
     init_xyz_measurement(measurement, values, stds, True)
@@ -122,8 +122,8 @@ class TestInitXyzMeasurement:
 
   def test_init_measurement_invalid(self):
     """Test initializing an XYZ measurement with valid flag false."""
-    msg = messaging.new_message('livePose')
-    measurement = msg.livePose.init('orientationNED')
+    msg = messaging.new_message('deviceMotion')
+    measurement = msg.deviceMotion.init('orientationNED')
     values = np.array([0.0, 0.0, 0.0])
     stds = np.array([1.0, 1.0, 1.0])
     init_xyz_measurement(measurement, values, stds, False)
@@ -348,24 +348,24 @@ class TestLocationEstimatorHandleLog:
     assert estimator.car_speed == 10.0  # Should be absolute value
 
   def test_handle_live_calibration_valid(self):
-    """Test handling valid liveCalibration message."""
+    """Test handling valid extrinsicsCalibration message."""
     estimator = LocationEstimator(debug=False)
     estimator.reset(1.0)
 
     msg = create_live_calibration_msg([0.1, 0.05, 0.02])
-    result = estimator.handle_log(1.0, "liveCalibration", msg.liveCalibration)
+    result = estimator.handle_log(1.0, "extrinsicsCalibration", msg.extrinsicsCalibration)
     assert result == HandleLogResult.SUCCESS
     # device_from_calib should be updated
     assert not np.allclose(estimator.device_from_calib, np.eye(3))
 
   def test_handle_live_calibration_invalid(self):
-    """Test handling liveCalibration message with out-of-range values."""
+    """Test handling extrinsicsCalibration message with out-of-range values."""
     estimator = LocationEstimator(debug=False)
     estimator.reset(1.0)
 
     # Values exceed CALIB_RPY_SANITY_CHECK (0.5 rad)
     msg = create_live_calibration_msg([1.0, 0.0, 0.0])
-    result = estimator.handle_log(1.0, "liveCalibration", msg.liveCalibration)
+    result = estimator.handle_log(1.0, "extrinsicsCalibration", msg.extrinsicsCalibration)
     assert result == HandleLogResult.INPUT_INVALID
 
   def test_handle_camera_odometry_valid(self):
@@ -449,10 +449,10 @@ class TestLocationEstimatorGetMsg:
 
     msg = estimator.get_msg(sensors_valid=True, inputs_valid=True, filter_initialized=True)
 
-    assert msg.which() == 'livePose'
+    assert msg.which() == 'deviceMotion'
     assert msg.valid is True
-    assert msg.livePose.sensorsOK is True
-    assert msg.livePose.inputsOK is True
+    assert msg.deviceMotion.sensorsOK is True
+    assert msg.deviceMotion.inputsOK is True
 
   def test_get_msg_filter_invalid(self):
     """Test get_msg with filter invalid."""
@@ -462,7 +462,7 @@ class TestLocationEstimatorGetMsg:
     msg = estimator.get_msg(sensors_valid=True, inputs_valid=True, filter_initialized=False)
 
     assert msg.valid is False
-    assert msg.livePose.orientationNED.valid is False
+    assert msg.deviceMotion.orientationNED.valid is False
 
   def test_get_msg_sensors_invalid(self):
     """Test get_msg with sensors invalid."""
@@ -470,7 +470,7 @@ class TestLocationEstimatorGetMsg:
     estimator.reset(1.0)
 
     msg = estimator.get_msg(sensors_valid=False, inputs_valid=True, filter_initialized=True)
-    assert msg.livePose.sensorsOK is False
+    assert msg.deviceMotion.sensorsOK is False
 
   def test_get_msg_inputs_invalid(self):
     """Test get_msg with inputs invalid."""
@@ -478,7 +478,7 @@ class TestLocationEstimatorGetMsg:
     estimator.reset(1.0)
 
     msg = estimator.get_msg(sensors_valid=True, inputs_valid=False, filter_initialized=True)
-    assert msg.livePose.inputsOK is False
+    assert msg.deviceMotion.inputsOK is False
 
   def test_get_msg_debug_mode(self):
     """Test get_msg in debug mode includes filter state."""
@@ -488,8 +488,8 @@ class TestLocationEstimatorGetMsg:
     msg = estimator.get_msg(sensors_valid=True, inputs_valid=True, filter_initialized=True)
 
     # Debug mode should include filter state
-    assert len(msg.livePose.debugFilterState.value) > 0
-    assert len(msg.livePose.debugFilterState.std) > 0
+    assert len(msg.deviceMotion.debugFilterState.value) > 0
+    assert len(msg.deviceMotion.debugFilterState.std) > 0
 
   def test_get_msg_posenet_ok_low_speed(self):
     """Test posenetOK is True at low speeds regardless of std spike."""
@@ -502,7 +502,7 @@ class TestLocationEstimatorGetMsg:
     estimator.posenet_stds[POSENET_STD_HIST_HALF:] = 10.0
 
     msg = estimator.get_msg(sensors_valid=True, inputs_valid=True, filter_initialized=True)
-    assert msg.livePose.posenetOK is True
+    assert msg.deviceMotion.posenetOK is True
 
   def test_get_msg_posenet_not_ok_high_speed_with_spike(self):
     """Test posenetOK is False at high speed with std spike."""
@@ -515,7 +515,7 @@ class TestLocationEstimatorGetMsg:
     estimator.posenet_stds[POSENET_STD_HIST_HALF:] = 10.0
 
     msg = estimator.get_msg(sensors_valid=True, inputs_valid=True, filter_initialized=True)
-    assert msg.livePose.posenetOK is False
+    assert msg.deviceMotion.posenetOK is False
 
 
 class TestSensorAllChecks:
@@ -679,7 +679,7 @@ class TestLocationEstimatorIntegration:
 
     # Process calibration
     calib_msg = create_live_calibration_msg([0.01, 0.02, 0.005])
-    result = estimator.handle_log(1.0, "liveCalibration", calib_msg.liveCalibration)
+    result = estimator.handle_log(1.0, "extrinsicsCalibration", calib_msg.extrinsicsCalibration)
     assert result == HandleLogResult.SUCCESS
 
     # Process accelerometer

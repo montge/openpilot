@@ -37,8 +37,8 @@ class ModelPoints:
 
 @dataclass
 class LeadVehicle:
-  glow: list[float] = field(default_factory=list)
-  chevron: list[float] = field(default_factory=list)
+  glow: list[tuple[float, float]] = field(default_factory=list)
+  chevron: list[tuple[float, float]] = field(default_factory=list)
   fill_alpha: int = 0
 
 
@@ -85,7 +85,7 @@ class ModelRenderer(Widget):
     sm = ui_state.sm
 
     # Check if data is up-to-date
-    if (sm.recv_frame["liveCalibration"] < ui_state.started_frame or
+    if (sm.recv_frame["extrinsicsCalibration"] < ui_state.started_frame or
         sm.recv_frame["modelV2"] < ui_state.started_frame):
       return
 
@@ -97,8 +97,8 @@ class ModelRenderer(Widget):
     # Update state
     self._experimental_mode = sm['selfdriveState'].experimentalMode
 
-    live_calib = sm['liveCalibration']
-    self._path_offset_z = live_calib.height[0] if live_calib.height else HEIGHT_INIT[0]
+    extrinsics_calibration = sm['extrinsicsCalibration']
+    self._path_offset_z = extrinsics_calibration.height[0] if extrinsics_calibration.height else HEIGHT_INIT[0]
 
     if sm.updated['carParams']:
       self._longitudinal_control = sm['carParams'].openpilotLongitudinalControl
@@ -150,7 +150,7 @@ class ModelRenderer(Widget):
     leads = [radar_state.leadOne, radar_state.leadTwo]
 
     for i, lead_data in enumerate(leads):
-      if lead_data and lead_data.status:
+      if lead_data and lead_data.present:
         d_rel, y_rel, v_rel = lead_data.dRel, lead_data.yRel, lead_data.vRel
         idx = self._get_path_length_idx(path_x_array, d_rel)
 
@@ -176,7 +176,7 @@ class ModelRenderer(Widget):
       road_edge.projected_points = self._map_line_to_polygon(road_edge.raw_points, 0.025, 0.0, max_idx, max_distance)
 
     # Update path using raw points
-    if lead and lead.status:
+    if lead and lead.present:
       lead_d = lead.dRel * 2.0
       max_distance = np.clip(lead_d - min(lead_d * 0.35, 10.0), 0.0, max_distance)
 

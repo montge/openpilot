@@ -934,7 +934,7 @@ class TestDriverMonitoringRunStep:
       ),
       'selfdriveState': mocker.MagicMock(enabled=enabled),
       'modelV2': mocker.MagicMock(meta=mocker.MagicMock(disengagePredictions=mocker.MagicMock(brakeDisengageProbs=[0.5]))),
-      'liveCalibration': mocker.MagicMock(rpyCalib=[0.0, 0.0, 0.0]),
+      'extrinsicsCalibration': mocker.MagicMock(rpyCalib=[0.0, 0.0, 0.0]),
       'driverStateV2': self._create_driver_state(mocker),
     }.get(key)
 

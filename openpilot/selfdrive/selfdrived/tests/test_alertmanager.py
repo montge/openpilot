@@ -1,11 +1,12 @@
 import random
 
+from openpilot.common.test import OpenpilotTestCase
 from openpilot.selfdrive.selfdrived.events import Alert, EmptyAlert, EVENTS, ET
 from openpilot.selfdrive.selfdrived.alertmanager import AlertManager, AlertEntry, set_offroad_alert, OFFROAD_ALERTS
 from openpilot.common.params import Params
 
 
-class TestAlertManager:
+class TestAlertManager(OpenpilotTestCase):
   def test_duration(self):
     """
     Enforce that an alert lasts for max(alert duration, duration the alert is added)

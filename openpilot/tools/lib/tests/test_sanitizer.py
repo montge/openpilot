@@ -84,7 +84,7 @@ class TestSanitizeMsg:
 
   def test_other_message_types_unchanged(self, mocker):
     """Test various other message types are unchanged."""
-    for msg_type in ["pandaStates", "controlsState", "liveCalibration"]:
+    for msg_type in ["pandaStates", "controlsState", "extrinsicsCalibration"]:
       msg = mocker.MagicMock()
       msg.which.return_value = msg_type
 

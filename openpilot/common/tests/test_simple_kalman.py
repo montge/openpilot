@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from openpilot.common.test import OpenpilotTestCase
 from openpilot.common.simple_kalman import KF1D, get_kalman_gain
 
 
@@ -62,7 +63,7 @@ class TestGetKalmanGain:
     assert K_high_r[0, 0] < K_low_r[0, 0]
 
 
-class TestKF1D:
+class TestKF1D(OpenpilotTestCase):
   """Test KF1D Kalman filter class."""
 
   def setup_method(self):

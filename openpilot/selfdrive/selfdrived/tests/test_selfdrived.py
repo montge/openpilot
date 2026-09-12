@@ -98,17 +98,17 @@ class MockSubMaster:
       'pandaStates',
       'peripheralState',
       'modelV2',
-      'liveCalibration',
+      'extrinsicsCalibration',
       'carOutput',
       'driverMonitoringState',
       'longitudinalPlan',
       'lateralManeuverPlan',
-      'livePose',
-      'liveDelay',
+      'deviceMotion',
+      'lateralDelay',
       'managerState',
-      'liveParameters',
+      'vehicleParameters',
       'radarState',
-      'liveTorqueParameters',
+      'lateralTorqueParameters',
       'controlsState',
       'carControl',
       'driverAssistance',
@@ -135,18 +135,18 @@ class MockSubMaster:
     self.data['pandaStates'] = []
     self.data['peripheralState'] = log.PeripheralState.new_message()
     self.data['modelV2'] = log.ModelDataV2.new_message()
-    self.data['liveCalibration'] = log.LiveCalibrationData.new_message()
+    self.data['extrinsicsCalibration'] = log.ExtrinsicsCalibration.new_message()
     self.data['driverMonitoringState'] = log.DriverMonitoringState.new_message()
     self.data['longitudinalPlan'] = log.LongitudinalPlan.new_message()
-    self.data['livePose'] = log.LivePose.new_message()
+    self.data['deviceMotion'] = log.DeviceMotion.new_message()
     self.data['managerState'] = log.ManagerState.new_message()
-    self.data['liveParameters'] = log.LiveParametersData.new_message()
+    self.data['vehicleParameters'] = log.VehicleParameters.new_message()
     self.data['radarState'] = log.RadarState.new_message()
     self.data['controlsState'] = log.ControlsState.new_message()
     self.data['carControl'] = car.CarControl.new_message()
     self.data['driverAssistance'] = log.DriverAssistance.new_message()
     self.data['alertDebug'] = log.DebugAlert.new_message()
-    self.data['liveDelay'] = log.LiveDelayData.new_message()
+    self.data['lateralDelay'] = log.LateralDelay.new_message()
 
   def __getitem__(self, key):
     return self.data.get(key, None)
@@ -295,8 +295,8 @@ class TestUpdateEvents:
     """Helper to create a SelfdriveD instance for testing."""
     mocks = setup_selfdrived_mocks(mocker)
 
-    # Mock CarSpecificEvents to return empty Events
-    mock_car_events = mocker.patch('openpilot.selfdrive.selfdrived.selfdrived.CarSpecificEvents')
+    # Mock CarEvents to return empty Events
+    mock_car_events = mocker.patch('openpilot.selfdrive.selfdrived.selfdrived.CarEvents')
     mock_car_events_instance = mocker.MagicMock()
     mock_car_events.return_value = mock_car_events_instance
     mock_car_events_instance.update.return_value = Events()
@@ -409,8 +409,8 @@ class TestUpdateEvents:
     sd, mock_sm = self._create_selfdrived(mocker, brand='toyota')
     sd.initialized = True
 
-    mock_sm.data['liveCalibration'] = log.LiveCalibrationData.new_message()
-    mock_sm.data['liveCalibration'].calStatus = log.LiveCalibrationData.Status.uncalibrated
+    mock_sm.data['extrinsicsCalibration'] = log.ExtrinsicsCalibration.new_message()
+    mock_sm.data['extrinsicsCalibration'].calStatus = log.ExtrinsicsCalibration.Status.uncalibrated
 
     CS = make_car_state(can_valid=True)
     sd.update_events(CS)
@@ -422,8 +422,8 @@ class TestUpdateEvents:
     sd, mock_sm = self._create_selfdrived(mocker, brand='toyota')
     sd.initialized = True
 
-    mock_sm.data['liveCalibration'] = log.LiveCalibrationData.new_message()
-    mock_sm.data['liveCalibration'].calStatus = log.LiveCalibrationData.Status.recalibrating
+    mock_sm.data['extrinsicsCalibration'] = log.ExtrinsicsCalibration.new_message()
+    mock_sm.data['extrinsicsCalibration'].calStatus = log.ExtrinsicsCalibration.Status.recalibrating
 
     CS = make_car_state(can_valid=True)
 
@@ -650,7 +650,7 @@ class TestAlertHandling:
     """Helper to create a SelfdriveD instance for testing."""
     mocks = setup_selfdrived_mocks(mocker)
 
-    mock_car_events = mocker.patch('openpilot.selfdrive.selfdrived.selfdrived.CarSpecificEvents')
+    mock_car_events = mocker.patch('openpilot.selfdrive.selfdrived.selfdrived.CarEvents')
     mock_car_events_instance = mocker.MagicMock()
     mock_car_events.return_value = mock_car_events_instance
     mock_car_events_instance.update.return_value = Events()
@@ -699,7 +699,7 @@ class TestPublishSelfdriveState:
     """Helper to create a SelfdriveD instance for testing."""
     mocks = setup_selfdrived_mocks(mocker)
 
-    mock_car_events = mocker.patch('openpilot.selfdrive.selfdrived.selfdrived.CarSpecificEvents')
+    mock_car_events = mocker.patch('openpilot.selfdrive.selfdrived.selfdrived.CarEvents')
     mock_car_events_instance = mocker.MagicMock()
     mock_car_events.return_value = mock_car_events_instance
     mock_car_events_instance.update.return_value = Events()
@@ -871,7 +871,7 @@ class TestStep:
     mocks = setup_selfdrived_mocks(mocker)
     mocks['params_instance'].get.return_value = log.LongitudinalPersonality.standard
 
-    mock_car_events = mocker.patch('openpilot.selfdrive.selfdrived.selfdrived.CarSpecificEvents')
+    mock_car_events = mocker.patch('openpilot.selfdrive.selfdrived.selfdrived.CarEvents')
     mock_car_events_instance = mocker.MagicMock()
     mock_car_events.return_value = mock_car_events_instance
     mock_car_events_instance.update.return_value = Events()
@@ -937,7 +937,7 @@ class TestLaneChangeEvents:
   def _create_selfdrived(self, mocker, **cp_kwargs):
     mocks = setup_selfdrived_mocks(mocker)
 
-    mock_car_events = mocker.patch('openpilot.selfdrive.selfdrived.selfdrived.CarSpecificEvents')
+    mock_car_events = mocker.patch('openpilot.selfdrive.selfdrived.selfdrived.CarEvents')
     mock_car_events_instance = mocker.MagicMock()
     mock_car_events.return_value = mock_car_events_instance
     mock_car_events_instance.update.return_value = Events()
@@ -1077,7 +1077,7 @@ class TestFCWEvents:
   def _create_selfdrived(self, mocker, **cp_kwargs):
     mocks = setup_selfdrived_mocks(mocker)
 
-    mock_car_events = mocker.patch('openpilot.selfdrive.selfdrived.selfdrived.CarSpecificEvents')
+    mock_car_events = mocker.patch('openpilot.selfdrive.selfdrived.selfdrived.CarEvents')
     mock_car_events_instance = mocker.MagicMock()
     mock_car_events.return_value = mock_car_events_instance
     mock_car_events_instance.update.return_value = Events()

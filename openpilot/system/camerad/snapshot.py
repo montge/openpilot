@@ -1,29 +1,18 @@
 #!/usr/bin/env python3
-import subprocess
-import time
 
 import numpy as np
-from PIL import Image
 
 import openpilot.cereal.messaging as messaging
-from msgq.visionipc import VisionIpcClient, VisionStreamType
-from openpilot.common.params import Params
+from openpilot.cereal.visionipc import VisionStreamType
+from msgq.visionipc import VisionIpcClient
 from openpilot.common.realtime import DT_MDL
-from openpilot.common.hardware import PC
-from openpilot.selfdrive.selfdrived.alertmanager import set_offroad_alert
-from openpilot.system.manager.process_config import managed_processes
 
 
 VISION_STREAMS = {
-  "roadCameraState": VisionStreamType.VISION_STREAM_ROAD,
-  "driverCameraState": VisionStreamType.VISION_STREAM_DRIVER,
+  "narrowRoadCameraState": VisionStreamType.VISION_STREAM_NARROW_ROAD,
+  "cabinCameraState": VisionStreamType.VISION_STREAM_CABIN,
   "wideRoadCameraState": VisionStreamType.VISION_STREAM_WIDE_ROAD,
 }
-
-
-def jpeg_write(fn, dat):
-  img = Image.fromarray(dat)
-  img.save(fn, "JPEG")
 
 
 def yuv_to_rgb(y, u, v):
@@ -56,7 +45,7 @@ def extract_image(buf):
   return yuv_to_rgb(y, u, v)
 
 
-def get_snapshots(frame="roadCameraState", front_frame="driverCameraState"):
+def get_snapshots(frame="narrowRoadCameraState", front_frame="cabinCameraState"):
   sockets = [s for s in (frame, front_frame) if s is not None]
   sm = messaging.SubMaster(sockets)
   vipc_clients = {s: VisionIpcClient("camerad", VISION_STREAMS[s], True) for s in sockets}
@@ -77,55 +66,3 @@ def get_snapshots(frame="roadCameraState", front_frame="driverCameraState"):
     c = vipc_clients[front_frame]
     front = extract_image(c.recv())
   return rear, front
-
-
-def snapshot():
-  params = Params()
-
-  if (not params.get_bool("IsOffroad")) or params.get_bool("IsTakingSnapshot"):
-    print("Already taking snapshot")
-    return None, None
-
-  front_camera_allowed = params.get_bool("RecordFront")
-  params.put_bool("IsTakingSnapshot", True, block=True)
-  set_offroad_alert("Offroad_IsTakingSnapshot", True)
-  time.sleep(2.0)  # Give hardwared time to read the param, or if just started give camerad time to start
-
-  # Check if camerad is already started
-  try:
-    subprocess.check_call(["pgrep", "camerad"])
-    print("Camerad already running")
-    params.put_bool("IsTakingSnapshot", False, block=True)
-    params.remove("Offroad_IsTakingSnapshot")
-    return None, None
-  except subprocess.CalledProcessError:
-    pass
-
-  try:
-    # Allow testing on replay on PC
-    if not PC:
-      managed_processes['camerad'].start()
-
-    frame = "wideRoadCameraState"
-    front_frame = "driverCameraState" if front_camera_allowed else None
-    rear, front = get_snapshots(frame, front_frame)
-  finally:
-    managed_processes['camerad'].stop()
-    params.put_bool("IsTakingSnapshot", False, block=True)
-    set_offroad_alert("Offroad_IsTakingSnapshot", False)
-
-  if not front_camera_allowed:
-    front = None
-
-  return rear, front
-
-
-if __name__ == "__main__":
-  pic, fpic = snapshot()
-  if pic is not None:
-    print(pic.shape)
-    jpeg_write("/tmp/back.jpg", pic)
-    if fpic is not None:
-      jpeg_write("/tmp/front.jpg", fpic)
-  else:
-    print("Error taking snapshot")

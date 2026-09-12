@@ -108,7 +108,7 @@ def create_mock_sm(
     'carState': car_state,
     'selfdriveState': selfdrive_state,
     'controlsState': controls_state,
-    'liveParameters': live_params,
+    'vehicleParameters': live_params,
     'carControl': car_control,
     'modelV2': model_msg,
     'radarState': radar_state,

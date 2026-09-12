@@ -1,18 +1,29 @@
 from __future__ import annotations
 
 import abc
+import time
 import pyray as rl
 from enum import IntEnum
-from typing import TypeVar
+from typing import Protocol, TypeVar
 from collections.abc import Callable
 from openpilot.system.ui.lib.application import gui_app, MousePos, MAX_TOUCH_SLOTS, MouseEvent
 
-try:
-  from openpilot.selfdrive.ui.ui_state import device
-except ImportError:
-  class Device:
-    awake = True
-  device = Device()
+class DeviceLike(Protocol):
+  @property
+  def awake(self) -> bool: ...
+
+
+def _get_device() -> DeviceLike:
+  try:
+    from openpilot.selfdrive.ui.ui_state import device
+    return device
+  except (ImportError, OSError):
+    class Device:
+      awake = True
+    return Device()
+
+
+device = _get_device()
 
 W = TypeVar('W', bound='Widget')
 
@@ -41,6 +52,8 @@ class Widget(abc.ABC):
     self._click_delay: float | None = None  # seconds to hold is_pressed after release
     self._click_release_time: float | None = None
     self._click_callback: Callable[[], None] | None = None
+    self._long_press_callback: Callable[[], None] | None = None
+    self._press_started: list[float | None] = [None] * MAX_TOUCH_SLOTS
     self._multi_touch = False
     self.__was_awake = True
 
@@ -81,6 +94,9 @@ class Widget(abc.ABC):
   def set_click_callback(self, click_callback: Callable[[], None] | None) -> None:
     """Set a callback to be called when the widget is clicked."""
     self._click_callback = click_callback
+
+  def set_long_press_callback(self, callback: Callable[[], None]) -> None:
+    self._long_press_callback = callback
 
   def set_touch_valid_callback(self, touch_callback: Callable[[], bool]) -> None:
     """Set a callback to determine if the widget can be clicked."""
@@ -126,6 +142,7 @@ class Widget(abc.ABC):
       self._process_mouse_events()
     else:
       # TODO: ideally we emit release events when going disabled
+      self._press_started = [None] * MAX_TOUCH_SLOTS
       self.__is_pressed = [False] * MAX_TOUCH_SLOTS
       self.__tracking_is_pressed = [False] * MAX_TOUCH_SLOTS
 
@@ -150,6 +167,7 @@ class Widget(abc.ABC):
       # Allows touch to leave the rect and come back in focus if mouse did not release
       if mouse_event.left_pressed and touch_valid:
         if mouse_in_rect:
+          self._press_started[mouse_event.slot] = mouse_event.t
           self._handle_mouse_press(mouse_event.pos)
           self.__is_pressed[mouse_event.slot] = True
           self.__tracking_is_pressed[mouse_event.slot] = True
@@ -175,8 +193,19 @@ class Widget(abc.ABC):
 
       # Mouse/touch left our rect but may come back into focus later
       elif not mouse_in_rect:
+        self._press_started[mouse_event.slot] = None
         self.__is_pressed[mouse_event.slot] = False
         self._handle_mouse_event(mouse_event)
+
+    if self._long_press_callback is not None and touch_valid:
+      for slot, started in enumerate(self._press_started):
+        if started is not None and self.__is_pressed[slot] and time.monotonic() - started >= 0.45:
+          # Clear tracking before opening help so release cannot activate a toggle or action.
+          self._press_started[slot] = None
+          self.__is_pressed[slot] = False
+          self.__tracking_is_pressed[slot] = False
+          self._long_press_callback()
+          break
 
   def _layout(self) -> None:
     """Optionally lay out child widgets separately. This is called before rendering."""
@@ -185,16 +214,16 @@ class Widget(abc.ABC):
     """Optionally update the widget's non-layout state. This is called before rendering."""
 
   @abc.abstractmethod
-  def _render(self, rect: rl.Rectangle) -> bool | int | None:
+  def _render(self, rect: rl.Rectangle, /) -> bool | int | None:
     """Render the widget within the given rectangle."""
 
   def _update_layout_rects(self) -> None:
     """Optionally update any layout rects on Widget rect change."""
 
-  def _handle_mouse_press(self, mouse_pos: MousePos) -> None:
+  def _handle_mouse_press(self, mouse_pos: MousePos, /) -> None:
     """Optionally handle mouse press events."""
 
-  def _handle_mouse_release(self, mouse_pos: MousePos) -> None:
+  def _handle_mouse_release(self, mouse_pos: MousePos, /) -> None:
     """Optionally handle mouse release events."""
     if self._click_delay is not None:
       self._click_release_time = rl.get_time() + self._click_delay

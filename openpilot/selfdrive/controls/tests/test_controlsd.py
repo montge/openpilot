@@ -142,13 +142,13 @@ class TestControlsStateControl:
   def _setup_mock_sm(self):
     """Set up mock SubMaster with sensible defaults."""
     services = [
-      'liveDelay',
-      'liveParameters',
-      'liveTorqueParameters',
+      'lateralDelay',
+      'vehicleParameters',
+      'lateralTorqueParameters',
       'modelV2',
       'selfdriveState',
-      'liveCalibration',
-      'livePose',
+      'extrinsicsCalibration',
+      'deviceMotion',
       'longitudinalPlan',
       'lateralManeuverPlan',
       'carState',
@@ -206,24 +206,24 @@ class TestControlsStateControl:
     self.mock_sm.data['carState'] = msg.as_reader().carState
 
   def _set_live_parameters(self, stiffnessFactor=1.0, steerRatio=15.0, angleOffsetDeg=0.0, roll=0.0):
-    """Set liveParameters in the mock SubMaster."""
-    msg = messaging.new_message('liveParameters')
-    lp = msg.liveParameters
+    """Set vehicleParameters in the mock SubMaster."""
+    msg = messaging.new_message('vehicleParameters')
+    lp = msg.vehicleParameters
     lp.stiffnessFactor = stiffnessFactor
     lp.steerRatio = steerRatio
     lp.angleOffsetDeg = angleOffsetDeg
     lp.roll = roll
-    self.mock_sm.data['liveParameters'] = msg.as_reader().liveParameters
+    self.mock_sm.data['vehicleParameters'] = msg.as_reader().vehicleParameters
 
   def _set_live_torque_parameters(self, useParams=False, latAccelFactor=2.0, latAccelOffset=0.0, friction=0.1):
-    """Set liveTorqueParameters in the mock SubMaster."""
-    msg = messaging.new_message('liveTorqueParameters')
-    ltp = msg.liveTorqueParameters
+    """Set lateralTorqueParameters in the mock SubMaster."""
+    msg = messaging.new_message('lateralTorqueParameters')
+    ltp = msg.lateralTorqueParameters
     ltp.useParams = useParams
     ltp.latAccelFactorFiltered = latAccelFactor
     ltp.latAccelOffsetFiltered = latAccelOffset
     ltp.frictionCoefficientFiltered = friction
-    self.mock_sm.data['liveTorqueParameters'] = msg.as_reader().liveTorqueParameters
+    self.mock_sm.data['lateralTorqueParameters'] = msg.as_reader().lateralTorqueParameters
 
   def _set_model_v2(self, desiredCurvature=0.0, laneChangeState=LaneChangeState.off, laneChangeDirection=LaneChangeDirection.none):
     """Set modelV2 in the mock SubMaster."""
@@ -255,11 +255,11 @@ class TestControlsStateControl:
     self.mock_sm.data['longitudinalPlan'] = msg.as_reader().longitudinalPlan
 
   def _set_live_delay(self, lateralDelay=0.2):
-    """Set liveDelay in the mock SubMaster."""
-    msg = messaging.new_message('liveDelay')
-    ld = msg.liveDelay
+    """Set lateralDelay in the mock SubMaster."""
+    msg = messaging.new_message('lateralDelay')
+    ld = msg.lateralDelay
     ld.lateralDelay = lateralDelay
-    self.mock_sm.data['liveDelay'] = msg.as_reader().liveDelay
+    self.mock_sm.data['lateralDelay'] = msg.as_reader().lateralDelay
 
   def _set_car_output(self, steeringAngleDeg=0.0, torque=0.0):
     """Set carOutput in the mock SubMaster."""
@@ -405,7 +405,7 @@ class TestControlsStateControl:
       assert CC.longActive is False
 
   def test_state_control_vehicle_model_update(self):
-    """Test that VehicleModel parameters are updated from liveParameters."""
+    """Test that VehicleModel parameters are updated from vehicleParameters."""
     stiffness = 1.5
     steer_ratio = 16.0
     self._set_live_parameters(stiffnessFactor=stiffness, steerRatio=steer_ratio)
@@ -454,13 +454,13 @@ class TestControlsActuatorSafety:
 
     # Set up mock SubMaster
     services = [
-      'liveDelay',
-      'liveParameters',
-      'liveTorqueParameters',
+      'lateralDelay',
+      'vehicleParameters',
+      'lateralTorqueParameters',
       'modelV2',
       'selfdriveState',
-      'liveCalibration',
-      'livePose',
+      'extrinsicsCalibration',
+      'deviceMotion',
       'longitudinalPlan',
       'lateralManeuverPlan',
       'carState',
@@ -480,10 +480,10 @@ class TestControlsActuatorSafety:
     msg.carState.vCruise = 40.0
     self.mock_sm.data['carState'] = msg.as_reader().carState
 
-    msg = messaging.new_message('liveParameters')
-    msg.liveParameters.stiffnessFactor = 1.0
-    msg.liveParameters.steerRatio = 15.0
-    self.mock_sm.data['liveParameters'] = msg.as_reader().liveParameters
+    msg = messaging.new_message('vehicleParameters')
+    msg.vehicleParameters.stiffnessFactor = 1.0
+    msg.vehicleParameters.steerRatio = 15.0
+    self.mock_sm.data['vehicleParameters'] = msg.as_reader().vehicleParameters
 
     msg = messaging.new_message('selfdriveState')
     self.mock_sm.data['selfdriveState'] = msg.as_reader().selfdriveState
@@ -494,11 +494,11 @@ class TestControlsActuatorSafety:
     msg = messaging.new_message('modelV2')
     self.mock_sm.data['modelV2'] = msg.as_reader().modelV2
 
-    msg = messaging.new_message('liveTorqueParameters')
-    self.mock_sm.data['liveTorqueParameters'] = msg.as_reader().liveTorqueParameters
+    msg = messaging.new_message('lateralTorqueParameters')
+    self.mock_sm.data['lateralTorqueParameters'] = msg.as_reader().lateralTorqueParameters
 
-    msg = messaging.new_message('liveDelay')
-    self.mock_sm.data['liveDelay'] = msg.as_reader().liveDelay
+    msg = messaging.new_message('lateralDelay')
+    self.mock_sm.data['lateralDelay'] = msg.as_reader().lateralDelay
 
     msg = messaging.new_message('carOutput')
     self.mock_sm.data['carOutput'] = msg.as_reader().carOutput
@@ -539,13 +539,13 @@ class TestControlsPublish:
 
     # Set up mock SubMaster
     services = [
-      'liveDelay',
-      'liveParameters',
-      'liveTorqueParameters',
+      'lateralDelay',
+      'vehicleParameters',
+      'lateralTorqueParameters',
       'modelV2',
       'selfdriveState',
-      'liveCalibration',
-      'livePose',
+      'extrinsicsCalibration',
+      'deviceMotion',
       'longitudinalPlan',
       'lateralManeuverPlan',
       'carState',
@@ -592,16 +592,16 @@ class TestControlsPublish:
     self.mock_sm.data['driverAssistance'] = msg.as_reader().driverAssistance
     self.mock_sm.valid['driverAssistance'] = True
 
-    msg = messaging.new_message('liveParameters')
-    msg.liveParameters.stiffnessFactor = 1.0
-    msg.liveParameters.steerRatio = 15.0
-    self.mock_sm.data['liveParameters'] = msg.as_reader().liveParameters
+    msg = messaging.new_message('vehicleParameters')
+    msg.vehicleParameters.stiffnessFactor = 1.0
+    msg.vehicleParameters.steerRatio = 15.0
+    self.mock_sm.data['vehicleParameters'] = msg.as_reader().vehicleParameters
 
-    msg = messaging.new_message('liveTorqueParameters')
-    self.mock_sm.data['liveTorqueParameters'] = msg.as_reader().liveTorqueParameters
+    msg = messaging.new_message('lateralTorqueParameters')
+    self.mock_sm.data['lateralTorqueParameters'] = msg.as_reader().lateralTorqueParameters
 
-    msg = messaging.new_message('liveDelay')
-    self.mock_sm.data['liveDelay'] = msg.as_reader().liveDelay
+    msg = messaging.new_message('lateralDelay')
+    self.mock_sm.data['lateralDelay'] = msg.as_reader().lateralDelay
 
     msg = messaging.new_message('modelV2')
     self.mock_sm.data['modelV2'] = msg.as_reader().modelV2
@@ -728,13 +728,13 @@ class TestControlsUpdate:
 
     # Set up mock SubMaster
     services = [
-      'liveDelay',
-      'liveParameters',
-      'liveTorqueParameters',
+      'lateralDelay',
+      'vehicleParameters',
+      'lateralTorqueParameters',
       'modelV2',
       'selfdriveState',
-      'liveCalibration',
-      'livePose',
+      'extrinsicsCalibration',
+      'deviceMotion',
       'longitudinalPlan',
       'lateralManeuverPlan',
       'carState',
@@ -747,37 +747,37 @@ class TestControlsUpdate:
     self.controls.sm = self.mock_sm
 
   def test_update_calibration_handling(self):
-    """Test that update handles liveCalibration updates."""
-    # Set updated flag for liveCalibration
-    self.mock_sm.updated['liveCalibration'] = True
+    """Test that update handles extrinsicsCalibration updates."""
+    # Set updated flag for extrinsicsCalibration
+    self.mock_sm.updated['extrinsicsCalibration'] = True
 
-    msg = messaging.new_message('liveCalibration')
-    msg.liveCalibration.validBlocks = 20
-    msg.liveCalibration.rpyCalib = [0.0, 0.0, 0.0]
-    msg.liveCalibration.calStatus = log.LiveCalibrationData.Status.calibrated
-    self.mock_sm.data['liveCalibration'] = msg.as_reader().liveCalibration
+    msg = messaging.new_message('extrinsicsCalibration')
+    msg.extrinsicsCalibration.validBlocks = 20
+    msg.extrinsicsCalibration.rpyCalib = [0.0, 0.0, 0.0]
+    msg.extrinsicsCalibration.calStatus = log.ExtrinsicsCalibration.Status.calibrated
+    self.mock_sm.data['extrinsicsCalibration'] = msg.as_reader().extrinsicsCalibration
 
     # The update method should process this without error
     self.controls.update()
 
   def test_update_live_pose_handling(self):
-    """Test that update handles livePose updates."""
-    self.mock_sm.updated['livePose'] = True
+    """Test that update handles deviceMotion updates."""
+    self.mock_sm.updated['deviceMotion'] = True
 
-    msg = messaging.new_message('livePose')
-    self.mock_sm.data['livePose'] = msg.as_reader().livePose
+    msg = messaging.new_message('deviceMotion')
+    self.mock_sm.data['deviceMotion'] = msg.as_reader().deviceMotion
 
-    # Also need liveCalibration for the pose calibrator
-    msg = messaging.new_message('liveCalibration')
-    msg.liveCalibration.rpyCalib = [0.0, 0.0, 0.0]
-    self.mock_sm.data['liveCalibration'] = msg.as_reader().liveCalibration
-    self.mock_sm.updated['liveCalibration'] = True
+    # Also need extrinsicsCalibration for the pose calibrator
+    msg = messaging.new_message('extrinsicsCalibration')
+    msg.extrinsicsCalibration.rpyCalib = [0.0, 0.0, 0.0]
+    self.mock_sm.data['extrinsicsCalibration'] = msg.as_reader().extrinsicsCalibration
+    self.mock_sm.updated['extrinsicsCalibration'] = True
 
     # Process the calibration first
     self.controls.update()
 
-    # Now test livePose
-    self.mock_sm.updated['liveCalibration'] = False
+    # Now test deviceMotion
+    self.mock_sm.updated['extrinsicsCalibration'] = False
     self.controls.update()
 
 
@@ -791,13 +791,13 @@ class TestControlsIntegration:
 
     # Set up mock SubMaster
     services = [
-      'liveDelay',
-      'liveParameters',
-      'liveTorqueParameters',
+      'lateralDelay',
+      'vehicleParameters',
+      'lateralTorqueParameters',
       'modelV2',
       'selfdriveState',
-      'liveCalibration',
-      'livePose',
+      'extrinsicsCalibration',
+      'deviceMotion',
       'longitudinalPlan',
       'lateralManeuverPlan',
       'carState',
@@ -828,16 +828,16 @@ class TestControlsIntegration:
     msg.carState.canValid = True
     self.mock_sm.data['carState'] = msg.as_reader().carState
 
-    msg = messaging.new_message('liveParameters')
-    msg.liveParameters.stiffnessFactor = 1.0
-    msg.liveParameters.steerRatio = 15.0
-    msg.liveParameters.angleOffsetDeg = 0.0
-    msg.liveParameters.roll = 0.0
-    self.mock_sm.data['liveParameters'] = msg.as_reader().liveParameters
+    msg = messaging.new_message('vehicleParameters')
+    msg.vehicleParameters.stiffnessFactor = 1.0
+    msg.vehicleParameters.steerRatio = 15.0
+    msg.vehicleParameters.angleOffsetDeg = 0.0
+    msg.vehicleParameters.roll = 0.0
+    self.mock_sm.data['vehicleParameters'] = msg.as_reader().vehicleParameters
 
-    msg = messaging.new_message('liveTorqueParameters')
-    msg.liveTorqueParameters.useParams = False
-    self.mock_sm.data['liveTorqueParameters'] = msg.as_reader().liveTorqueParameters
+    msg = messaging.new_message('lateralTorqueParameters')
+    msg.lateralTorqueParameters.useParams = False
+    self.mock_sm.data['lateralTorqueParameters'] = msg.as_reader().lateralTorqueParameters
 
     msg = messaging.new_message('modelV2')
     msg.modelV2.action.desiredCurvature = 0.0
@@ -858,9 +858,9 @@ class TestControlsIntegration:
     msg.longitudinalPlan.hasLead = False
     self.mock_sm.data['longitudinalPlan'] = msg.as_reader().longitudinalPlan
 
-    msg = messaging.new_message('liveDelay')
-    msg.liveDelay.lateralDelay = 0.2
-    self.mock_sm.data['liveDelay'] = msg.as_reader().liveDelay
+    msg = messaging.new_message('lateralDelay')
+    msg.lateralDelay.lateralDelay = 0.2
+    self.mock_sm.data['lateralDelay'] = msg.as_reader().lateralDelay
 
     msg = messaging.new_message('carOutput')
     msg.carOutput.actuatorsOutput.steeringAngleDeg = 0.0
@@ -970,13 +970,13 @@ class TestControlsDifferentCars:
 
     # Set up mock SubMaster
     services = [
-      'liveDelay',
-      'liveParameters',
-      'liveTorqueParameters',
+      'lateralDelay',
+      'vehicleParameters',
+      'lateralTorqueParameters',
       'modelV2',
       'selfdriveState',
-      'liveCalibration',
-      'livePose',
+      'extrinsicsCalibration',
+      'deviceMotion',
       'longitudinalPlan',
       'lateralManeuverPlan',
       'carState',
@@ -994,10 +994,10 @@ class TestControlsDifferentCars:
     msg.carState.vCruise = 40.0
     mock_sm.data['carState'] = msg.as_reader().carState
 
-    msg = messaging.new_message('liveParameters')
-    msg.liveParameters.stiffnessFactor = 1.0
-    msg.liveParameters.steerRatio = 15.0
-    mock_sm.data['liveParameters'] = msg.as_reader().liveParameters
+    msg = messaging.new_message('vehicleParameters')
+    msg.vehicleParameters.stiffnessFactor = 1.0
+    msg.vehicleParameters.steerRatio = 15.0
+    mock_sm.data['vehicleParameters'] = msg.as_reader().vehicleParameters
 
     msg = messaging.new_message('selfdriveState')
     mock_sm.data['selfdriveState'] = msg.as_reader().selfdriveState
@@ -1008,11 +1008,11 @@ class TestControlsDifferentCars:
     msg = messaging.new_message('modelV2')
     mock_sm.data['modelV2'] = msg.as_reader().modelV2
 
-    msg = messaging.new_message('liveTorqueParameters')
-    mock_sm.data['liveTorqueParameters'] = msg.as_reader().liveTorqueParameters
+    msg = messaging.new_message('lateralTorqueParameters')
+    mock_sm.data['lateralTorqueParameters'] = msg.as_reader().lateralTorqueParameters
 
-    msg = messaging.new_message('liveDelay')
-    mock_sm.data['liveDelay'] = msg.as_reader().liveDelay
+    msg = messaging.new_message('lateralDelay')
+    mock_sm.data['lateralDelay'] = msg.as_reader().lateralDelay
 
     msg = messaging.new_message('carOutput')
     mock_sm.data['carOutput'] = msg.as_reader().carOutput
@@ -1042,13 +1042,13 @@ class TestControlsNaNInfHandling:
 
     # Set up mock SubMaster
     services = [
-      'liveDelay',
-      'liveParameters',
-      'liveTorqueParameters',
+      'lateralDelay',
+      'vehicleParameters',
+      'lateralTorqueParameters',
       'modelV2',
       'selfdriveState',
-      'liveCalibration',
-      'livePose',
+      'extrinsicsCalibration',
+      'deviceMotion',
       'longitudinalPlan',
       'lateralManeuverPlan',
       'carState',
@@ -1069,10 +1069,10 @@ class TestControlsNaNInfHandling:
     msg.carState.canValid = True
     self.mock_sm.data['carState'] = msg.as_reader().carState
 
-    msg = messaging.new_message('liveParameters')
-    msg.liveParameters.stiffnessFactor = 1.0
-    msg.liveParameters.steerRatio = 15.0
-    self.mock_sm.data['liveParameters'] = msg.as_reader().liveParameters
+    msg = messaging.new_message('vehicleParameters')
+    msg.vehicleParameters.stiffnessFactor = 1.0
+    msg.vehicleParameters.steerRatio = 15.0
+    self.mock_sm.data['vehicleParameters'] = msg.as_reader().vehicleParameters
 
     msg = messaging.new_message('selfdriveState')
     msg.selfdriveState.enabled = True
@@ -1085,11 +1085,11 @@ class TestControlsNaNInfHandling:
     msg = messaging.new_message('modelV2')
     self.mock_sm.data['modelV2'] = msg.as_reader().modelV2
 
-    msg = messaging.new_message('liveTorqueParameters')
-    self.mock_sm.data['liveTorqueParameters'] = msg.as_reader().liveTorqueParameters
+    msg = messaging.new_message('lateralTorqueParameters')
+    self.mock_sm.data['lateralTorqueParameters'] = msg.as_reader().lateralTorqueParameters
 
-    msg = messaging.new_message('liveDelay')
-    self.mock_sm.data['liveDelay'] = msg.as_reader().liveDelay
+    msg = messaging.new_message('lateralDelay')
+    self.mock_sm.data['lateralDelay'] = msg.as_reader().lateralDelay
 
     msg = messaging.new_message('carOutput')
     self.mock_sm.data['carOutput'] = msg.as_reader().carOutput
@@ -1182,13 +1182,13 @@ class TestControlsCruiseLogic:
     self.controls = Controls()
 
     services = [
-      'liveDelay',
-      'liveParameters',
-      'liveTorqueParameters',
+      'lateralDelay',
+      'vehicleParameters',
+      'lateralTorqueParameters',
       'modelV2',
       'selfdriveState',
-      'liveCalibration',
-      'livePose',
+      'extrinsicsCalibration',
+      'deviceMotion',
       'longitudinalPlan',
       'lateralManeuverPlan',
       'carState',
@@ -1212,10 +1212,10 @@ class TestControlsCruiseLogic:
     msg.carState.canValid = True
     self.mock_sm.data['carState'] = msg.as_reader().carState
 
-    msg = messaging.new_message('liveParameters')
-    msg.liveParameters.stiffnessFactor = 1.0
-    msg.liveParameters.steerRatio = 15.0
-    self.mock_sm.data['liveParameters'] = msg.as_reader().liveParameters
+    msg = messaging.new_message('vehicleParameters')
+    msg.vehicleParameters.stiffnessFactor = 1.0
+    msg.vehicleParameters.steerRatio = 15.0
+    self.mock_sm.data['vehicleParameters'] = msg.as_reader().vehicleParameters
 
     msg = messaging.new_message('selfdriveState')
     msg.selfdriveState.enabled = enabled
@@ -1230,11 +1230,11 @@ class TestControlsCruiseLogic:
     msg = messaging.new_message('modelV2')
     self.mock_sm.data['modelV2'] = msg.as_reader().modelV2
 
-    msg = messaging.new_message('liveTorqueParameters')
-    self.mock_sm.data['liveTorqueParameters'] = msg.as_reader().liveTorqueParameters
+    msg = messaging.new_message('lateralTorqueParameters')
+    self.mock_sm.data['lateralTorqueParameters'] = msg.as_reader().lateralTorqueParameters
 
-    msg = messaging.new_message('liveDelay')
-    self.mock_sm.data['liveDelay'] = msg.as_reader().liveDelay
+    msg = messaging.new_message('lateralDelay')
+    self.mock_sm.data['lateralDelay'] = msg.as_reader().lateralDelay
 
     msg = messaging.new_message('carOutput')
     self.mock_sm.data['carOutput'] = msg.as_reader().carOutput
@@ -1305,13 +1305,13 @@ class TestControlsForceDecel:
     self.controls = Controls()
 
     services = [
-      'liveDelay',
-      'liveParameters',
-      'liveTorqueParameters',
+      'lateralDelay',
+      'vehicleParameters',
+      'lateralTorqueParameters',
       'modelV2',
       'selfdriveState',
-      'liveCalibration',
-      'livePose',
+      'extrinsicsCalibration',
+      'deviceMotion',
       'longitudinalPlan',
       'lateralManeuverPlan',
       'carState',
@@ -1332,10 +1332,10 @@ class TestControlsForceDecel:
     msg.carState.canValid = True
     self.mock_sm.data['carState'] = msg.as_reader().carState
 
-    msg = messaging.new_message('liveParameters')
-    msg.liveParameters.stiffnessFactor = 1.0
-    msg.liveParameters.steerRatio = 15.0
-    self.mock_sm.data['liveParameters'] = msg.as_reader().liveParameters
+    msg = messaging.new_message('vehicleParameters')
+    msg.vehicleParameters.stiffnessFactor = 1.0
+    msg.vehicleParameters.steerRatio = 15.0
+    self.mock_sm.data['vehicleParameters'] = msg.as_reader().vehicleParameters
 
     msg = messaging.new_message('selfdriveState')
     msg.selfdriveState.enabled = True
@@ -1349,11 +1349,11 @@ class TestControlsForceDecel:
     msg = messaging.new_message('modelV2')
     self.mock_sm.data['modelV2'] = msg.as_reader().modelV2
 
-    msg = messaging.new_message('liveTorqueParameters')
-    self.mock_sm.data['liveTorqueParameters'] = msg.as_reader().liveTorqueParameters
+    msg = messaging.new_message('lateralTorqueParameters')
+    self.mock_sm.data['lateralTorqueParameters'] = msg.as_reader().lateralTorqueParameters
 
-    msg = messaging.new_message('liveDelay')
-    self.mock_sm.data['liveDelay'] = msg.as_reader().liveDelay
+    msg = messaging.new_message('lateralDelay')
+    self.mock_sm.data['lateralDelay'] = msg.as_reader().lateralDelay
 
     msg = messaging.new_message('carOutput')
     self.mock_sm.data['carOutput'] = msg.as_reader().carOutput
@@ -1409,13 +1409,13 @@ class TestControlsSteerLimitedBySafety:
     self.controls_torque = Controls()
 
     services = [
-      'liveDelay',
-      'liveParameters',
-      'liveTorqueParameters',
+      'lateralDelay',
+      'vehicleParameters',
+      'lateralTorqueParameters',
       'modelV2',
       'selfdriveState',
-      'liveCalibration',
-      'livePose',
+      'extrinsicsCalibration',
+      'deviceMotion',
       'longitudinalPlan',
       'lateralManeuverPlan',
       'carState',
@@ -1441,10 +1441,10 @@ class TestControlsSteerLimitedBySafety:
     msg.carState.canValid = True
     mock_sm.data['carState'] = msg.as_reader().carState
 
-    msg = messaging.new_message('liveParameters')
-    msg.liveParameters.stiffnessFactor = 1.0
-    msg.liveParameters.steerRatio = 15.0
-    mock_sm.data['liveParameters'] = msg.as_reader().liveParameters
+    msg = messaging.new_message('vehicleParameters')
+    msg.vehicleParameters.stiffnessFactor = 1.0
+    msg.vehicleParameters.steerRatio = 15.0
+    mock_sm.data['vehicleParameters'] = msg.as_reader().vehicleParameters
 
     msg = messaging.new_message('selfdriveState')
     msg.selfdriveState.enabled = True
@@ -1457,11 +1457,11 @@ class TestControlsSteerLimitedBySafety:
     msg = messaging.new_message('modelV2')
     mock_sm.data['modelV2'] = msg.as_reader().modelV2
 
-    msg = messaging.new_message('liveTorqueParameters')
-    mock_sm.data['liveTorqueParameters'] = msg.as_reader().liveTorqueParameters
+    msg = messaging.new_message('lateralTorqueParameters')
+    mock_sm.data['lateralTorqueParameters'] = msg.as_reader().lateralTorqueParameters
 
-    msg = messaging.new_message('liveDelay')
-    mock_sm.data['liveDelay'] = msg.as_reader().liveDelay
+    msg = messaging.new_message('lateralDelay')
+    mock_sm.data['lateralDelay'] = msg.as_reader().lateralDelay
 
     msg = messaging.new_message('carOutput')
     msg.carOutput.actuatorsOutput.steeringAngleDeg = steeringAngleOutput
@@ -1520,13 +1520,13 @@ class TestControlsVehicleModelUpdate:
     self.controls = Controls()
 
     services = [
-      'liveDelay',
-      'liveParameters',
-      'liveTorqueParameters',
+      'lateralDelay',
+      'vehicleParameters',
+      'lateralTorqueParameters',
       'modelV2',
       'selfdriveState',
-      'liveCalibration',
-      'livePose',
+      'extrinsicsCalibration',
+      'deviceMotion',
       'longitudinalPlan',
       'lateralManeuverPlan',
       'carState',
@@ -1546,10 +1546,10 @@ class TestControlsVehicleModelUpdate:
     msg.carState.vCruise = 40.0
     self.mock_sm.data['carState'] = msg.as_reader().carState
 
-    msg = messaging.new_message('liveParameters')
-    msg.liveParameters.stiffnessFactor = stiffnessFactor
-    msg.liveParameters.steerRatio = steerRatio
-    self.mock_sm.data['liveParameters'] = msg.as_reader().liveParameters
+    msg = messaging.new_message('vehicleParameters')
+    msg.vehicleParameters.stiffnessFactor = stiffnessFactor
+    msg.vehicleParameters.steerRatio = steerRatio
+    self.mock_sm.data['vehicleParameters'] = msg.as_reader().vehicleParameters
 
     msg = messaging.new_message('selfdriveState')
     self.mock_sm.data['selfdriveState'] = msg.as_reader().selfdriveState
@@ -1560,11 +1560,11 @@ class TestControlsVehicleModelUpdate:
     msg = messaging.new_message('modelV2')
     self.mock_sm.data['modelV2'] = msg.as_reader().modelV2
 
-    msg = messaging.new_message('liveTorqueParameters')
-    self.mock_sm.data['liveTorqueParameters'] = msg.as_reader().liveTorqueParameters
+    msg = messaging.new_message('lateralTorqueParameters')
+    self.mock_sm.data['lateralTorqueParameters'] = msg.as_reader().lateralTorqueParameters
 
-    msg = messaging.new_message('liveDelay')
-    self.mock_sm.data['liveDelay'] = msg.as_reader().liveDelay
+    msg = messaging.new_message('lateralDelay')
+    self.mock_sm.data['lateralDelay'] = msg.as_reader().lateralDelay
 
     msg = messaging.new_message('carOutput')
     self.mock_sm.data['carOutput'] = msg.as_reader().carOutput

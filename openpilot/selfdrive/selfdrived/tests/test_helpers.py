@@ -19,7 +19,7 @@ class TestExcessiveActuationCheck:
     sm.__getitem__ = mocker.MagicMock(
       side_effect=lambda key: {
         'carControl': mocker.MagicMock(longActive=long_active, latActive=lat_active),
-        'liveParameters': mocker.MagicMock(roll=roll),
+        'vehicleParameters': mocker.MagicMock(roll=roll),
       }.get(key, mocker.MagicMock())
     )
 

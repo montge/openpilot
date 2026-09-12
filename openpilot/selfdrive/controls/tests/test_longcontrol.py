@@ -1,165 +1,130 @@
 import pytest
 
+from openpilot.common.test import OpenpilotTestCase
 from opendbc.car.structs import car
 from openpilot.selfdrive.controls.lib.longcontrol import LongCtrlState, long_control_state_trans, LongControl
 from openpilot.common.realtime import DT_CTRL
 
+# fork: upstream removed CP.stoppingDecelRate from the stopping ramp in favour of a
+# hardcoded 1.0 m/s^2/s. The field still exists in CarParams but is no longer read.
+STOPPING_DECEL_RATE = 1.0
 
-class TestLongControlStateTransition:
+
+class TestLongControlStateTransition(OpenpilotTestCase):
+
   def test_stay_stopped(self):
-    CP = car.CarParams.new_message()
     active = True
     current_state = LongCtrlState.stopping
-    next_state = long_control_state_trans(CP, active, current_state, v_ego=0.1, should_stop=True, brake_pressed=False, cruise_standstill=False)
+    next_state = long_control_state_trans(active, current_state,
+                             should_stop=True, brake_pressed=False, cruise_standstill=False)
     assert next_state == LongCtrlState.stopping
-    next_state = long_control_state_trans(CP, active, current_state, v_ego=0.1, should_stop=False, brake_pressed=True, cruise_standstill=False)
+    next_state = long_control_state_trans(active, current_state,
+                             should_stop=False, brake_pressed=True, cruise_standstill=False)
     assert next_state == LongCtrlState.stopping
-    next_state = long_control_state_trans(CP, active, current_state, v_ego=0.1, should_stop=False, brake_pressed=False, cruise_standstill=True)
+    next_state = long_control_state_trans(active, current_state,
+                             should_stop=False, brake_pressed=False, cruise_standstill=True)
     assert next_state == LongCtrlState.stopping
-    next_state = long_control_state_trans(CP, active, current_state, v_ego=1.0, should_stop=False, brake_pressed=False, cruise_standstill=False)
+    next_state = long_control_state_trans(active, current_state,
+                             should_stop=False, brake_pressed=False, cruise_standstill=False)
     assert next_state == LongCtrlState.pid
     active = False
-    next_state = long_control_state_trans(CP, active, current_state, v_ego=1.0, should_stop=False, brake_pressed=False, cruise_standstill=False)
+    next_state = long_control_state_trans(active, current_state,
+                             should_stop=False, brake_pressed=False, cruise_standstill=False)
     assert next_state == LongCtrlState.off
 
-
-def test_engage():
-  CP = car.CarParams.new_message()
-  active = True
-  current_state = LongCtrlState.off
-  next_state = long_control_state_trans(CP, active, current_state, v_ego=0.1, should_stop=True, brake_pressed=False, cruise_standstill=False)
-  assert next_state == LongCtrlState.stopping
-  next_state = long_control_state_trans(CP, active, current_state, v_ego=0.1, should_stop=False, brake_pressed=True, cruise_standstill=False)
-  assert next_state == LongCtrlState.stopping
-  next_state = long_control_state_trans(CP, active, current_state, v_ego=0.1, should_stop=False, brake_pressed=False, cruise_standstill=True)
-  assert next_state == LongCtrlState.stopping
-  next_state = long_control_state_trans(CP, active, current_state, v_ego=0.1, should_stop=False, brake_pressed=False, cruise_standstill=False)
-  assert next_state == LongCtrlState.pid
-
-
-def test_starting():
-  CP = car.CarParams.new_message(startingState=True, vEgoStarting=0.5)
-  active = True
-  current_state = LongCtrlState.starting
-  next_state = long_control_state_trans(CP, active, current_state, v_ego=0.1, should_stop=False, brake_pressed=False, cruise_standstill=False)
-  assert next_state == LongCtrlState.starting
-  next_state = long_control_state_trans(CP, active, current_state, v_ego=1.0, should_stop=False, brake_pressed=False, cruise_standstill=False)
-  assert next_state == LongCtrlState.pid
+  def test_engage(self):
+    active = True
+    current_state = LongCtrlState.off
+    next_state = long_control_state_trans(active, current_state,
+                             should_stop=True, brake_pressed=False, cruise_standstill=False)
+    assert next_state == LongCtrlState.stopping
+    next_state = long_control_state_trans(active, current_state,
+                             should_stop=False, brake_pressed=True, cruise_standstill=False)
+    assert next_state == LongCtrlState.stopping
+    next_state = long_control_state_trans(active, current_state,
+                             should_stop=False, brake_pressed=False, cruise_standstill=True)
+    assert next_state == LongCtrlState.stopping
+    next_state = long_control_state_trans(active, current_state,
+                             should_stop=False, brake_pressed=False, cruise_standstill=False)
+    assert next_state == LongCtrlState.pid
 
 
 class TestLongControlStateTransitionComplete:
-  """Comprehensive tests for all state transitions in the longitudinal control state machine."""
+  """Comprehensive tests for all state transitions in the longitudinal control state machine.
 
-  def test_off_to_starting_with_starting_state(self):
-    """OFF → STARTING when startingState=True and starting conditions met."""
-    CP = car.CarParams.new_message(startingState=True, vEgoStarting=0.5)
-    next_state = long_control_state_trans(
-      CP, active=True, long_control_state=LongCtrlState.off, v_ego=0.1, should_stop=False, brake_pressed=False, cruise_standstill=False
-    )
-    assert next_state == LongCtrlState.starting
+  fork: upstream dropped the STARTING state (and the CP/v_ego arguments that gated it),
+  so the transitions into and out of STARTING that this class used to cover are gone.
+  What remains below is every transition the state machine can still produce.
+  """
 
-  def test_off_to_pid_without_starting_state(self):
-    """OFF → PID when startingState=False and starting conditions met."""
-    CP = car.CarParams.new_message(startingState=False)
+  def test_off_to_pid_when_starting_conditions_met(self):
+    """OFF -> PID when starting conditions are met."""
     next_state = long_control_state_trans(
-      CP, active=True, long_control_state=LongCtrlState.off, v_ego=0.1, should_stop=False, brake_pressed=False, cruise_standstill=False
+      active=True, long_control_state=LongCtrlState.off, should_stop=False, brake_pressed=False, cruise_standstill=False
     )
     assert next_state == LongCtrlState.pid
 
   def test_off_to_stopping_when_should_stop(self):
-    """OFF → STOPPING when should_stop is True."""
-    CP = car.CarParams.new_message()
+    """OFF -> STOPPING when should_stop is True."""
     next_state = long_control_state_trans(
-      CP, active=True, long_control_state=LongCtrlState.off, v_ego=5.0, should_stop=True, brake_pressed=False, cruise_standstill=False
+      active=True, long_control_state=LongCtrlState.off, should_stop=True, brake_pressed=False, cruise_standstill=False
     )
     assert next_state == LongCtrlState.stopping
 
   def test_off_to_stopping_when_brake_pressed(self):
-    """OFF → STOPPING when brake is pressed."""
-    CP = car.CarParams.new_message()
+    """OFF -> STOPPING when brake is pressed."""
     next_state = long_control_state_trans(
-      CP, active=True, long_control_state=LongCtrlState.off, v_ego=5.0, should_stop=False, brake_pressed=True, cruise_standstill=False
+      active=True, long_control_state=LongCtrlState.off, should_stop=False, brake_pressed=True, cruise_standstill=False
     )
     assert next_state == LongCtrlState.stopping
 
   def test_off_to_stopping_when_cruise_standstill(self):
-    """OFF → STOPPING when cruise is in standstill."""
-    CP = car.CarParams.new_message()
+    """OFF -> STOPPING when cruise is in standstill."""
     next_state = long_control_state_trans(
-      CP, active=True, long_control_state=LongCtrlState.off, v_ego=0.0, should_stop=False, brake_pressed=False, cruise_standstill=True
+      active=True, long_control_state=LongCtrlState.off, should_stop=False, brake_pressed=False, cruise_standstill=True
     )
     assert next_state == LongCtrlState.stopping
 
-  def test_stopping_to_starting_with_starting_state(self):
-    """STOPPING → STARTING when startingState=True and starting conditions met."""
-    CP = car.CarParams.new_message(startingState=True, vEgoStarting=0.5)
+  def test_stopping_to_pid_when_starting_conditions_met(self):
+    """STOPPING -> PID when starting conditions are met."""
     next_state = long_control_state_trans(
-      CP, active=True, long_control_state=LongCtrlState.stopping, v_ego=0.1, should_stop=False, brake_pressed=False, cruise_standstill=False
-    )
-    assert next_state == LongCtrlState.starting
-
-  def test_stopping_to_pid_without_starting_state(self):
-    """STOPPING → PID when startingState=False and starting conditions met."""
-    CP = car.CarParams.new_message(startingState=False)
-    next_state = long_control_state_trans(
-      CP, active=True, long_control_state=LongCtrlState.stopping, v_ego=0.1, should_stop=False, brake_pressed=False, cruise_standstill=False
+      active=True, long_control_state=LongCtrlState.stopping, should_stop=False, brake_pressed=False, cruise_standstill=False
     )
     assert next_state == LongCtrlState.pid
 
   def test_stopping_remains_when_should_stop(self):
     """STOPPING remains in STOPPING when should_stop is True."""
-    CP = car.CarParams.new_message()
     next_state = long_control_state_trans(
-      CP, active=True, long_control_state=LongCtrlState.stopping, v_ego=0.0, should_stop=True, brake_pressed=False, cruise_standstill=False
+      active=True, long_control_state=LongCtrlState.stopping, should_stop=True, brake_pressed=False, cruise_standstill=False
     )
     assert next_state == LongCtrlState.stopping
-
-  def test_starting_to_stopping_when_should_stop(self):
-    """STARTING → STOPPING when stopping condition becomes True."""
-    CP = car.CarParams.new_message(startingState=True, vEgoStarting=0.5)
-    next_state = long_control_state_trans(
-      CP, active=True, long_control_state=LongCtrlState.starting, v_ego=0.3, should_stop=True, brake_pressed=False, cruise_standstill=False
-    )
-    assert next_state == LongCtrlState.stopping
-
-  def test_starting_to_pid_when_started(self):
-    """STARTING → PID when v_ego exceeds vEgoStarting."""
-    CP = car.CarParams.new_message(startingState=True, vEgoStarting=0.5)
-    next_state = long_control_state_trans(
-      CP, active=True, long_control_state=LongCtrlState.starting, v_ego=1.0, should_stop=False, brake_pressed=False, cruise_standstill=False
-    )
-    assert next_state == LongCtrlState.pid
-
-  def test_starting_remains_below_vEgoStarting(self):
-    """STARTING remains in STARTING when v_ego <= vEgoStarting."""
-    CP = car.CarParams.new_message(startingState=True, vEgoStarting=0.5)
-    next_state = long_control_state_trans(
-      CP, active=True, long_control_state=LongCtrlState.starting, v_ego=0.3, should_stop=False, brake_pressed=False, cruise_standstill=False
-    )
-    assert next_state == LongCtrlState.starting
 
   def test_pid_to_stopping_when_should_stop(self):
-    """PID → STOPPING when stopping condition becomes True."""
-    CP = car.CarParams.new_message()
+    """PID -> STOPPING when stopping condition becomes True."""
     next_state = long_control_state_trans(
-      CP, active=True, long_control_state=LongCtrlState.pid, v_ego=5.0, should_stop=True, brake_pressed=False, cruise_standstill=False
+      active=True, long_control_state=LongCtrlState.pid, should_stop=True, brake_pressed=False, cruise_standstill=False
     )
     assert next_state == LongCtrlState.stopping
 
   def test_pid_remains_when_driving(self):
     """PID remains in PID during normal driving."""
-    CP = car.CarParams.new_message()
     next_state = long_control_state_trans(
-      CP, active=True, long_control_state=LongCtrlState.pid, v_ego=10.0, should_stop=False, brake_pressed=False, cruise_standstill=False
+      active=True, long_control_state=LongCtrlState.pid, should_stop=False, brake_pressed=False, cruise_standstill=False
+    )
+    assert next_state == LongCtrlState.pid
+
+  def test_pid_remains_when_brake_pressed(self):
+    """PID remains in PID when only the brake is pressed (brake alone does not stop it)."""
+    next_state = long_control_state_trans(
+      active=True, long_control_state=LongCtrlState.pid, should_stop=False, brake_pressed=True, cruise_standstill=False
     )
     assert next_state == LongCtrlState.pid
 
   def test_any_state_to_off_when_inactive(self):
-    """Any state → OFF when active=False."""
-    CP = car.CarParams.new_message()
+    """Any state -> OFF when active=False."""
     for state in [LongCtrlState.off, LongCtrlState.stopping, LongCtrlState.starting, LongCtrlState.pid]:
       next_state = long_control_state_trans(
-        CP, active=False, long_control_state=state, v_ego=5.0, should_stop=False, brake_pressed=False, cruise_standstill=False
+        active=False, long_control_state=state, should_stop=False, brake_pressed=False, cruise_standstill=False
       )
       assert next_state == LongCtrlState.off, f"Expected OFF from {state} when inactive"
 
@@ -176,14 +141,10 @@ class TestLongControlClass:
     CS.cruiseState.standstill = cruise_standstill
     return CS
 
-  def _create_car_params(self, starting_state=False, v_ego_starting=0.5, stop_accel=-2.0, stopping_decel_rate=0.8, start_accel=1.2):
+  def _create_car_params(self, stop_accel=-2.0):
     """Create CarParams with longitudinal tuning."""
     CP = car.CarParams.new_message()
-    CP.startingState = starting_state
-    CP.vEgoStarting = v_ego_starting
     CP.stopAccel = stop_accel
-    CP.stoppingDecelRate = stopping_decel_rate
-    CP.startAccel = start_accel
     # Set up basic PID tuning
     CP.longitudinalTuning.kpBP = [0.0, 10.0]
     CP.longitudinalTuning.kpV = [1.0, 1.0]
@@ -204,7 +165,7 @@ class TestLongControlClass:
 
   def test_stopping_state_decelerates_gradually(self):
     """STOPPING state should decelerate gradually toward stopAccel."""
-    CP = self._create_car_params(stop_accel=-2.0, stopping_decel_rate=0.8)
+    CP = self._create_car_params(stop_accel=-2.0)
     lc = LongControl(CP)
     lc.last_output_accel = 0.0  # Start from zero accel
     CS = self._create_car_state(v_ego=0.5)
@@ -213,13 +174,13 @@ class TestLongControlClass:
     output = lc.update(active=True, CS=CS, a_target=0.0, should_stop=True, accel_limits=[-3.0, 2.0])
 
     assert lc.long_control_state == LongCtrlState.stopping
-    # Should decelerate by stoppingDecelRate * DT_CTRL from last_output (0.0)
-    expected = 0.0 - CP.stoppingDecelRate * DT_CTRL
+    # Should decelerate by the stopping ramp rate * DT_CTRL from last_output (0.0)
+    expected = 0.0 - STOPPING_DECEL_RATE * DT_CTRL
     assert output == pytest.approx(expected, abs=0.001)
 
   def test_stopping_state_clamps_to_zero_before_decel(self):
     """STOPPING with positive last_output should clamp to zero before decelerating."""
-    CP = self._create_car_params(stop_accel=-2.0, stopping_decel_rate=0.8)
+    CP = self._create_car_params(stop_accel=-2.0)
     lc = LongControl(CP)
     lc.last_output_accel = 1.0  # Positive accel before stopping
     lc.long_control_state = LongCtrlState.stopping
@@ -227,13 +188,13 @@ class TestLongControlClass:
 
     output = lc.update(active=True, CS=CS, a_target=0.0, should_stop=True, accel_limits=[-3.0, 2.0])
 
-    # Should clamp to 0 then subtract stoppingDecelRate * DT_CTRL
-    expected = 0.0 - CP.stoppingDecelRate * DT_CTRL
+    # Should clamp to 0 then subtract the stopping ramp rate * DT_CTRL
+    expected = 0.0 - STOPPING_DECEL_RATE * DT_CTRL
     assert output == pytest.approx(expected, abs=0.001)
 
   def test_stopping_state_holds_at_stop_accel(self):
     """STOPPING should hold at stopAccel once reached."""
-    CP = self._create_car_params(stop_accel=-2.0, stopping_decel_rate=0.8)
+    CP = self._create_car_params(stop_accel=-2.0)
     lc = LongControl(CP)
     lc.last_output_accel = -2.5  # Already below stopAccel
     lc.long_control_state = LongCtrlState.stopping
@@ -244,26 +205,13 @@ class TestLongControlClass:
     # Should maintain last_output_accel since it's <= stopAccel
     assert output == pytest.approx(-2.5, abs=0.001)
 
-  def test_starting_state_uses_start_accel(self):
-    """STARTING state should output startAccel."""
-    CP = self._create_car_params(starting_state=True, start_accel=1.2, v_ego_starting=0.5)
-    lc = LongControl(CP)
-    CS = self._create_car_state(v_ego=0.1)
-
-    # Engage from stopping to starting
-    lc.long_control_state = LongCtrlState.stopping
-    output = lc.update(active=True, CS=CS, a_target=0.0, should_stop=False, accel_limits=[-3.0, 2.0])
-
-    assert lc.long_control_state == LongCtrlState.starting
-    assert output == pytest.approx(CP.startAccel, abs=0.001)
-
   def test_pid_state_uses_pid_controller(self):
     """PID state should use PID controller with feedforward."""
     CP = self._create_car_params()
     lc = LongControl(CP)
     CS = self._create_car_state(v_ego=10.0, a_ego=0.0)
 
-    # Engage directly to PID (no startingState, no should_stop)
+    # Engage directly to PID (no should_stop)
     output = lc.update(active=True, CS=CS, a_target=1.0, should_stop=False, accel_limits=[-3.0, 2.0])
 
     assert lc.long_control_state == LongCtrlState.pid
