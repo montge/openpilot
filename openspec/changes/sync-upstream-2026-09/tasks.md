@@ -1,7 +1,8 @@
 # Tasks: Sync Fork with Upstream Master (September 2026)
 
-> **Status:** merge, adaptation, and lint are DONE. Validation is complete except for the
-> model-dependent tests, which cannot run in an environment without Git LFS access (see 4.3).
+> **Status:** merge, adaptation, lint and local validation are DONE — 9/9 lint checks and
+> 3712 tests pass; the 46 that don't are all blocked by this environment's network policy
+> or its lack of a GPU, never by the code (see 4.7).
 > Resume at section 5 — land on develop — then work the follow-ups (section 6).
 
 ## 1. Analysis
@@ -34,6 +35,10 @@
 - [x] 4.4 `scripts/lint/lint.sh` green: 9/9 checks
 - [x] 4.5 Build: full `scons` succeeds except the three modeld tinygrad pickle targets, which are derived from Git-LFS ONNX files that this environment's network policy cannot fetch (LFS is hosted on huggingface.co as of #38841). CI has LFS access.
 - [x] 4.6 Fix the SonarCloud workflow's stale coverage paths (`--cov=selfdrive/system/tools/common` → `--cov=openpilot`), drop the `--ignore` for the deleted `third_party`, narrow `sonar.python.version` to 3.12
+- [x] 4.7 Tests: **3712 passed, 178 skipped, 46 failed/errored** (`pytest -m "not slow"`). Started at 199 failures + 14 errors on the raw merge. Every one of the 46 that remain is blocked by this environment, not by the code:
+      - 45 need network this session's policy denies — `api.commadotai.com`, `huggingface.co`, `commadist.azureedge.net` — so any test that downloads a route or the AGNOS manifest fails: `test_paramsd` (27), `test_locationd_scenarios` (8), `test_logreader` (4), `test_lagd` (2), `test_caching`, `test_url_file`, `tools/dgx test_dataloader`, `test_agnos_updater`
+      - 1 is `test_raylib_ui`, upstream-owned and untouched by the fork: it starts the real `ui` process, which segfaults with no GPU (`/dev/dri` absent) and no `DISPLAY`, even with `RAYLIB_BACKEND=headless`
+      CI covers both categories; the sync PR is the authoritative check.
 
 ## 5. Land on develop
 - [ ] 5.1 Open a draft PR from `claude/upstream-sonarqube-check-mqhc8f` against develop and let Linux CI validate — it is authoritative for the model-dependent tests that cannot run without LFS
