@@ -145,9 +145,7 @@ class TestLongControlClass:
     """Create CarParams with longitudinal tuning."""
     CP = car.CarParams.new_message()
     CP.stopAccel = stop_accel
-    # Set up basic PID tuning
-    CP.longitudinalTuning.kpBP = [0.0, 10.0]
-    CP.longitudinalTuning.kpV = [1.0, 1.0]
+    # Set up basic PID tuning (upstream's LongControl only uses the ki table)
     CP.longitudinalTuning.kiBP = [0.0, 10.0]
     CP.longitudinalTuning.kiV = [0.1, 0.1]
     return CP

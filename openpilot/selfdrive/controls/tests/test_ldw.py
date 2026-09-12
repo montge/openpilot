@@ -5,7 +5,7 @@ from openpilot.selfdrive.controls.lib.ldw import (
   LANE_DEPARTURE_THRESHOLD,
   CAMERA_OFFSET,
 )
-from openpilot.common.realtime import DT_CTRL
+from openpilot.common.realtime import DT_MDL
 
 
 class TestLDWInitialization:
@@ -60,8 +60,8 @@ class TestLDWBlinkerCooldown:
     # Use blinker at frame 100
     ldw.update(100, modelV2, CS_blinker, CC)
 
-    # Check that warning is blocked for 5 seconds (5.0 / DT_CTRL frames)
-    cooldown_frames = int(5.0 / DT_CTRL)
+    # Check that warning is blocked for 5 seconds (5.0 / DT_MDL frames)
+    cooldown_frames = int(5.0 / DT_MDL)
     CS_no_blinker, _, _ = self._create_mocks(mocker, v_ego=20.0)
 
     # Set up conditions that would normally trigger LDW
@@ -81,7 +81,7 @@ class TestLDWBlinkerCooldown:
     ldw.update(100, modelV2, CS_blinker, CC)
 
     # Well after cooldown
-    cooldown_frames = int(5.0 / DT_CTRL) + 100
+    cooldown_frames = int(5.0 / DT_MDL) + 100
     CS_no_blinker, _, _ = self._create_mocks(mocker, v_ego=20.0)
 
     # Set up conditions that trigger LDW
@@ -97,7 +97,7 @@ class TestLDWSpeedThreshold:
   """Tests for LDW speed threshold."""
 
   # Frame number must be high enough to be past initial blinker cooldown
-  # (5 seconds / DT_CTRL = 5 / 0.01 = 500 frames minimum)
+  # (5 seconds / DT_MDL = 5 / 0.01 = 500 frames minimum)
   SAFE_FRAME = 1000
 
   def _create_mocks(self, mocker, v_ego, lat_active=False):

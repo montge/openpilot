@@ -27,7 +27,8 @@ if _OPENPILOT_ROOT not in sys.path:
   sys.path.insert(0, _OPENPILOT_ROOT)
 
 try:
-  from msgq.visionipc import VisionIpcClient, VisionStreamType
+  from msgq.visionipc import VisionIpcClient
+  from openpilot.cereal.visionipc import VisionStreamType
   from openpilot.cereal import messaging
 except ImportError as e:
   print(f"Import error: {e}")
@@ -56,7 +57,7 @@ def test_frame_reception(timeout_sec: float = 10.0):
   print("\n=== Testing Frame Reception ===")
 
   # Create client without OpenCL context (False = no CL)
-  client = VisionIpcClient("camerad", VisionStreamType.VISION_STREAM_ROAD, False)
+  client = VisionIpcClient("camerad", VisionStreamType.VISION_STREAM_NARROW_ROAD, False)
 
   print("Connecting to VisionIPC server...")
   start = time.monotonic()

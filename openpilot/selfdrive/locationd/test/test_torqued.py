@@ -377,7 +377,7 @@ class TestTorqueEstimatorCacheRestoration:
     cached_event = log.Event.new_message()
     cached_event.init('lateralTorqueParameters')
     cached_event.lateralTorqueParameters.version = VERSION
-    cached_event.lateralTorqueParameters.liveValid = True
+    cached_event.lateralTorqueParameters.valid = True
     cached_event.lateralTorqueParameters.latAccelFactorFiltered = 2.6
     cached_event.lateralTorqueParameters.latAccelOffsetFiltered = 0.05
     cached_event.lateralTorqueParameters.frictionCoefficientFiltered = 0.12
@@ -420,7 +420,7 @@ class TestTorqueEstimatorCacheRestoration:
     cached_event = log.Event.new_message()
     cached_event.init('lateralTorqueParameters')
     cached_event.lateralTorqueParameters.version = VERSION + 1  # Wrong version
-    cached_event.lateralTorqueParameters.liveValid = True
+    cached_event.lateralTorqueParameters.valid = True
     cached_event.lateralTorqueParameters.decay = 150
     cached_event_bytes = cached_event.to_bytes()
 
@@ -457,7 +457,7 @@ class TestTorqueEstimatorCacheRestoration:
     mock_params.remove.assert_called_with("LiveTorqueParameters")
 
   def test_restore_cache_not_live_valid(self, mocker):
-    """Test cache restoration with liveValid=False still restores points."""
+    """Test cache restoration with valid=False still restores points."""
     from openpilot.cereal import log
 
     cached_cp = car.CarParams()
@@ -471,7 +471,7 @@ class TestTorqueEstimatorCacheRestoration:
     cached_event = log.Event.new_message()
     cached_event.init('lateralTorqueParameters')
     cached_event.lateralTorqueParameters.version = VERSION
-    cached_event.lateralTorqueParameters.liveValid = False  # Not live valid
+    cached_event.lateralTorqueParameters.valid = False  # Not live valid
     cached_event.lateralTorqueParameters.decay = 180
     cached_event.lateralTorqueParameters.points = []
     cached_event_bytes = cached_event.to_bytes()

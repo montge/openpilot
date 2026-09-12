@@ -97,6 +97,16 @@ def comma_hardware_setup_fixture(openpilot_function_fixture):
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_collection_modifyitems(config, items):
+  # fork: upstream's parameterized_class generates the parametrised subclasses and marks
+  # the un-parametrised base with __unittest_skip__ so its own runner ignores it. pytest
+  # only honours that flag for unittest.TestCase subclasses, so plain classes decorated
+  # this way get collected and fail in setup on the missing parameter attributes.
+  # Deselect them here, matching the decorator's intent.
+  deselected = [i for i in items if getattr(getattr(i, "cls", None), "__unittest_skip__", False)]
+  if deselected:
+    items[:] = [i for i in items if i not in deselected]
+    config.hook.pytest_deselected(items=deselected)
+
   # fork: upstream replaced the `tici` marker with OpenpilotTestCase.COMMA_HARDWARE_TEST,
   # which self-skips off-device. Plain pytest-style classes in the fork can still opt in
   # by setting COMMA_HARDWARE_TEST on the class.

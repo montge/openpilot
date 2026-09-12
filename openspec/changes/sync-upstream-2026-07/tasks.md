@@ -1,6 +1,6 @@
 # Tasks: Sync Fork with Upstream Master (July 2026)
 
-> **Pickup point (2026-07-03):** merge, local validation, and CI are DONE — PR montge/openpilot#46 is fully green at `955987ce4`. Resume at section 6 — land on develop (merge the PR or ff-push develop), then work the follow-ups (section 7).
+> **Status:** sections 1-6 are DONE — the merge landed on develop as `388d7c4d`. Only the section 7 follow-ups remain open; 7.7 (SonarCloud) was partly addressed in the September 2026 sync, which fixed the workflow's coverage paths. See `openspec/changes/sync-upstream-2026-09/`.
 
 ## 1. Analysis
 - [x] 1.1 Fetch upstream, measure divergence (204 behind / 263 ahead, merge-base `d7c562e13`)
@@ -31,9 +31,9 @@
 - [x] 5.4 CodeQL: fork-test alerts fixed (exact assertions); 18 upstream-owned alerts dismissed as won't-fix with provenance comments (reversible in the scanning UI); fork workflows got permissions blocks
 
 ## 6. Land on develop
-- [ ] 6.1 Merge PR #46 (GitHub UI) OR fast-forward-push local develop (`git push --no-verify origin develop`) which auto-marks the PR merged with identical SHAs
+- [x] 6.1 Landed on develop as merge `388d7c4d` ("Merge upstream commaai/openpilot d606014ce"), confirmed in develop's history during the September 2026 sync
       Note: `--no-verify` skips the LFS pre-push hook — required because .lfsconfig pushurl targets commaai's GitLab (no write access); fork introduces zero LFS objects so this is safe
-- [ ] 6.2 Confirm origin/develop == local develop == upstream-sync-20260702; delete the sync branch
+- [x] 6.2 origin/develop carries the merge; sync branch no longer present
 
 ## 7. Post-Sync Follow-ups (separate changes, tracked here for pickup)
 - [ ] 7.1 Port tools/dgx to `driving_supercombo.onnx` (TensorRT benchmarks + DoRA training target deleted split models; needs DGX Spark box). See memory note dgx-supercombo-port.

@@ -83,6 +83,7 @@ class MockSubMaster:
     self.frame = 0
     self.data = {}
     self.valid = {}
+    self.seen = {}
     self.alive = {}
     self.freq_ok = {}
     self.recv_frame = {}
@@ -125,6 +126,7 @@ class MockSubMaster:
     ]
     for service in services:
       self.valid[service] = True
+      self.seen[service] = True
       self.alive[service] = True
       self.freq_ok[service] = True
       self.recv_frame[service] = 0
@@ -775,9 +777,9 @@ class TestDataSample:
     mock_recv.return_value = mock_car_state_msg
 
     # Mock VisionIpcClient
-    from msgq.visionipc import VisionStreamType
+    from openpilot.cereal.visionipc import VisionStreamType
 
-    mock_vipc.available_streams.return_value = [VisionStreamType.VISION_STREAM_ROAD, VisionStreamType.VISION_STREAM_WIDE_ROAD]
+    mock_vipc.available_streams.return_value = [VisionStreamType.VISION_STREAM_NARROW_ROAD, VisionStreamType.VISION_STREAM_WIDE_ROAD]
 
     CP = make_car_params(brand='toyota')
     sd = SelfdriveD(CP=CP)
@@ -805,9 +807,9 @@ class TestDataSample:
     mock_recv.return_value = mock_car_state_msg
 
     # Mock VisionIpcClient
-    from msgq.visionipc import VisionStreamType
+    from openpilot.cereal.visionipc import VisionStreamType
 
-    mock_vipc.available_streams.return_value = [VisionStreamType.VISION_STREAM_ROAD]
+    mock_vipc.available_streams.return_value = [VisionStreamType.VISION_STREAM_NARROW_ROAD]
 
     CP = make_car_params(brand='toyota')
     sd = SelfdriveD(CP=CP)
@@ -885,9 +887,9 @@ class TestStep:
     mock_car_state_msg.carState = cs
     mock_recv.return_value = mock_car_state_msg
 
-    from msgq.visionipc import VisionStreamType
+    from openpilot.cereal.visionipc import VisionStreamType
 
-    mock_vipc.available_streams.return_value = [VisionStreamType.VISION_STREAM_ROAD]
+    mock_vipc.available_streams.return_value = [VisionStreamType.VISION_STREAM_NARROW_ROAD]
 
     CP = make_car_params(brand='toyota', passive=True)  # passive to avoid state machine update
     sd = SelfdriveD(CP=CP)

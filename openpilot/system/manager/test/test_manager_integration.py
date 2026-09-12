@@ -15,8 +15,6 @@ from opendbc.car.structs import car
 from openpilot.common.params import Params
 from openpilot.system.manager.process import (
   ManagerProcess,
-  PythonProcess,
-  NativeProcess,
   DaemonProcess,
   ensure_running,
   join_process,
@@ -43,10 +41,6 @@ class DummyProcess(ManagerProcess):
     self.enabled = enabled
     self.proc = None
     self.shutting_down = False
-    self.prepared = False
-
-  def prepare(self) -> None:
-    self.prepared = True
 
   def start(self) -> None:
     if self.shutting_down:
@@ -119,21 +113,6 @@ class TestProcessLifecycle:
     assert proc.proc is None
     assert exit_code == -signal.SIGKILL
 
-  def test_process_restart(self):
-    """Test that a process can be restarted."""
-    proc = DummyProcess("test_restart")
-    proc.start()
-
-    original_pid = proc.proc.pid
-    assert proc.proc.is_alive()
-
-    proc.restart()
-
-    assert proc.proc is not None
-    assert proc.proc.is_alive()
-    assert proc.proc.pid != original_pid
-
-    proc.stop()
 
   def test_process_non_blocking_stop(self):
     """Test non-blocking stop sets shutting_down flag."""
@@ -318,61 +297,8 @@ class TestEnsureRunning:
           p.stop()
 
 
-class TestRestartIfCrash:
-  """Tests for restart_if_crash functionality."""
-
-  def test_restart_if_crash_restarts_dead_process(self):
-    """Test that a crashed process with restart_if_crash=True is restarted."""
-    # Create a process that will exit quickly
-    proc = DummyProcess("crash_proc")
-    proc.restart_if_crash = True
-
-    # Start it with a process that exits immediately
-    proc.proc = Process(target=quick_exit_target, name=proc.name)
-    proc.proc.start()
-
-    # Wait for process to exit
-    time.sleep(0.3)
-    assert not proc.proc.is_alive()
-    original_pid = proc.proc.pid
-
-    # ensure_running should restart it
-    params = Params()
-    CP = car.CarParams.new_message()
-
-    try:
-      running = ensure_running(as_procs([proc]), started=True, params=params, CP=CP)
-      assert len(running) == 1
-      assert proc.proc is not None
-      assert proc.proc.is_alive()
-      # Should be a new process
-      assert proc.proc.pid != original_pid
-    finally:
-      proc.stop()
-
-  def test_no_restart_without_flag(self):
-    """Test that a crashed process without restart_if_crash=True stays dead."""
-    proc = DummyProcess("no_restart_proc")
-    proc.restart_if_crash = False
-
-    # Start it with a process that exits immediately
-    proc.proc = Process(target=quick_exit_target, name=proc.name)
-    proc.proc.start()
-    original_pid = proc.proc.pid
-
-    # Wait for process to exit
-    time.sleep(0.3)
-    assert not proc.proc.is_alive()
-
-    # ensure_running should NOT restart it (just add to running list)
-    params = Params()
-    CP = car.CarParams.new_message()
-
-    running = ensure_running(as_procs([proc]), started=True, params=params, CP=CP)
-    # Process should still be in the list but not restarted
-    assert len(running) == 1
-    # Process object should be the same (dead one)
-    assert proc.proc.pid == original_pid
+# fork: upstream removed ManagerProcess.prepare() and .restart(), and manager.py no
+# longer imports sentry. The tests for those are gone with them.
 
 
 class TestJoinProcess:
@@ -402,35 +328,6 @@ class TestJoinProcess:
 
     join_process(proc, timeout=5.0)
     assert proc.exitcode is not None
-
-
-class TestPythonProcess:
-  """Tests for PythonProcess class."""
-
-  def test_python_process_prepare_imports_module(self):
-    """Test that prepare() imports the module."""
-    # Use a simple stdlib module for testing
-    proc = PythonProcess(name="test_import", module="json", should_run=lambda s, p, c: True, enabled=True)
-
-    # Should not raise
-    proc.prepare()
-
-  def test_python_process_prepare_disabled(self):
-    """Test that prepare() is a no-op when disabled."""
-    proc = PythonProcess(name="test_disabled", module="nonexistent.module.that.does.not.exist", should_run=lambda s, p, c: True, enabled=False)
-
-    # Should not raise because it's disabled
-    proc.prepare()
-
-
-class TestNativeProcess:
-  """Tests for NativeProcess class."""
-
-  def test_native_process_prepare_is_noop(self):
-    """Test that NativeProcess.prepare() does nothing."""
-    proc = NativeProcess(name="test_native", cwd=".", cmdline=["echo", "hello"], should_run=lambda s, p, c: True)
-    # Should not raise
-    proc.prepare()
 
 
 class TestDaemonProcess:
@@ -510,7 +407,6 @@ class TestManagerInit:
     mocker.patch('openpilot.system.manager.manager.save_bootlog')
     mock_register = mocker.patch('openpilot.system.manager.manager.register')
     mock_hw = mocker.patch('openpilot.system.manager.manager.HARDWARE')
-    mocker.patch('openpilot.system.manager.manager.sentry')
     mock_build_meta = mocker.patch('openpilot.system.manager.manager.get_build_metadata')
 
     # Setup mocks
@@ -545,7 +441,6 @@ class TestProcessConfig:
       assert hasattr(proc, 'enabled')
       assert hasattr(proc, 'start')
       assert hasattr(proc, 'stop')
-      assert hasattr(proc, 'prepare')
       assert proc.name == name
 
   def test_no_duplicate_process_names(self):

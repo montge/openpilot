@@ -9,9 +9,9 @@ class TestPIDController:
     """Test PID initialization with scalar gains (converted to lookup tables)."""
     pid = PIDController(k_p=1.0, k_i=0.1, k_d=0.01)
 
-    assert pid._k_p == [[0], [1.0]]
-    assert pid._k_i == [[0], [0.1]]
-    assert pid._k_d == [[0], [0.01]]
+    assert pid._k_p == ([0], [1.0])
+    assert pid._k_i == ([0], [0.1])
+    assert pid._k_d == ([0], [0.01])
     assert pid.pos_limit == 1e308
     assert pid.neg_limit == -1e308
 

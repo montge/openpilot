@@ -15,6 +15,20 @@ AlertLevel = log.DriverMonitoringState.AlertLevel
 MonitoringPolicy = log.DriverMonitoringState.MonitoringPolicy
 
 
+def patch_params(mocker, *, too_distracted=False, lockout_count=None):
+  """Stub policy.Params for the monitoring tests.
+
+  fork: DriverMonitoring.__init__ reads DriverTooDistracted (get_bool) and, since
+  upstream's escalating-lockout change, DriverLockoutCount (get). A bare MagicMock
+  returns a MagicMock for the latter, which breaks the lockout index arithmetic, so
+  both have to be stubbed.
+  """
+  params = mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value
+  params.get_bool.return_value = too_distracted
+  params.get.return_value = lockout_count
+  return params
+
+
 class TestDriverMonitorSettings:
   """Test DRIVER_MONITOR_SETTINGS class."""
 
@@ -43,7 +57,7 @@ class TestDriverMonitorSettings:
       '_NO_RESPONSE_TIMEOUT',
       '_MAX_ALERT_3',
       '_MAX_NO_RESPONSE',
-      '_LOCKOUT_TIME',
+      '_LOCKOUT_TIMES',
       '_FACE_THRESHOLD',
       '_EYE_THRESHOLD',
       '_SG_THRESHOLD',
@@ -131,7 +145,7 @@ class TestDriverMonitoringInit:
 
   def test_driver_monitoring_initialization(self, mocker):
     """Test DriverMonitoring initializes correctly."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring(rhd_saved=False, always_on=False)
 
@@ -151,7 +165,7 @@ class TestDriverMonitoringInit:
 
   def test_driver_monitoring_rhd_saved(self, mocker):
     """Test DriverMonitoring with RHD saved setting."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring(rhd_saved=True)
 
@@ -159,7 +173,7 @@ class TestDriverMonitoringInit:
 
   def test_driver_monitoring_always_on(self, mocker):
     """Test DriverMonitoring with always_on enabled."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring(always_on=True)
 
@@ -171,7 +185,7 @@ class TestDriverMonitoringResetAwareness:
 
   def test_reset_awareness_sets_all_to_one(self, mocker):
     """Test _reset_awareness sets all awareness values to 1."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     dm.awareness = 0.5
@@ -190,7 +204,7 @@ class TestDriverMonitoringSetPolicy:
 
   def test_set_policy_vision(self, mocker):
     """Test _set_policy for the vision (active monitoring) policy."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     dm._set_policy(MonitoringPolicy.vision)
@@ -201,7 +215,7 @@ class TestDriverMonitoringSetPolicy:
 
   def test_set_policy_wheeltouch(self, mocker):
     """Test _set_policy for the wheeltouch (passive monitoring) policy."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     dm._set_policy(MonitoringPolicy.wheeltouch)
@@ -217,7 +231,7 @@ class TestDriverMonitoringSetPoseStrictness:
 
   def test_set_pose_strictness_adjusts_cfactors(self, mocker):
     """Test _set_pose_strictness adjusts pose cfactors."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
 
@@ -233,7 +247,7 @@ class TestDriverMonitoringGetDistractedTypes:
 
   def test_get_distracted_types_empty_when_not_distracted(self, mocker):
     """Test all distracted types are False when not distracted."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     # Default pose is centered, not distracted
@@ -249,7 +263,7 @@ class TestDriverMonitoringGetDistractedTypes:
 
   def test_get_distracted_types_pose_distracted(self, mocker):
     """Test detects pose distraction."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     dm.pose.pitch = -0.5  # Looking down
@@ -261,7 +275,7 @@ class TestDriverMonitoringGetDistractedTypes:
 
   def test_get_distracted_types_blink_distracted(self, mocker):
     """Test detects blink distraction (eyes closed)."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     dm.blink.left = 0.9
@@ -273,7 +287,7 @@ class TestDriverMonitoringGetDistractedTypes:
 
   def test_get_distracted_types_phone_distracted(self, mocker):
     """Test detects phone distraction."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     dm.phone_prob = 0.8  # High phone probability
@@ -284,7 +298,7 @@ class TestDriverMonitoringGetDistractedTypes:
 
   def test_get_distracted_types_phone_below_threshold(self, mocker):
     """Test phone not distracted when below threshold."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     dm.phone_prob = 0.2  # Below threshold
@@ -299,7 +313,7 @@ class TestDriverMonitoringGetStatePacket:
 
   def test_get_state_packet_returns_message(self, mocker):
     """Test get_state_packet returns a valid message."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     packet = dm.get_state_packet(valid=True)
@@ -309,7 +323,7 @@ class TestDriverMonitoringGetStatePacket:
 
   def test_get_state_packet_contains_expected_fields(self, mocker):
     """Test get_state_packet contains expected fields."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     packet = dm.get_state_packet()
@@ -328,7 +342,7 @@ class TestDriverMonitoringUpdateEvents:
 
   def test_update_events_resets_on_driver_engaged(self, mocker):
     """Test awareness resets when driver interacts in wheeltouch (passive) policy."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     dm.awareness = 0.5
@@ -340,7 +354,7 @@ class TestDriverMonitoringUpdateEvents:
 
   def test_update_events_decrements_awareness_when_distracted(self, mocker):
     """Test awareness decreases when driver is distracted."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     dm.awareness = 1.0
@@ -352,19 +366,21 @@ class TestDriverMonitoringUpdateEvents:
     assert dm.awareness < initial_awareness
 
   def test_update_events_lockout_after_max_alert_3(self, mocker):
-    """Test too_distracted flag is set after max alert 3 count."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    """Test lockout engages after max alert 3 count, and escalates the lockout count."""
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     dm.alert_3_cnt = dm.settings._MAX_ALERT_3
 
     dm._update_events(driver_engaged=False, op_engaged=True, lowspeed=False, wrong_gear=False)
 
-    assert dm.too_distracted
+    assert dm.lockout_active
+    assert dm.lockout_count == 1
+    assert dm.lockout_duration == dm.settings._LOCKOUT_TIMES[0]
 
   def test_update_events_awareness_recovery(self, mocker):
     """Test awareness recovers when driver is attentive."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     dm.awareness = 0.5
@@ -379,7 +395,7 @@ class TestDriverMonitoringUpdateEvents:
 
   def test_update_events_resets_on_disengage(self, mocker):
     """Test awareness resets when openpilot disengages in normal mode."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     dm.awareness = 0.3
@@ -395,7 +411,7 @@ class TestDriverMonitoringSetPolicyEdgeCases:
 
   def test_set_policy_no_change_when_awareness_zero(self, mocker):
     """Test _set_policy returns early when awareness is zero."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     dm.active_policy = MonitoringPolicy.wheeltouch
@@ -410,7 +426,7 @@ class TestDriverMonitoringSetPolicyEdgeCases:
 
   def test_set_policy_vision_below_orange_keeps_counting(self, mocker):
     """Test _set_policy keeps the vision step change when already past orange alert."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     dm.active_policy = MonitoringPolicy.vision
@@ -423,7 +439,7 @@ class TestDriverMonitoringSetPolicyEdgeCases:
 
   def test_set_policy_wheeltouch_below_orange_freezes(self, mocker):
     """Test no exploit when switching to wheeltouch past orange alert."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     dm.active_policy = MonitoringPolicy.vision
@@ -437,7 +453,7 @@ class TestDriverMonitoringSetPolicyEdgeCases:
 
   def test_set_policy_wheeltouch_to_vision_restores_awareness(self, mocker):
     """Test awareness is restored when switching from wheeltouch to vision."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     dm.active_policy = MonitoringPolicy.wheeltouch
@@ -454,7 +470,7 @@ class TestDriverMonitoringSetPolicyEdgeCases:
 
   def test_set_policy_vision_to_wheeltouch_saves_awareness(self, mocker):
     """Test awareness is saved when switching from vision to wheeltouch."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     dm.active_policy = MonitoringPolicy.vision
@@ -475,7 +491,7 @@ class TestDriverMonitoringGetDistractedTypesCalibrated:
 
   def test_get_distracted_types_calibrated_pose(self, mocker):
     """Test distracted types with calibrated pose."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     dm.pose.calibrated = True
@@ -520,7 +536,7 @@ class TestDriverMonitoringUpdateStates:
 
   def test_update_states_face_detection(self, mocker):
     """Test face detection updates correctly."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     # Initially no face detected
@@ -528,7 +544,7 @@ class TestDriverMonitoringUpdateStates:
 
   def test_update_states_detects_face(self, mocker):
     """Test _update_states detects face correctly."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     driver_state = self._create_driver_state(mocker, face_prob=0.9)
@@ -539,7 +555,7 @@ class TestDriverMonitoringUpdateStates:
 
   def test_update_states_no_face(self, mocker):
     """Test _update_states with no face detected."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     driver_state = self._create_driver_state(mocker, face_prob=0.3)
@@ -550,7 +566,7 @@ class TestDriverMonitoringUpdateStates:
 
   def test_update_states_wheel_position_calibration(self, mocker):
     """Test wheel position calibration during update."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     driver_state = self._create_driver_state(mocker, face_prob=0.9, wheel_on_right_prob=0.8)
@@ -564,7 +580,7 @@ class TestDriverMonitoringUpdateStates:
 
   def test_update_states_rhd_detection_demo_mode(self, mocker):
     """Test RHD detection in demo mode."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     driver_state = self._create_driver_state(mocker, face_prob=0.9, wheel_on_right_prob=0.9)
@@ -579,7 +595,7 @@ class TestDriverMonitoringUpdateStates:
 
   def test_update_states_no_switch_when_engaged(self, mocker):
     """Test wheel position doesn't switch when engaged."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     dm.wheel_on_right_last = False
@@ -596,7 +612,7 @@ class TestDriverMonitoringUpdateStates:
 
   def test_update_states_empty_face_data_returns_early(self, mocker):
     """Test _update_states returns early with empty face data."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
 
@@ -620,7 +636,7 @@ class TestDriverMonitoringUpdateStates:
 
   def test_update_states_pose_calibration(self, mocker):
     """Test pose calibration during update."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     driver_state = self._create_driver_state(mocker, face_prob=0.9)
@@ -633,7 +649,7 @@ class TestDriverMonitoringUpdateStates:
 
   def test_update_states_hi_stds_tracking(self, mocker):
     """Test hi_stds counter tracking."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
 
@@ -661,7 +677,7 @@ class TestDriverMonitoringUpdateStates:
 
   def test_update_states_dcam_uncertain_count(self, mocker):
     """Test dcam uncertain counter increases."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
 
@@ -689,7 +705,7 @@ class TestDriverMonitoringUpdateStates:
 
   def test_update_states_yaw_negated_for_rhd(self, mocker):
     """Test yaw is negated for right-hand drive."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     dm.wheel_on_right_default = True
@@ -722,32 +738,32 @@ class TestDriverMonitoringUpdateEventsEdgeCases:
   """Test DriverMonitoring._update_events edge cases."""
 
   def test_update_events_no_response_sets_lockout(self, mocker):
-    """Test too_distracted when no-response count reaches max."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    """Test lockout engages when no-response count reaches max."""
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     dm.no_response_cnt = dm.settings._MAX_NO_RESPONSE
 
     dm._update_events(driver_engaged=False, op_engaged=True, lowspeed=False, wrong_gear=False)
 
-    assert dm.too_distracted
+    assert dm.lockout_active
 
   def test_update_events_lockout_recovers_after_timeout(self, mocker):
     """Test lockout clears after the lockout time elapses."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
-    dm.too_distracted = True
-    dm.lockout_time = dm.settings._LOCKOUT_TIME
+    dm.lockout_active = True
+    dm.lockout_time_elapsed = dm.lockout_duration
 
     dm._update_events(driver_engaged=False, op_engaged=False, lowspeed=False, wrong_gear=False)
 
-    assert not dm.too_distracted
-    assert dm.lockout_time == 0
+    assert not dm.lockout_active
+    assert dm.lockout_time_elapsed == 0
 
   def test_update_events_always_on_alert_at_orange(self, mocker):
     """Test alert level two is reached below the orange threshold with always_on."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring(always_on=True)
     dm.awareness = dm.threshold_alert_2 - 0.01
@@ -759,7 +775,7 @@ class TestDriverMonitoringUpdateEventsEdgeCases:
 
   def test_update_events_driver_engaged_resets_awareness(self, mocker):
     """Test driver engaged resets awareness when attentive."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     dm.awareness = 0.5
@@ -773,7 +789,7 @@ class TestDriverMonitoringUpdateEventsEdgeCases:
 
   def test_update_events_wheeltouch_awareness_recovery(self, mocker):
     """Test last_wheeltouch_awareness increments when awareness is full."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     dm.awareness = 1.0 - dm.step_change  # Almost full
@@ -790,7 +806,7 @@ class TestDriverMonitoringUpdateEventsEdgeCases:
 
   def test_update_events_lowspeed_exemption_at_alert_1(self, mocker):
     """Test lowspeed exemption prevents dropping past alert level one."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     dm.awareness = dm.threshold_alert_1 + dm.step_change / 2  # About to reach alert 1
@@ -803,7 +819,7 @@ class TestDriverMonitoringUpdateEventsEdgeCases:
 
   def test_update_events_terminal_alert_increments(self, mocker):
     """Test alert_3_cnt increments when hitting red."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     dm.awareness = dm.step_change / 2  # Just above red
@@ -818,7 +834,7 @@ class TestDriverMonitoringUpdateEventsEdgeCases:
 
   def test_update_events_always_on_disengaged_red_exemption(self, mocker):
     """Test always_on red exemption when disengaged."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring(always_on=True)
     dm.awareness = dm.step_change / 2  # Almost at red
@@ -857,7 +873,7 @@ class TestDriverMonitoringDcamUncertainReset:
 
   def test_dcam_reset_count_increments(self, mocker):
     """Test dcam_reset_cnt increments when std is low."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     dm.dcam_uncertain_cnt = 10
@@ -869,7 +885,7 @@ class TestDriverMonitoringDcamUncertainReset:
 
   def test_dcam_uncertain_resets_after_enough_resets(self, mocker):
     """Test dcam_uncertain_cnt resets when reset count exceeds threshold."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     dm.dcam_uncertain_cnt = 10
@@ -886,7 +902,7 @@ class TestDriverMonitoringTerminalAlerts:
 
   def test_no_response_counting_at_red(self, mocker):
     """Test cnt_since_alert_3 increments when awareness stays at red."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     dm.awareness = -0.05  # Already at red
@@ -900,7 +916,7 @@ class TestDriverMonitoringTerminalAlerts:
 
   def test_alert_3_cnt_increments_on_first_red(self, mocker):
     """Test alert_3_cnt increments when first reaching red."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     dm.awareness = dm.step_change / 2  # Just above 0
@@ -964,7 +980,7 @@ class TestDriverMonitoringRunStep:
 
   def test_run_step_demo_mode(self, mocker):
     """Test run_step in demo mode."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     sm = mocker.MagicMock()
@@ -979,7 +995,7 @@ class TestDriverMonitoringRunStep:
 
   def test_run_step_normal_mode(self, mocker):
     """Test run_step in normal mode."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     sm = self._create_sm(mocker)
@@ -991,7 +1007,7 @@ class TestDriverMonitoringRunStep:
 
   def test_run_step_sets_pose_strictness(self, mocker):
     """Test run_step calls _set_pose_strictness."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     sm = self._create_sm(mocker, speed=20.0)
@@ -1003,7 +1019,7 @@ class TestDriverMonitoringRunStep:
 
   def test_run_step_updates_states(self, mocker):
     """Test run_step calls _update_states."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     sm = self._create_sm(mocker)
@@ -1015,7 +1031,7 @@ class TestDriverMonitoringRunStep:
 
   def test_run_step_updates_events(self, mocker):
     """Test run_step calls _update_events."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     sm = self._create_sm(mocker)
@@ -1027,7 +1043,7 @@ class TestDriverMonitoringRunStep:
 
   def test_run_step_wrong_gear_detection(self, mocker):
     """Test run_step detects wrong gear."""
-    mocker.patch('openpilot.selfdrive.monitoring.policy.Params').return_value.get_bool.return_value = False
+    patch_params(mocker)
 
     dm = DriverMonitoring()
     sm = self._create_sm(mocker, gear_shifter=car.CarState.GearShifter.park)  # Not in drive

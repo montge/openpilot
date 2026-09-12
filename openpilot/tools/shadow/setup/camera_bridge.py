@@ -40,7 +40,8 @@ except ImportError:
 VIPC_AVAILABLE = False
 try:
   import av
-  from msgq.visionipc import VisionIpcServer, VisionStreamType
+  from msgq.visionipc import VisionIpcServer
+  from openpilot.cereal.visionipc import VisionStreamType
   from openpilot.cereal import messaging
   VIPC_AVAILABLE = True
 except ImportError:
@@ -206,7 +207,7 @@ class CameraBridge:
       self.pm = messaging.PubMaster(['roadCameraState'])
       self.vipc_server = VisionIpcServer("camerad")
       self.vipc_server.create_buffers(
-      VisionStreamType.VISION_STREAM_ROAD,
+      VisionStreamType.VISION_STREAM_NARROW_ROAD,
       20,  # number of buffers
       width,
       height
@@ -226,7 +227,7 @@ class CameraBridge:
 
     # Send frame data via VisionIPC
     self.vipc_server.send(
-    VisionStreamType.VISION_STREAM_ROAD,
+    VisionStreamType.VISION_STREAM_NARROW_ROAD,
     nv12_data,
     self.frame_id,
     eof,  # timestamp_sof

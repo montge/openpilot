@@ -348,8 +348,8 @@ class TestPose:
     assert pose.acceleration == acceleration
     assert pose.angular_velocity == angular_velocity
 
-  def test_from_live_pose(self, mocker):
-    """Test Pose.from_live_pose class method."""
+  def test_from_device_motion(self, mocker):
+    """Test Pose.from_device_motion class method."""
     # Create mock XYZMeasurement objects
     def make_mock_xyz(x, y, z, x_std, y_std, z_std):
       m = mocker.MagicMock()
@@ -361,13 +361,13 @@ class TestPose:
       m.zStd = z_std
       return m
 
-    mock_live_pose = mocker.MagicMock()
-    mock_live_pose.orientationNED = make_mock_xyz(0.1, 0.2, 0.3, 0.01, 0.02, 0.03)
-    mock_live_pose.velocityDevice = make_mock_xyz(10.0, 0.5, 0.1, 0.1, 0.1, 0.1)
-    mock_live_pose.accelerationDevice = make_mock_xyz(0.0, 0.0, 9.8, 0.1, 0.1, 0.1)
-    mock_live_pose.angularVelocityDevice = make_mock_xyz(0.0, 0.0, 0.05, 0.01, 0.01, 0.01)
+    mock_device_motion = mocker.MagicMock()
+    mock_device_motion.orientationNED = make_mock_xyz(0.1, 0.2, 0.3, 0.01, 0.02, 0.03)
+    mock_device_motion.velocityDevice = make_mock_xyz(10.0, 0.5, 0.1, 0.1, 0.1, 0.1)
+    mock_device_motion.accelerationDevice = make_mock_xyz(0.0, 0.0, 9.8, 0.1, 0.1, 0.1)
+    mock_device_motion.angularVelocityDevice = make_mock_xyz(0.0, 0.0, 0.05, 0.01, 0.01, 0.01)
 
-    pose = Pose.from_live_pose(mock_live_pose)
+    pose = Pose.from_device_motion(mock_device_motion)
 
     assert isinstance(pose, Pose)
     assert pose.orientation.x == 0.1

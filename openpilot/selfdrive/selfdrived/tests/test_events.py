@@ -655,27 +655,7 @@ class TestParamsdInvalidAlert:
     assert "temporary" in alert.alert_text_2.lower()
 
 
-class TestHighCpuUsageAlert:
-  """Test high_cpu_usage_alert callback function."""
-
-  def test_high_cpu_alert_format(self, mocker):
-    """Test high CPU usage alert format."""
-    from openpilot.selfdrive.selfdrived.events import high_cpu_usage_alert
-
-    CP = mocker.MagicMock()
-    CS = mocker.MagicMock()
-    sm = mocker.MagicMock()
-    sm.__getitem__ = mocker.MagicMock(
-      return_value=mocker.MagicMock(
-        cpuUsagePercent=[85.0, 90.0, 75.0],
-      )
-    )
-
-    alert = high_cpu_usage_alert(CP, CS, sm, False, 0, None)
-
-    assert isinstance(alert, NormalPermanentAlert)
-    assert "cpu" in alert.alert_text_1.lower()
-    assert "90" in alert.alert_text_2  # Max of [85, 90, 75]
+# fork: upstream removed the high_cpu_usage_alert callback.
 
 
 class TestOverheatAlert:

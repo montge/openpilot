@@ -141,22 +141,7 @@ class TestRunningStatStd:
     assert stat.std() == pytest.approx(np.sqrt(stat.variance()))
 
 
-class TestRunningStatParamsToSave:
-  """Test RunningStat params_to_save method."""
-
-  def test_params_to_save(self):
-    """Test params_to_save returns correct list."""
-    stat = RunningStat()
-    for v in [10.0, 20.0, 30.0]:
-      stat.push_data(v)
-
-    params = stat.params_to_save()
-
-    assert len(params) == 3
-    assert params[0] == stat.M
-    assert params[1] == stat.S
-    assert params[2] == stat.n
-
+# fork: upstream removed RunningStat.params_to_save.
 
 class TestRunningStatFilterInit:
   """Test RunningStatFilter initialization."""

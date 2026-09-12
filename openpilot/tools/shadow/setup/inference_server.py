@@ -55,7 +55,8 @@ except ImportError as e:
 VIPC_AVAILABLE = False
 try:
   import av  # type: ignore[import-not-found]
-  from msgq.visionipc import VisionIpcServer, VisionStreamType
+  from msgq.visionipc import VisionIpcServer
+  from openpilot.cereal.visionipc import VisionStreamType
   from openpilot.cereal import messaging
 
   VIPC_AVAILABLE = True
@@ -138,7 +139,7 @@ class InferenceServer:
       print("Initializing VisionIPC server...")
       self.vipc_server = VisionIpcServer("camerad")
       self.vipc_server.create_buffers(
-        VisionStreamType.VISION_STREAM_ROAD,
+        VisionStreamType.VISION_STREAM_NARROW_ROAD,
         20,  # buffer count
         width,
         height,
@@ -219,7 +220,7 @@ class InferenceServer:
       return
 
     self.vipc_server.send(
-      VisionStreamType.VISION_STREAM_ROAD,
+      VisionStreamType.VISION_STREAM_NARROW_ROAD,
       nv12_data,
       frame_id,
       timestamp_ns,  # timestamp_sof

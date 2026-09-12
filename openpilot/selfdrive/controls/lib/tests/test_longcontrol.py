@@ -19,8 +19,6 @@ def create_mock_cp(mocker):
   """Create a mock CarParams for testing."""
   CP = mocker.MagicMock()
   CP.stopAccel = -2.0
-  CP.longitudinalTuning.kpBP = [0.0, 5.0, 35.0]
-  CP.longitudinalTuning.kpV = [0.0, 0.0, 0.0]
   CP.longitudinalTuning.kiBP = [0.0, 35.0]
   CP.longitudinalTuning.kiV = [0.0, 0.0]
   return CP

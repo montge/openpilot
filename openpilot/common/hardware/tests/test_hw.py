@@ -198,21 +198,21 @@ class TestPathsShmPath:
 
 
 class TestPcHardware:
-  """Test Pc hardware class."""
+  """Test HardwarePc hardware class."""
 
   def test_get_device_type(self):
-    """Test Pc.get_device_type returns 'pc'."""
-    from openpilot.common.hardware.pc.hardware import Pc
+    """Test HardwarePc.get_device_type returns 'pc'."""
+    from openpilot.common.hardware.pc.hardware import HardwarePc
 
-    pc = Pc()
+    pc = HardwarePc()
     assert pc.get_device_type() == "pc"
 
   def test_get_network_type(self):
-    """Test Pc.get_network_type returns wifi."""
+    """Test HardwarePc.get_network_type returns wifi."""
     from openpilot.cereal import log
-    from openpilot.common.hardware.pc.hardware import Pc
+    from openpilot.common.hardware.pc.hardware import HardwarePc
 
-    pc = Pc()
+    pc = HardwarePc()
     result = pc.get_network_type()
 
     assert result == log.DeviceState.NetworkType.wifi

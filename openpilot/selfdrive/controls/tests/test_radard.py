@@ -111,22 +111,13 @@ class TestTrack:
     assert state['yRel'] == -1.0
     assert state['vRel'] == -5.0
     assert state['vLead'] == 15.0
-    assert state['status'] is True
+    assert state['present'] is True
     assert state['radar'] is True
     assert state['radarTrackId'] == 1
     assert state['modelProb'] == 0.8
 
-  def test_get_RadarState_fcw(self, kalman_params):
-    """Test FCW is triggered at high model probability."""
-    track = Track(identifier=1, v_lead=10.0, kalman_params=kalman_params)
-    track.update(d_rel=50.0, y_rel=0.0, v_rel=0.0, v_lead=10.0)
-
-    # FCW should be True when model_prob > 0.9
-    state_high = track.get_RadarState(model_prob=0.95)
-    assert state_high['fcw'] is True
-
-    state_low = track.get_RadarState(model_prob=0.85)
-    assert state_low['fcw'] is False
+  # fork: upstream removed the 'fcw' key and Track.is_potential_fcw from the lead dict;
+  # FCW is now derived in the longitudinal planner from the MPC crash counter.
 
   def test_potential_low_speed_lead_true(self, kalman_params):
     """Test low speed lead detection when conditions are met."""
@@ -285,9 +276,8 @@ class TestGetRadarStateFromVision:
     assert state['vLead'] == pytest.approx(15.0)  # 20 + (-5) = 15
     assert state['aLeadK'] == pytest.approx(-1.0)
     assert state['aLeadTau'] == 0.3
-    assert state['fcw'] is False
     assert state['modelProb'] == 0.8
-    assert state['status'] is True
+    assert state['present'] is True
     assert state['radar'] is False
     assert state['radarTrackId'] == -1
 
@@ -316,7 +306,7 @@ class TestGetLead:
     lead = self._make_lead_msg(mocker, x=50.0, y=0.0, v=15.0)
     result = get_lead(v_ego=20.0, ready=True, tracks={}, lead_msg=lead, model_v_ego=20.0, lead_prob=0.8)
 
-    assert result['status'] is True
+    assert result['present'] is True
     assert result['radar'] is False
 
   def test_low_prob_returns_no_lead(self, mocker, kalman_params):
@@ -324,14 +314,14 @@ class TestGetLead:
     lead = self._make_lead_msg(mocker, x=50.0, y=0.0, v=15.0)
     result = get_lead(v_ego=20.0, ready=True, tracks={}, lead_msg=lead, model_v_ego=20.0, lead_prob=0.3)
 
-    assert result['status'] is False
+    assert result['present'] is False
 
   def test_not_ready_returns_no_lead(self, mocker, kalman_params):
     """Test that not ready returns no lead."""
     lead = self._make_lead_msg(mocker, x=50.0, y=0.0, v=15.0)
     result = get_lead(v_ego=20.0, ready=False, tracks={}, lead_msg=lead, model_v_ego=20.0, lead_prob=0.8)
 
-    assert result['status'] is False
+    assert result['present'] is False
 
   def test_matching_track_returns_radar_lead(self, mocker, kalman_params):
     """Test that matching track returns radar-based lead."""
@@ -342,7 +332,7 @@ class TestGetLead:
     lead = self._make_lead_msg(mocker, x=50.0, y=0.0, v=15.0)
     result = get_lead(v_ego=20.0, ready=True, tracks=tracks, lead_msg=lead, model_v_ego=20.0, lead_prob=0.8)
 
-    assert result['status'] is True
+    assert result['present'] is True
     assert result['radar'] is True
     assert result['radarTrackId'] == 1
 
@@ -356,7 +346,7 @@ class TestGetLead:
     lead = self._make_lead_msg(mocker, x=50.0, y=0.0, v=15.0)  # Low prob, no vision lead
     result = get_lead(v_ego=2.0, ready=True, tracks=tracks, lead_msg=lead, model_v_ego=2.0, lead_prob=0.3, low_speed_override=True)
 
-    assert result['status'] is True
+    assert result['present'] is True
     assert result['radarTrackId'] == 1
 
   def test_low_speed_override_disabled(self, mocker, kalman_params):
@@ -368,7 +358,7 @@ class TestGetLead:
     lead = self._make_lead_msg(mocker, x=50.0, y=0.0, v=15.0)
     result = get_lead(v_ego=2.0, ready=True, tracks=tracks, lead_msg=lead, model_v_ego=2.0, lead_prob=0.3, low_speed_override=False)
 
-    assert result['status'] is False
+    assert result['present'] is False
 
 
 class TestRadarD:
@@ -377,7 +367,6 @@ class TestRadarD:
   def test_radard_initialization(self):
     """Test RadarD initializes correctly."""
     rd = RadarD(delay=0.1)
-    assert rd.current_time == 0.0
     assert rd.v_ego == 0.0
     assert rd.ready is False
     assert len(rd.tracks) == 0

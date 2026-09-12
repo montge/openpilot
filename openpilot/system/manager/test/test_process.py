@@ -54,9 +54,6 @@ class TestManagerProcess:
     """Create a concrete ManagerProcess for testing."""
 
     class ConcreteProcess(ManagerProcess):
-      def prepare(self):
-        pass
-
       def start(self):
         pass
 
@@ -132,16 +129,8 @@ class TestManagerProcess:
     result = mp.stop()
     assert result is None
 
-  def test_restart_stops_and_starts(self, mocker):
-    """Test restart calls stop and start."""
-    mp = self._create_manager_process()
-    mp.stop = mocker.MagicMock(return_value=0)
-    mp.start = mocker.MagicMock()
-
-    mp.restart()
-
-    mp.stop.assert_called_once_with(sig=signal.SIGKILL)
-    mp.start.assert_called_once()
+  # fork: upstream removed ManagerProcess.prepare() and .restart() -- processes are
+  # started and stopped directly now.
 
 
 class TestNativeProcess:
@@ -167,17 +156,6 @@ class TestNativeProcess:
     assert proc.cmdline == ["./test"]
     assert proc.enabled is True
     assert proc.sigkill is False
-
-  def test_prepare_does_nothing(self):
-    """Test prepare() does nothing for native processes."""
-    proc = NativeProcess(
-      name="test",
-      cwd=".",
-      cmdline=["./test"],
-      should_run=lambda s, p, c: True,
-    )
-    # Should not raise
-    proc.prepare()
 
   def test_start_when_already_running(self, mocker):
     """Test start() does nothing if process is already running."""
@@ -254,16 +232,6 @@ class TestDaemonProcess:
 
     result = DaemonProcess.should_run(False, None, None)
     assert result is True
-
-  def test_prepare_does_nothing(self):
-    """Test prepare() does nothing for daemon processes."""
-    proc = DaemonProcess(
-      name="test",
-      module="test_module",
-      param_name="TestPid",
-    )
-    # Should not raise
-    proc.prepare()
 
   def test_stop_does_nothing(self):
     """Test stop() does nothing for daemon processes."""

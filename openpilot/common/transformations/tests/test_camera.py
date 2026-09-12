@@ -101,9 +101,9 @@ class TestDeviceCameraConfig:
 
     config = DeviceCameraConfig(fcam, dcam, ecam)
 
-    assert config.fcam == fcam
-    assert config.dcam == dcam
-    assert config.ecam == ecam
+    assert config.narrow_road == fcam
+    assert config.cabin == dcam
+    assert config.wide_road == ecam
 
   def test_all_cams_yields_non_none_cameras(self):
     """Test all_cams yields only non-None cameras."""
@@ -116,8 +116,8 @@ class TestDeviceCameraConfig:
     cams = list(config.all_cams())
 
     assert len(cams) == 2
-    assert ('fcam', fcam) in cams
-    assert ('dcam', dcam) in cams
+    assert ('narrow_road', fcam) in cams
+    assert ('cabin', dcam) in cams
 
   def test_all_cams_with_all_cameras(self):
     """Test all_cams with all cameras present."""

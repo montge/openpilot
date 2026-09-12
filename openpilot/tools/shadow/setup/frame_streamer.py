@@ -42,7 +42,8 @@ except ImportError as e:
   # VisionIPC imports
 VIPC_AVAILABLE = False
 try:
-  from msgq.visionipc import VisionIpcClient, VisionStreamType
+  from msgq.visionipc import VisionIpcClient
+  from openpilot.cereal.visionipc import VisionStreamType
   VIPC_AVAILABLE = True
 except ImportError:
   pass
@@ -97,7 +98,7 @@ class FrameStreamer:
       print("Connecting to VisionIPC...")
       self.vipc_client = VisionIpcClient(
       "camerad",
-      VisionStreamType.VISION_STREAM_ROAD,
+      VisionStreamType.VISION_STREAM_NARROW_ROAD,
       False  # conflate - drop old frames
       )
       # Wait for connection
@@ -221,7 +222,7 @@ def test_vipc():
 
   client = VisionIpcClient(
   "camerad",
-  VisionStreamType.VISION_STREAM_ROAD,
+  VisionStreamType.VISION_STREAM_NARROW_ROAD,
   False
   )
 

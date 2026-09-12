@@ -309,8 +309,8 @@ class TestPose:
     assert pose.acceleration is acceleration
     assert pose.angular_velocity is angular_velocity
 
-  def test_from_live_pose(self, mocker):
-    """Test from_live_pose class method."""
+  def test_from_device_motion(self, mocker):
+    """Test from_device_motion class method."""
 
     # Create mock XYZMeasurement
     def mock_xyz(x, y, z, xstd, ystd, zstd):
@@ -319,13 +319,13 @@ class TestPose:
       m.xStd, m.yStd, m.zStd = xstd, ystd, zstd
       return m
 
-    mock_live_pose = mocker.MagicMock()
-    mock_live_pose.orientationNED = mock_xyz(0.1, 0.2, 0.3, 0.01, 0.02, 0.03)
-    mock_live_pose.velocityDevice = mock_xyz(10.0, 0.0, 0.0, 0.1, 0.1, 0.1)
-    mock_live_pose.accelerationDevice = mock_xyz(1.0, 0.0, 0.0, 0.1, 0.1, 0.1)
-    mock_live_pose.angularVelocityDevice = mock_xyz(0.0, 0.0, 0.1, 0.01, 0.01, 0.01)
+    mock_device_motion = mocker.MagicMock()
+    mock_device_motion.orientationNED = mock_xyz(0.1, 0.2, 0.3, 0.01, 0.02, 0.03)
+    mock_device_motion.velocityDevice = mock_xyz(10.0, 0.0, 0.0, 0.1, 0.1, 0.1)
+    mock_device_motion.accelerationDevice = mock_xyz(1.0, 0.0, 0.0, 0.1, 0.1, 0.1)
+    mock_device_motion.angularVelocityDevice = mock_xyz(0.0, 0.0, 0.1, 0.01, 0.01, 0.01)
 
-    result = Pose.from_live_pose(mock_live_pose)
+    result = Pose.from_device_motion(mock_device_motion)
 
     assert isinstance(result, Pose)
     np.testing.assert_array_almost_equal(result.orientation.xyz, [0.1, 0.2, 0.3])
@@ -363,16 +363,16 @@ class TestPoseCalibrator:
 
     assert isinstance(result, Pose)
 
-  def test_feed_live_calib(self, mocker):
-    """Test feed_live_calib updates calibration."""
+  def test_feed_extrinsics_calibration(self, mocker):
+    """Test feed_extrinsics_calibration updates calibration."""
     pc = PoseCalibrator()
 
-    # Create mock live calibration
-    live_calib = mocker.MagicMock()
-    live_calib.rpyCalib = [0.0, 0.0, 0.0]
-    live_calib.calStatus = 1  # calibrated
+    # Create mock extrinsics calibration
+    extrinsics_calib = mocker.MagicMock()
+    extrinsics_calib.rpyCalib = [0.0, 0.0, 0.0]
+    extrinsics_calib.calStatus = 1  # calibrated
 
-    pc.feed_live_calib(live_calib)
+    pc.feed_extrinsics_calibration(extrinsics_calib)
 
     # After feeding identity calibration, calib_from_device should still be ~identity
     np.testing.assert_array_almost_equal(pc.calib_from_device, np.eye(3))

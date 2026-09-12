@@ -19,16 +19,14 @@ from openpilot.system.loggerd.uploader import (
 class TestGetDirectorySort:
   """Test get_directory_sort function."""
 
-  def test_old_format_sorted_first(self):
-    """Test 2024- directories are sorted first."""
+  def test_older_route_sorted_first(self):
+    """Test an older route sorts before a newer one."""
     old_dir = "2024-01-15--12-30-00"
     new_dir = "2025-01-15--12-30-00"
 
     old_result = get_directory_sort(old_dir)
     new_result = get_directory_sort(new_dir)
 
-    assert old_result[0] == "0"
-    assert new_result[0] == "1"
     assert old_result < new_result
 
   def test_segments_sorted_by_number(self):
