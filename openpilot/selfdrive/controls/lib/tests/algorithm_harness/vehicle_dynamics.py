@@ -13,7 +13,6 @@ matching openpilot's internal vehicle model.
 import math
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
 
 
 class VehicleType(Enum):
@@ -138,7 +137,7 @@ class BicycleModel:
     self.config = config
     self.state = BicycleModelState()
 
-  def reset(self, initial_state: Optional[BicycleModelState] = None):
+  def reset(self, initial_state: BicycleModelState | None = None):
     """Reset the model to initial state."""
     self.state = initial_state or BicycleModelState()
 
@@ -388,7 +387,7 @@ def get_sports_config(name: str = "Generic Sports") -> VehicleDynamicsConfig:
   )
 
 
-def get_vehicle_config(vehicle_type: VehicleType, name: Optional[str] = None) -> VehicleDynamicsConfig:
+def get_vehicle_config(vehicle_type: VehicleType, name: str | None = None) -> VehicleDynamicsConfig:
   """
   Get vehicle configuration by type.
 

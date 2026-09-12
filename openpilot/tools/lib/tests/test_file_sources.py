@@ -19,7 +19,7 @@ class TestEvalSource:
     """Test eval_source with list of URLs per segment."""
     mocker.patch('openpilot.tools.lib.file_sources.file_exists', side_effect=[False, True])
 
-    files = {0: ["https://example.com/rlog.zst", "https://example.com/rlog.bz2"]}
+    files: dict[int, list[str] | str] = {0: ["https://example.com/rlog.zst", "https://example.com/rlog.bz2"]}
     result = eval_source(files)
 
     assert result == {0: "https://example.com/rlog.bz2"}
@@ -28,7 +28,7 @@ class TestEvalSource:
     """Test eval_source with single string URL per segment."""
     mocker.patch('openpilot.tools.lib.file_sources.file_exists', return_value=True)
 
-    files = {0: "https://example.com/file.txt"}
+    files: dict[int, list[str] | str] = {0: "https://example.com/file.txt"}
     result = eval_source(files)
 
     assert result == {0: "https://example.com/file.txt"}
@@ -37,7 +37,7 @@ class TestEvalSource:
     """Test eval_source when no files exist."""
     mocker.patch('openpilot.tools.lib.file_sources.file_exists', return_value=False)
 
-    files = {0: ["https://example.com/missing1", "https://example.com/missing2"]}
+    files: dict[int, list[str] | str] = {0: ["https://example.com/missing1", "https://example.com/missing2"]}
     result = eval_source(files)
 
     assert result == {}
@@ -46,7 +46,7 @@ class TestEvalSource:
     """Test eval_source with multiple segments."""
     mocker.patch('openpilot.tools.lib.file_sources.file_exists', side_effect=[True, True])
 
-    files = {
+    files: dict[int, list[str] | str] = {
       0: ["https://example.com/seg0/file"],
       1: ["https://example.com/seg1/file"],
     }

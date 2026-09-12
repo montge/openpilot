@@ -8,6 +8,7 @@ from openpilot.selfdrive.controls.lib.drive_helpers import (
   smooth_value,
   clip_curvature,
   get_accel_from_plan,
+  should_stop,
   curv_from_psis,
   get_curvature_from_plan,
   MIN_SPEED,
@@ -179,7 +180,12 @@ class TestClipCurvature:
 
 
 class TestGetAccelFromPlan:
-  """Test get_accel_from_plan function."""
+  """Test get_accel_from_plan function.
+
+  fork: upstream split the stop decision out of get_accel_from_plan -- it now returns
+  a_target alone, and should_stop(v_ego, a_target) is a separate helper with the
+  vEgoStopping threshold folded in as a constant. TestShouldStop below covers it.
+  """
 
   def test_valid_plan(self):
     """Test with valid speed/accel plan."""
@@ -187,10 +193,10 @@ class TestGetAccelFromPlan:
     speeds = np.array([10.0, 10.0, 10.0, 10.0])
     accels = np.array([0.0, 0.0, 0.0, 0.0])
 
-    a_target, should_stop = get_accel_from_plan(speeds, accels, t_idxs)
+    a_target = get_accel_from_plan(speeds, accels, t_idxs)
 
     assert isinstance(a_target, float)
-    assert not should_stop
+    assert not should_stop(speeds[0], a_target)
 
   def test_stopping_plan(self):
     """Test plan that results in stopping."""
@@ -198,9 +204,9 @@ class TestGetAccelFromPlan:
     speeds = np.array([0.01, 0.01, 0.01, 0.01])  # Very slow
     accels = np.array([0.0, 0.0, 0.0, 0.0])
 
-    a_target, should_stop = get_accel_from_plan(speeds, accels, t_idxs)
+    a_target = get_accel_from_plan(speeds, accels, t_idxs)
 
-    assert should_stop
+    assert should_stop(speeds[0], a_target)
 
   def test_accelerating_plan(self):
     """Test plan with increasing speed."""
@@ -208,10 +214,10 @@ class TestGetAccelFromPlan:
     speeds = np.array([10.0, 11.0, 12.0, 13.0])
     accels = np.array([1.0, 1.0, 1.0, 1.0])
 
-    a_target, should_stop = get_accel_from_plan(speeds, accels, t_idxs)
+    a_target = get_accel_from_plan(speeds, accels, t_idxs)
 
     assert a_target > 0
-    assert not should_stop
+    assert not should_stop(speeds[0], a_target)
 
   def test_decelerating_plan(self):
     """Test plan with decreasing speed."""
@@ -219,10 +225,10 @@ class TestGetAccelFromPlan:
     speeds = np.array([15.0, 14.0, 13.0, 12.0])
     accels = np.array([-1.0, -1.0, -1.0, -1.0])
 
-    a_target, should_stop = get_accel_from_plan(speeds, accels, t_idxs)
+    a_target = get_accel_from_plan(speeds, accels, t_idxs)
 
     assert a_target < 0
-    assert not should_stop
+    assert not should_stop(speeds[0], a_target)
 
   def test_mismatched_lengths(self):
     """Test with mismatched array lengths returns defaults."""
@@ -230,24 +236,25 @@ class TestGetAccelFromPlan:
     speeds = np.array([10.0, 10.0])  # Different length
     accels = np.array([0.0, 0.0])
 
-    a_target, should_stop = get_accel_from_plan(speeds, accels, t_idxs)
+    a_target = get_accel_from_plan(speeds, accels, t_idxs)
 
     assert a_target == 0.0
-    assert should_stop  # v_target=0 and v_target_1sec=0
 
-  def test_custom_vego_stopping(self):
-    """Test custom vEgoStopping threshold."""
-    t_idxs = np.array([0.0, 0.5, 1.0, 1.5])
-    speeds = np.array([0.1, 0.1, 0.1, 0.1])
-    accels = np.array([0.0, 0.0, 0.0, 0.0])
 
-    # Default threshold is 0.3, so v_now=0.1 should stop
-    _, should_stop_default = get_accel_from_plan(speeds, accels, t_idxs)
-    assert should_stop_default
+class TestShouldStop:
+  """Test the should_stop helper."""
 
-    # With a lower threshold, should not stop
-    _, should_stop_custom = get_accel_from_plan(speeds, accels, t_idxs, vEgoStopping=0.05)
-    assert not should_stop_custom
+  def test_stops_when_slow_and_not_accelerating(self):
+    """v_ego below threshold with no commanded accel should stop."""
+    assert should_stop(0.1, 0.0)
+
+  def test_no_stop_above_speed_threshold(self):
+    """The default speed threshold is 0.3 m/s."""
+    assert not should_stop(0.5, 0.0)
+
+  def test_no_stop_when_accelerating(self):
+    """Commanded acceleration keeps it out of the stop state."""
+    assert not should_stop(0.1, 1.0)
 
 
 class TestCurvFromPsis:

@@ -35,7 +35,6 @@ import subprocess
 import sys
 import threading
 import time
-from typing import Optional
 
 # Ensure openpilot root is in path
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -64,7 +63,7 @@ except ImportError:
   pass
 
 
-def jpeg_to_nv12(jpeg_data: bytes, target_width: int, target_height: int) -> Optional[bytes]:
+def jpeg_to_nv12(jpeg_data: bytes, target_width: int, target_height: int) -> bytes | None:
   """Decode JPEG to NV12 format."""
   # Decode JPEG to BGR
   img_array = np.frombuffer(jpeg_data, dtype=np.uint8)
@@ -115,7 +114,7 @@ class InferenceServer:
     self.running = False
     self.frame_count = 0
     self.result_count = 0
-    self.modeld_proc: Optional[subprocess.Popen[bytes]] = None
+    self.modeld_proc: subprocess.Popen[bytes] | None = None
 
     # ZeroMQ context
     self.zmq_ctx = zmq.Context()

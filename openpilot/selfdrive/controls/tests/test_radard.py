@@ -71,13 +71,12 @@ class TestTrack:
   def test_track_update_first_call(self, kalman_params):
     """Test first update doesn't call kf.update."""
     track = Track(identifier=1, v_lead=10.0, kalman_params=kalman_params)
-    track.update(d_rel=50.0, y_rel=-1.0, v_rel=-5.0, v_lead=15.0, measured=1.0)
+    track.update(d_rel=50.0, y_rel=-1.0, v_rel=-5.0, v_lead=15.0)
 
     assert track.dRel == 50.0
     assert track.yRel == -1.0
     assert track.vRel == -5.0
     assert track.vLead == 15.0
-    assert track.measured == 1.0
     assert track.cnt == 1
 
   def test_track_update_subsequent_calls(self, kalman_params):
@@ -85,10 +84,10 @@ class TestTrack:
     track = Track(identifier=1, v_lead=10.0, kalman_params=kalman_params)
 
     # First update
-    track.update(d_rel=50.0, y_rel=-1.0, v_rel=-5.0, v_lead=15.0, measured=1.0)
+    track.update(d_rel=50.0, y_rel=-1.0, v_rel=-5.0, v_lead=15.0)
 
     # Second update - should update Kalman filter
-    track.update(d_rel=48.0, y_rel=-0.9, v_rel=-5.1, v_lead=14.9, measured=1.0)
+    track.update(d_rel=48.0, y_rel=-0.9, v_rel=-5.1, v_lead=14.9)
     assert track.cnt == 2
     assert isinstance(track.vLeadK, float)
     assert isinstance(track.aLeadK, float)
@@ -96,7 +95,7 @@ class TestTrack:
   def test_track_aLeadTau_reset_on_low_accel(self, kalman_params):
     """Test aLeadTau resets when acceleration is low."""
     track = Track(identifier=1, v_lead=10.0, kalman_params=kalman_params)
-    track.update(d_rel=50.0, y_rel=0.0, v_rel=0.0, v_lead=10.0, measured=1.0)
+    track.update(d_rel=50.0, y_rel=0.0, v_rel=0.0, v_lead=10.0)
 
     # After update with low accel, aLeadTau should be reset to default
     assert track.aLeadTau.x == pytest.approx(_LEAD_ACCEL_TAU)
@@ -104,7 +103,7 @@ class TestTrack:
   def test_get_RadarState(self, kalman_params):
     """Test get_RadarState returns correct dict."""
     track = Track(identifier=1, v_lead=10.0, kalman_params=kalman_params)
-    track.update(d_rel=50.0, y_rel=-1.0, v_rel=-5.0, v_lead=15.0, measured=1.0)
+    track.update(d_rel=50.0, y_rel=-1.0, v_rel=-5.0, v_lead=15.0)
 
     state = track.get_RadarState(model_prob=0.8)
 
@@ -120,7 +119,7 @@ class TestTrack:
   def test_get_RadarState_fcw(self, kalman_params):
     """Test FCW is triggered at high model probability."""
     track = Track(identifier=1, v_lead=10.0, kalman_params=kalman_params)
-    track.update(d_rel=50.0, y_rel=0.0, v_rel=0.0, v_lead=10.0, measured=1.0)
+    track.update(d_rel=50.0, y_rel=0.0, v_rel=0.0, v_lead=10.0)
 
     # FCW should be True when model_prob > 0.9
     state_high = track.get_RadarState(model_prob=0.95)
@@ -132,7 +131,7 @@ class TestTrack:
   def test_potential_low_speed_lead_true(self, kalman_params):
     """Test low speed lead detection when conditions are met."""
     track = Track(identifier=1, v_lead=2.0, kalman_params=kalman_params)
-    track.update(d_rel=10.0, y_rel=0.5, v_rel=-1.0, v_lead=2.0, measured=1.0)
+    track.update(d_rel=10.0, y_rel=0.5, v_rel=-1.0, v_lead=2.0)
 
     # v_ego < V_EGO_STATIONARY, yRel < 1, dRel in range
     assert track.potential_low_speed_lead(v_ego=2.0) is True
@@ -140,35 +139,35 @@ class TestTrack:
   def test_potential_low_speed_lead_false_high_speed(self, kalman_params):
     """Test low speed lead not detected at high ego speed."""
     track = Track(identifier=1, v_lead=10.0, kalman_params=kalman_params)
-    track.update(d_rel=10.0, y_rel=0.5, v_rel=-5.0, v_lead=10.0, measured=1.0)
+    track.update(d_rel=10.0, y_rel=0.5, v_rel=-5.0, v_lead=10.0)
 
     assert track.potential_low_speed_lead(v_ego=20.0) is False
 
   def test_potential_low_speed_lead_false_too_close(self, kalman_params):
     """Test low speed lead not detected when too close (glitch filter)."""
     track = Track(identifier=1, v_lead=2.0, kalman_params=kalman_params)
-    track.update(d_rel=0.5, y_rel=0.0, v_rel=0.0, v_lead=2.0, measured=1.0)
+    track.update(d_rel=0.5, y_rel=0.0, v_rel=0.0, v_lead=2.0)
 
     assert track.potential_low_speed_lead(v_ego=2.0) is False
 
   def test_potential_low_speed_lead_false_too_far(self, kalman_params):
     """Test low speed lead not detected when too far."""
     track = Track(identifier=1, v_lead=2.0, kalman_params=kalman_params)
-    track.update(d_rel=30.0, y_rel=0.0, v_rel=0.0, v_lead=2.0, measured=1.0)
+    track.update(d_rel=30.0, y_rel=0.0, v_rel=0.0, v_lead=2.0)
 
     assert track.potential_low_speed_lead(v_ego=2.0) is False
 
   def test_potential_low_speed_lead_false_too_lateral(self, kalman_params):
     """Test low speed lead not detected when too far laterally."""
     track = Track(identifier=1, v_lead=2.0, kalman_params=kalman_params)
-    track.update(d_rel=10.0, y_rel=2.0, v_rel=0.0, v_lead=2.0, measured=1.0)
+    track.update(d_rel=10.0, y_rel=2.0, v_rel=0.0, v_lead=2.0)
 
     assert track.potential_low_speed_lead(v_ego=2.0) is False
 
   def test_str_representation(self, kalman_params):
     """Test string representation of track."""
     track = Track(identifier=1, v_lead=10.0, kalman_params=kalman_params)
-    track.update(d_rel=50.0, y_rel=-1.0, v_rel=-5.0, v_lead=15.0, measured=1.0)
+    track.update(d_rel=50.0, y_rel=-1.0, v_rel=-5.0, v_lead=15.0)
 
     s = str(track)
     assert 'x:' in s
@@ -231,10 +230,10 @@ class TestMatchVisionToTrack:
     """Test that the best matching track is found."""
     # Create two tracks
     track1 = Track(1, 10.0, kalman_params)
-    track1.update(d_rel=50.0 - RADAR_TO_CAMERA, y_rel=0.0, v_rel=-5.0, v_lead=15.0, measured=1.0)
+    track1.update(d_rel=50.0 - RADAR_TO_CAMERA, y_rel=0.0, v_rel=-5.0, v_lead=15.0)
 
     track2 = Track(2, 10.0, kalman_params)
-    track2.update(d_rel=30.0 - RADAR_TO_CAMERA, y_rel=-2.0, v_rel=-3.0, v_lead=17.0, measured=1.0)
+    track2.update(d_rel=30.0 - RADAR_TO_CAMERA, y_rel=-2.0, v_rel=-3.0, v_lead=17.0)
 
     tracks = {1: track1, 2: track2}
 
@@ -247,7 +246,7 @@ class TestMatchVisionToTrack:
   def test_match_returns_none_for_insane_distance(self, mocker, kalman_params):
     """Test that None is returned when distance is too different."""
     track = Track(1, 10.0, kalman_params)
-    track.update(d_rel=10.0, y_rel=0.0, v_rel=-5.0, v_lead=15.0, measured=1.0)
+    track.update(d_rel=10.0, y_rel=0.0, v_rel=-5.0, v_lead=15.0)
 
     tracks = {1: track}
     lead = self._make_lead_msg(mocker, x=100.0, y=0.0, v=15.0)  # Very different distance
@@ -258,7 +257,7 @@ class TestMatchVisionToTrack:
   def test_match_returns_none_for_insane_velocity(self, mocker, kalman_params):
     """Test that None is returned when velocity is too different."""
     track = Track(1, 10.0, kalman_params)
-    track.update(d_rel=50.0 - RADAR_TO_CAMERA, y_rel=0.0, v_rel=-20.0, v_lead=0.0, measured=1.0)
+    track.update(d_rel=50.0 - RADAR_TO_CAMERA, y_rel=0.0, v_rel=-20.0, v_lead=0.0)
 
     tracks = {1: track}
     lead = self._make_lead_msg(mocker, x=50.0, y=0.0, v=30.0)  # Very different velocity
@@ -337,7 +336,7 @@ class TestGetLead:
   def test_matching_track_returns_radar_lead(self, mocker, kalman_params):
     """Test that matching track returns radar-based lead."""
     track = Track(1, 15.0, kalman_params)
-    track.update(d_rel=50.0 - RADAR_TO_CAMERA, y_rel=0.0, v_rel=-5.0, v_lead=15.0, measured=1.0)
+    track.update(d_rel=50.0 - RADAR_TO_CAMERA, y_rel=0.0, v_rel=-5.0, v_lead=15.0)
     tracks = {1: track}
 
     lead = self._make_lead_msg(mocker, x=50.0, y=0.0, v=15.0)
@@ -351,7 +350,7 @@ class TestGetLead:
     """Test that low speed override selects closer track."""
     # Create a track that would be a low speed lead
     track = Track(1, 2.0, kalman_params)
-    track.update(d_rel=5.0, y_rel=0.0, v_rel=-1.0, v_lead=2.0, measured=1.0)
+    track.update(d_rel=5.0, y_rel=0.0, v_rel=-1.0, v_lead=2.0)
     tracks = {1: track}
 
     lead = self._make_lead_msg(mocker, x=50.0, y=0.0, v=15.0)  # Low prob, no vision lead
@@ -363,7 +362,7 @@ class TestGetLead:
   def test_low_speed_override_disabled(self, mocker, kalman_params):
     """Test that low speed override can be disabled."""
     track = Track(1, 2.0, kalman_params)
-    track.update(d_rel=5.0, y_rel=0.0, v_rel=-1.0, v_lead=2.0, measured=1.0)
+    track.update(d_rel=5.0, y_rel=0.0, v_rel=-1.0, v_lead=2.0)
     tracks = {1: track}
 
     lead = self._make_lead_msg(mocker, x=50.0, y=0.0, v=15.0)

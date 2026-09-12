@@ -589,7 +589,7 @@ def create_plots(results: list[dict], output_dir: Path) -> list[Path]:
   if len([r for r in results if r.get('success', True)]) >= 2:
     from math import pi
 
-    fig, ax = plt.subplots(figsize=(8, 8), subplot_kw=dict(polar=True))
+    fig, ax = plt.subplots(figsize=(8, 8), subplot_kw={'polar': True})
 
     categories = ['Accuracy\n(1/RMSE)', 'Smoothness\n(1/jerk)', 'Speed\n(steps/s)', 'Low Latency\n(1/ms)', 'Safety\n(margin)']
     N = len(categories)

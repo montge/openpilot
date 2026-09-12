@@ -1,4 +1,5 @@
 import math
+from typing import cast
 
 import pytest
 from openpilot.common.parameterized import parameterized
@@ -129,6 +130,16 @@ class MockSubMaster:
     return True
 
 
+
+def make_mock_sm(services) -> messaging.SubMaster:
+  """MockSubMaster stands in structurally for SubMaster (it carries data/valid/updated).
+
+  fork: Controls.sm is inferred as a real SubMaster, so cast the double here rather than
+  at each of the assignment sites below.
+  """
+  return cast(messaging.SubMaster, MockSubMaster(services))
+
+
 class TestControlsStateControl:
   """Tests for the state_control method."""
 
@@ -157,7 +168,7 @@ class TestControlsStateControl:
       'onroadEvents',
       'driverAssistance',
     ]
-    self.mock_sm = MockSubMaster(services)
+    self.mock_sm = make_mock_sm(services)
     self.controls.sm = self.mock_sm
 
     # Set up default valid state
@@ -469,7 +480,7 @@ class TestControlsActuatorSafety:
       'onroadEvents',
       'driverAssistance',
     ]
-    self.mock_sm = MockSubMaster(services)
+    self.mock_sm = make_mock_sm(services)
     self.controls.sm = self.mock_sm
     self._setup_default_sm()
 
@@ -554,7 +565,7 @@ class TestControlsPublish:
       'onroadEvents',
       'driverAssistance',
     ]
-    self.mock_sm = MockSubMaster(services)
+    self.mock_sm = make_mock_sm(services)
     self.controls.sm = self.mock_sm
     self._setup_default_sm()
 
@@ -743,7 +754,7 @@ class TestControlsUpdate:
       'onroadEvents',
       'driverAssistance',
     ]
-    self.mock_sm = MockSubMaster(services)
+    self.mock_sm = make_mock_sm(services)
     self.controls.sm = self.mock_sm
 
   def test_update_calibration_handling(self):
@@ -806,7 +817,7 @@ class TestControlsIntegration:
       'onroadEvents',
       'driverAssistance',
     ]
-    self.mock_sm = MockSubMaster(services)
+    self.mock_sm = make_mock_sm(services)
     self.controls.sm = self.mock_sm
     self._setup_complete_sm()
 
@@ -985,7 +996,7 @@ class TestControlsDifferentCars:
       'onroadEvents',
       'driverAssistance',
     ]
-    mock_sm = MockSubMaster(services)
+    mock_sm = make_mock_sm(services)
     controls.sm = mock_sm
 
     # Set up minimal data
@@ -1057,7 +1068,7 @@ class TestControlsNaNInfHandling:
       'onroadEvents',
       'driverAssistance',
     ]
-    self.mock_sm = MockSubMaster(services)
+    self.mock_sm = make_mock_sm(services)
     self.controls.sm = self.mock_sm
     self._setup_default_sm()
 
@@ -1197,7 +1208,7 @@ class TestControlsCruiseLogic:
       'onroadEvents',
       'driverAssistance',
     ]
-    self.mock_sm = MockSubMaster(services)
+    self.mock_sm = make_mock_sm(services)
     self.controls.sm = self.mock_sm
     self._setup_default_sm()
 
@@ -1320,7 +1331,7 @@ class TestControlsForceDecel:
       'onroadEvents',
       'driverAssistance',
     ]
-    self.mock_sm = MockSubMaster(services)
+    self.mock_sm = make_mock_sm(services)
     self.controls.sm = self.mock_sm
     self._setup_default_sm()
 
@@ -1426,11 +1437,11 @@ class TestControlsSteerLimitedBySafety:
     ]
 
     # Set up mock for angle control
-    self.mock_sm_angle = MockSubMaster(services)
+    self.mock_sm_angle = make_mock_sm(services)
     self.controls_angle.sm = self.mock_sm_angle
 
     # Set up mock for torque control
-    self.mock_sm_torque = MockSubMaster(services)
+    self.mock_sm_torque = make_mock_sm(services)
     self.controls_torque.sm = self.mock_sm_torque
 
   def _setup_mock_sm(self, mock_sm, active=True, steeringAngleOutput=0.0, torqueOutput=0.0):
@@ -1535,7 +1546,7 @@ class TestControlsVehicleModelUpdate:
       'onroadEvents',
       'driverAssistance',
     ]
-    self.mock_sm = MockSubMaster(services)
+    self.mock_sm = make_mock_sm(services)
     self.controls.sm = self.mock_sm
     self._setup_default_sm()
 

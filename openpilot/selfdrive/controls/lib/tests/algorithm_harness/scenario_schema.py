@@ -8,7 +8,6 @@ large scenario datasets.
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
 
 # Schema version for forward compatibility
 SCHEMA_VERSION = "1.0.0"
@@ -53,9 +52,9 @@ class ScenarioMetadata:
 
   # Source information
   source: str = "synthetic"  # "synthetic", "route_log", "simulation"
-  route_id: Optional[str] = None
-  segment_start_s: Optional[float] = None
-  segment_end_s: Optional[float] = None
+  route_id: str | None = None
+  segment_start_s: float | None = None
+  segment_end_s: float | None = None
 
   # Conditions
   weather: str = "clear"

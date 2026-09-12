@@ -5,7 +5,7 @@ These tests use mocking to simulate NVIDIA hardware since
 the actual hardware may not be available in CI.
 """
 
-from unittest.mock import patch  # noqa: TID251
+from unittest.mock import patch
 
 from openpilot.common.hardware.nvidia.gpu import (
   GPUInfo,

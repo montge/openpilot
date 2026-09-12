@@ -7,7 +7,7 @@ Uses mocks to avoid starting actual hardware-dependent processes.
 import signal
 import sys
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Sequence, ValuesView
 from multiprocessing import Process
 
 
@@ -21,6 +21,12 @@ from openpilot.system.manager.process import (
   ensure_running,
   join_process,
 )
+
+
+
+def as_procs(procs: Sequence[ManagerProcess]) -> ValuesView[ManagerProcess]:
+  """ensure_running expects a ValuesView, as managed_processes.values() gives in manager.py."""
+  return {p.name: p for p in procs}.values()
 
 
 class DummyProcess(ManagerProcess):
@@ -232,7 +238,7 @@ class TestEnsureRunning:
     ]
 
     try:
-      running = ensure_running(procs, started=True, params=self.params, CP=self.CP)
+      running = ensure_running(as_procs(procs), started=True, params=self.params, CP=self.CP)
       assert len(running) == 2
       for p in procs:
         assert p.proc is not None
@@ -249,7 +255,7 @@ class TestEnsureRunning:
     ]
 
     try:
-      running = ensure_running(procs, started=True, params=self.params, CP=self.CP, not_run=["blocked_proc"])
+      running = ensure_running(as_procs(procs), started=True, params=self.params, CP=self.CP, not_run=["blocked_proc"])
       assert len(running) == 1
       assert procs[0].proc is not None
       assert procs[1].proc is None
@@ -265,7 +271,7 @@ class TestEnsureRunning:
     ]
 
     try:
-      running = ensure_running(procs, started=True, params=self.params, CP=self.CP)
+      running = ensure_running(as_procs(procs), started=True, params=self.params, CP=self.CP)
       assert len(running) == 1
       assert procs[0].proc is not None
       assert procs[1].proc is None
@@ -283,7 +289,7 @@ class TestEnsureRunning:
 
     try:
       # When started=False, only always_run should run
-      running = ensure_running(procs, started=False, params=self.params, CP=self.CP)
+      running = ensure_running(as_procs(procs), started=False, params=self.params, CP=self.CP)
       assert len(running) == 1
       assert running[0].name == "always_run"
     finally:
@@ -297,11 +303,11 @@ class TestEnsureRunning:
 
     try:
       # Start it when started=True
-      ensure_running(procs, started=True, params=self.params, CP=self.CP)
+      ensure_running(as_procs(procs), started=True, params=self.params, CP=self.CP)
       assert proc.proc is not None
 
       # Now it should stop when started=False (non-blocking stop)
-      ensure_running(procs, started=False, params=self.params, CP=self.CP)
+      ensure_running(as_procs(procs), started=False, params=self.params, CP=self.CP)
       assert proc.shutting_down is True
 
       # Clean up
@@ -335,7 +341,7 @@ class TestRestartIfCrash:
     CP = car.CarParams.new_message()
 
     try:
-      running = ensure_running([proc], started=True, params=params, CP=CP)
+      running = ensure_running(as_procs([proc]), started=True, params=params, CP=CP)
       assert len(running) == 1
       assert proc.proc is not None
       assert proc.proc.is_alive()
@@ -362,7 +368,7 @@ class TestRestartIfCrash:
     params = Params()
     CP = car.CarParams.new_message()
 
-    running = ensure_running([proc], started=True, params=params, CP=CP)
+    running = ensure_running(as_procs([proc]), started=True, params=params, CP=CP)
     # Process should still be in the list but not restarted
     assert len(running) == 1
     # Process object should be the same (dead one)
@@ -434,8 +440,10 @@ class TestDaemonProcess:
     """Test that DaemonProcess.should_run always returns True."""
     proc = DaemonProcess(name="test_daemon", module="test.module", param_name="TestPid")
 
-    assert proc.should_run(True, None, None) is True
-    assert proc.should_run(False, None, None) is True
+    params = Params()
+    CP = car.CarParams.new_message()
+    assert proc.should_run(True, params, CP) is True
+    assert proc.should_run(False, params, CP) is True
 
   def test_daemon_stop_is_noop(self):
     """Test that DaemonProcess.stop() does nothing."""

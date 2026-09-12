@@ -1,5 +1,4 @@
 """Tests for FrequencyTracker class in cereal/messaging."""
-import pytest
 
 from openpilot.cereal.messaging import FrequencyTracker
 
@@ -141,7 +140,6 @@ class TestFrequencyTrackerEdgeCases:
     tracker = FrequencyTracker(service_freq=100.0, update_freq=20.0, is_poll=True)
 
     # In poll mode, freq is clamped to [1, update_freq] = [1, 20]
-    freq = min(max(100.0, 20.0), 1.0)  # This would be 100, but clamped
     expected_freq = max(min(100.0, 20.0), 1.)  # = 20
     assert tracker.min_freq == expected_freq * 0.8
     assert tracker.max_freq == expected_freq * 1.2

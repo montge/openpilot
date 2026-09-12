@@ -5,7 +5,7 @@ from opendbc.car.structs import car
 from openpilot.selfdrive.controls.lib.longcontrol import LongCtrlState, long_control_state_trans, LongControl
 from openpilot.common.realtime import DT_CTRL
 
-# fork: upstream removed CP.stoppingDecelRate from the stopping ramp in favour of a
+# fork: upstream removed CP.stoppingDecelRate from the stopping ramp in favor of a
 # hardcoded 1.0 m/s^2/s. The field still exists in CarParams but is no longer read.
 STOPPING_DECEL_RATE = 1.0
 

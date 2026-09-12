@@ -17,9 +17,9 @@ class TestPIDController:
 
   def test_init_with_lookup_tables(self):
     """Test PID initialization with speed-dependent lookup tables."""
-    k_p = [[0, 10, 20], [1.0, 0.8, 0.6]]
-    k_i = [[0, 10, 20], [0.1, 0.08, 0.06]]
-    k_d = [[0, 10, 20], [0.01, 0.008, 0.006]]
+    k_p = [[0.0, 10.0, 20.0], [1.0, 0.8, 0.6]]
+    k_i = [[0.0, 10.0, 20.0], [0.1, 0.08, 0.06]]
+    k_d = [[0.0, 10.0, 20.0], [0.01, 0.008, 0.006]]
 
     pid = PIDController(k_p=k_p, k_i=k_i, k_d=k_d)
 
@@ -189,7 +189,7 @@ class TestPIDController:
 
   def test_speed_dependent_gains(self):
     """Test that gains vary with speed when using lookup tables."""
-    k_p = [[0, 10, 20], [2.0, 1.0, 0.5]]
+    k_p = [[0.0, 10.0, 20.0], [2.0, 1.0, 0.5]]
     pid = PIDController(k_p=k_p, k_i=0.0, k_d=0.0)
 
     # At speed 0, k_p should be 2.0
@@ -210,9 +210,9 @@ class TestPIDController:
 
   def test_speed_updates_all_gains(self):
     """Test that speed affects all gain properties."""
-    k_p = [[0, 10], [2.0, 1.0]]
-    k_i = [[0, 10], [0.2, 0.1]]
-    k_d = [[0, 10], [0.02, 0.01]]
+    k_p = [[0.0, 10.0], [2.0, 1.0]]
+    k_i = [[0.0, 10.0], [0.2, 0.1]]
+    k_d = [[0.0, 10.0], [0.02, 0.01]]
 
     pid = PIDController(k_p=k_p, k_i=k_i, k_d=k_d)
 

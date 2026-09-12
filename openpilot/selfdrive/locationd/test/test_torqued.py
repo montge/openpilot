@@ -60,7 +60,7 @@ class TestTorqueBuckets:
   def test_add_point_in_bounds(self):
     """Test adding a point within bucket bounds."""
     buckets = TorqueBuckets(
-      x_bounds=STEER_BUCKET_BOUNDS, min_points=MIN_BUCKET_POINTS, min_points_total=MIN_POINTS_TOTAL, points_per_bucket=POINTS_PER_BUCKET, rowsize=3
+      x_bounds=STEER_BUCKET_BOUNDS, min_points=MIN_BUCKET_POINTS.tolist(), min_points_total=MIN_POINTS_TOTAL, points_per_bucket=POINTS_PER_BUCKET, rowsize=3
     )
     buckets.add_point(0.05, 0.5)  # Should go in (0, 0.1) bucket
     assert len(buckets.buckets[(0, 0.1)]) == 1
@@ -68,7 +68,7 @@ class TestTorqueBuckets:
   def test_add_point_stores_correct_format(self):
     """Test points are stored as [x, 1.0, y]."""
     buckets = TorqueBuckets(
-      x_bounds=STEER_BUCKET_BOUNDS, min_points=MIN_BUCKET_POINTS, min_points_total=MIN_POINTS_TOTAL, points_per_bucket=POINTS_PER_BUCKET, rowsize=3
+      x_bounds=STEER_BUCKET_BOUNDS, min_points=MIN_BUCKET_POINTS.tolist(), min_points_total=MIN_POINTS_TOTAL, points_per_bucket=POINTS_PER_BUCKET, rowsize=3
     )
     buckets.add_point(0.15, 0.8)  # Should go in (0.1, 0.2) bucket
     # Get points and verify
@@ -77,7 +77,7 @@ class TestTorqueBuckets:
   def test_add_point_outside_bounds_ignored(self):
     """Test points outside all bounds are ignored."""
     buckets = TorqueBuckets(
-      x_bounds=STEER_BUCKET_BOUNDS, min_points=MIN_BUCKET_POINTS, min_points_total=MIN_POINTS_TOTAL, points_per_bucket=POINTS_PER_BUCKET, rowsize=3
+      x_bounds=STEER_BUCKET_BOUNDS, min_points=MIN_BUCKET_POINTS.tolist(), min_points_total=MIN_POINTS_TOTAL, points_per_bucket=POINTS_PER_BUCKET, rowsize=3
     )
     initial_total = len(buckets)
     buckets.add_point(1.0, 0.5)  # Outside bounds (max is 0.5)

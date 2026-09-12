@@ -10,7 +10,7 @@ This module provides utilities for:
 
 import json
 from pathlib import Path
-from typing import Optional, Union
+from typing import Union
 import numpy as np
 
 from openpilot.selfdrive.controls.lib.tests.algorithm_harness.interface import (
@@ -105,7 +105,7 @@ def load_scenario(path: Union[str, Path], scenario_class: str = "lateral") -> Sc
 def save_scenario(
   scenario: Scenario,
   path: Union[str, Path],
-  metadata: Optional[ScenarioMetadata] = None,
+  metadata: ScenarioMetadata | None = None,
 ) -> None:
   """
   Save a scenario to a Parquet file.

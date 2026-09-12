@@ -49,7 +49,7 @@ openpilot is an operating system for robotics, currently used as a driver assist
   - `athena/`: Cloud connectivity
   - `hardware/`: Hardware abstraction layer
 
-- **cereal/**: Message definitions (Cap'n Proto schemas in *.capnp files)
+- **openpilot/cereal/**: Message definitions (Cap'n Proto schemas in *.capnp files)
   - `services.py`: Defines all pub/sub services with frequencies
   - `log.capnp`: Main logging schema
 
@@ -59,12 +59,19 @@ openpilot is an operating system for robotics, currently used as a driver assist
   - `sim/`: Simulator integration
   - `plotjuggler/`: Log visualization
 
-### External Submodules (symlinked)
-- `opendbc/` → `opendbc_repo/opendbc`: Car-specific DBC files and safety code
+### External Submodules
+
+Upstream removed the top-level convenience symlinks (`opendbc/`, `msgq/`, `rednose/`,
+`tinygrad/`, `teleoprtc/`). These are now installed as editable packages from their
+submodule checkouts via the `submodules` extra in `pyproject.toml`, so
+`import opendbc` resolves to `opendbc_repo/opendbc/` without a symlink.
+
+- `opendbc_repo/`: Car-specific DBC files, car ports, and safety code (`opendbc/safety/`)
 - `panda/`: Hardware interface firmware
-- `rednose/` → `rednose_repo/rednose`: Kalman filter library
-- `tinygrad/` → `tinygrad_repo/tinygrad`: ML framework for models
-- `msgq/` → `msgq_repo/msgq`: Messaging queue implementation
+- `rednose_repo/`: Kalman filter library
+- `tinygrad_repo/`: ML framework for models
+- `msgq_repo/`: Messaging queue implementation
+- `teleoprtc_repo/`: WebRTC signalling
 
 ### Messaging System
 
@@ -105,18 +112,27 @@ Remotes:
 - 2-space indentation (configured in ruff)
 - Line length: 160 characters
 - Use `time.monotonic()` instead of `time.time()`
-- Use pytest (not unittest)
-- Python 3.11+ required
+- Use pytest as the test runner (see Testing Notes for how this relates to upstream)
+- Python 3.12 required (upstream pins `>= 3.12.3, < 3.13`; exact version in `.python-version`)
 
 ## Testing Notes
 
-- Tests run in isolated `OpenpilotPrefix` environments (see `conftest.py`)
-- Tests marked with `@pytest.mark.tici` only run on comma device hardware
+- Upstream dropped pytest in favor of a unittest-based harness: `OpenpilotTestCase`
+  in `openpilot/common/test.py`, run via `tools/op.sh test` (`tools/test_runner.py`).
+  **This fork keeps pytest.** pytest executes upstream's `OpenpilotTestCase` classes
+  natively, and the fork's coverage/Sonar/codecov gates are all built on pytest-cov.
+  So both styles coexist: upstream-owned tests inherit `OpenpilotTestCase`, and the
+  fork's own suites stay plain pytest classes.
+- Tests run in isolated `OpenpilotPrefix` environments. The root `conftest.py` is
+  fork-owned (upstream deleted theirs); its autouse fixture deliberately steps aside
+  for `OpenpilotTestCase` subclasses, which set up their own prefix in `run()`.
+- Hardware-only tests set `COMMA_HARDWARE_TEST = True` on the test class and
+  self-skip off-device. Upstream replaced the old `@pytest.mark.tici` marker with this.
 - Tests marked with `@pytest.mark.slow` can be skipped with `-m "not slow"`
 
 ## Safety Critical Code
 
-The safety model is enforced in panda firmware (see `opendbc/safety/`). Never disable or weaken:
+The safety model is enforced in panda firmware (see `opendbc_repo/opendbc/safety/`). Never disable or weaken:
 - Driver monitoring in `openpilot/selfdrive/monitoring/`
 - Actuation limits in `openpilot/selfdrive/selfdrived/helpers.py`
 

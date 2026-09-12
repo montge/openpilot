@@ -15,9 +15,12 @@ from openpilot.tools.lib.auth import (
 class TestAuthRedirectLink:
   """Test auth_redirect_link function."""
 
+  # fork: upstream made the local callback port an explicit argument
+  PORT = 9090
+
   def test_google_redirect(self):
     """Test Google OAuth redirect URL."""
-    url = auth_redirect_link('google')
+    url = auth_redirect_link('google', self.PORT)
 
     assert urlparse(url).hostname == 'accounts.google.com'
     assert 'client_id=' in url
@@ -26,7 +29,7 @@ class TestAuthRedirectLink:
 
   def test_github_redirect(self):
     """Test GitHub OAuth redirect URL."""
-    url = auth_redirect_link('github')
+    url = auth_redirect_link('github', self.PORT)
 
     assert 'github.com/login/oauth/authorize' in url
     assert 'client_id=' in url
@@ -34,7 +37,7 @@ class TestAuthRedirectLink:
 
   def test_apple_redirect(self):
     """Test Apple OAuth redirect URL."""
-    url = auth_redirect_link('apple')
+    url = auth_redirect_link('apple', self.PORT)
 
     assert 'appleid.apple.com/auth/authorize' in url
     assert 'client_id=' in url
@@ -43,7 +46,7 @@ class TestAuthRedirectLink:
   def test_unsupported_method_raises(self):
     """Test unsupported method raises KeyError."""
     with pytest.raises(KeyError):
-      auth_redirect_link('unsupported')
+      auth_redirect_link('unsupported', self.PORT)
 
 
 class TestClientRedirectServer:

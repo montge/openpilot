@@ -175,12 +175,50 @@ lint.flake8-implicit-str-concat.allow-multiline = false
 "pyray.draw_text".msg = "Use a function (such as rl.draw_font_ex) that takes font as an argument"
 "pyray.draw_texture".msg = "Use rl.draw_texture_ex for float position support"
 
+# fork: upstream used to ignore NPY002 repo-wide ("new numpy random syntax is worse")
+# and has since dropped that ignore. The fork's numpy-heavy tooling below still uses the
+# legacy np.random API in ~230 places. Migrating to np.random.Generator changes the random
+# streams, which would re-baseline the deterministic harness/benchmark results these
+# modules assert on -- worth doing deliberately, not as a side effect of an upstream sync.
+[tool.ruff.lint.per-file-ignores]
+"openpilot/selfdrive/controls/lib/tests/algorithm_harness/*" = ["NPY002"]
+"openpilot/selfdrive/controls/lib/trackers/*" = ["NPY002"]
+"openpilot/selfdrive/modeld/fair/*" = ["NPY002"]
+"openpilot/tools/dgx/*" = ["NPY002"]
+"openpilot/tools/fair/*" = ["NPY002"]
+"openpilot/tools/stonesoup/*" = ["NPY002"]
+
 [tool.ruff.format]
 quote-style = "preserve"
 
 [tool.ty.rules]
 unresolved-import = "ignore"  # Cython-compiled modules (.pyx)
 unresolved-attribute = "ignore"  # many from capnp and Cython modules
+
+# fork: upstream used to ignore these six rules repo-wide; it has since cleaned its own
+# code and dropped the blanket ignores, which is the stricter (and better) default we now
+# inherit for all shared code. The fork's own numpy/torch-heavy tooling below has never
+# satisfied them -- these are dynamic-typing false positives plus real annotation debt.
+# Scoped here so upstream's strictness still applies everywhere else. Cleaning these up
+# is tracked as follow-up work, not part of the sync.
+[[tool.ty.overrides]]
+include = [
+  "openpilot/selfdrive/controls/lib/tests/algorithm_harness",
+  "openpilot/selfdrive/controls/lib/trackers",
+  "openpilot/tools/algo_bench.py",
+  "openpilot/tools/dgx",
+  "openpilot/tools/fair",
+  "openpilot/tools/shadow",
+  "openpilot/tools/stonesoup",
+]
+
+[tool.ty.overrides.rules]
+invalid-argument-type = "ignore"
+invalid-assignment = "ignore"
+not-subscriptable = "ignore"
+call-non-callable = "ignore"
+unsupported-operator = "ignore"
+no-matching-overload = "ignore"
 
 [tool.uv]
 python-preference = "only-managed"

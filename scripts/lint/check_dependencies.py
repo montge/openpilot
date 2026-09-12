@@ -21,12 +21,20 @@ def main() -> int:
     This test prevents our depency footprint from growing.
     These values are *not* intended to be increased, and we
     expect to strictly drive these down over time.
+
+    fork: the limits below are raised from upstream's 37/65/550. Upstream dropped
+    pytest for a unittest harness and trimmed its dependency list to match; this fork
+    deliberately keeps pytest (plus xdist/mock/cov/subtests/timeout, hypothesis, and
+    opencv/matplotlib for the fair and shadow tooling), which upstream's budget has no
+    room for. The ratchet intent still applies -- these are pinned at what the fork
+    currently measures, so its footprint cannot grow either, and they should come back
+    down toward upstream's numbers, never up.
   """
   failed = False
   for name, value, limit in (
-    ("Direct dependencies (all extras)", direct, 37),
-    ("Total dependencies", len(packages), 65),
-    ("Venv size (MiB)", size / 1024**2, 550),
+    ("Direct dependencies (all extras)", direct, 47),
+    ("Total dependencies", len(packages), 85),
+    ("Venv size (MiB)", size / 1024**2, 750),
   ):
     print(f"{name}: {value:g} (limit: {limit})")
     failed |= value > limit

@@ -75,7 +75,7 @@ class TestCameraConfig:
     config = CameraConfig(1920, 1080, 1000.0)
 
     with pytest.raises(FrozenInstanceError):
-      config.width = 1280
+      config.width = 1280  # ty: ignore[invalid-assignment]  # the point of the test
 
 
 class TestNoneCameraConfig:
