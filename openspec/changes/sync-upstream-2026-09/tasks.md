@@ -1,9 +1,10 @@
 # Tasks: Sync Fork with Upstream Master (September 2026)
 
-> **Status:** merge, adaptation, lint and local validation are DONE — 9/9 lint checks and
-> 3712 tests pass; the 46 that don't are all blocked by this environment's network policy
-> or its lack of a GPU, never by the code (see 4.7).
-> Resume at section 5 — land on develop — then work the follow-ups (section 6).
+> **Status:** merge, adaptation, lint and validation are DONE, and **CI confirms it** —
+> `unit tests` on PR #58 reports 3761 passed / 0 failed, including every test this
+> environment could not run. All 26 checks are green. Resume at section 5.2 (merge —
+> the user's call) and then the follow-ups (section 6). Note 5.1c: SonarCloud's green
+> is not real; its scan never ran.
 
 ## 1. Analysis
 - [x] 1.1 Fetch upstream, measure divergence (291 ahead / 394 behind, merge-base `d606014c`, 674 files changed upstream)
@@ -41,13 +42,50 @@
       CI covers both categories; the sync PR is the authoritative check.
 
 ## 5. Land on develop
-- [ ] 5.1 Open a draft PR from `claude/upstream-sonarqube-check-mqhc8f` against develop and let Linux CI validate — it is authoritative for the model-dependent tests that cannot run without LFS
-- [ ] 5.2 Merge once green; confirm origin/develop carries the merge
+- [x] 5.1 Draft PR montge/openpilot#58 opened against develop. CI needed four fixes, all of them
+      fork-owned config the merge had silently reverted or outdated — not problems with the merged code:
+      - `algorithm-harness-coverage.yml` (both jobs): `PYTHONPATH=$GITHUB_WORKSPACE` no longer resolves
+        `import opendbc` now that upstream deleted the top-level submodule symlinks. Added the submodule
+        roots, mirroring SConstruct's `submodule_python_paths`.
+      - `cpp-coverage.yml`: upstream's #38408 cut the C++ suite to three Program targets.
+        `openpilot/tools/replay/tests` no longer exists (hard scons error) and five of the six binary
+        names were stale — silently skipped by `|| true` / `if [[ -f ]]`, so this gate had been measuring
+        almost nothing. Now measures 43.54% against its 15% threshold.
+      - `tests.yaml`: the merge took upstream's `tools/op.sh test` over the fork's pytest step and dropped
+        the `PYTEST` env var. That runner only discovers `unittest.TestCase` subclasses, so the fork's
+        pytest classes would have been skipped silently, and module-level `pytest.importorskip` (9 files)
+        raises `Skipped` out of the loader — which is what failed. Restored the pytest invocation, keeping
+        upstream's `RAYLIB_BACKEND=headless`.
+      Pattern worth remembering for the next sync: upstream changes *how* something is invoked, the fork's
+      override disappears in a clean merge, and a guard hides the consequence.
+- [x] 5.1b CI green on head `5dcc6525`: all 26 checks pass.
+      **`unit tests`: 3761 passed, 175 skipped, 1 xfailed, 0 failed** — the
+      45 network-blocked tests from 4.7 (test_paramsd, test_locationd_scenarios, test_logreader, test_lagd,
+      test_caching, test_url_file, dgx test_dataloader, test_agnos_updater) and `test_raylib_ui` all pass
+      with real network and a real runner. `process replay`: 0 changed, 66 passed, 0 errors — the merge
+      does not alter driving behavior. The three modeld tinygrad pickles build fine with LFS access.
+- [x] 5.1c **SonarCloud's green is an artifact of `continue-on-error: true`, not a passing scan.**
+      The "Run tests with coverage" step succeeds (4m48s) and now produces real coverage thanks to the
+      `--cov=openpilot` fix in 4.6, but the scan step itself exits 1 after 3 seconds and the coverage is
+      never uploaded:
+      ```
+      ERROR Failed to query JRE metadata: . Please check the property sonar.token
+            or the environment variable SONAR_TOKEN.
+      INFO  EXECUTION FAILURE
+      ```
+      This is exactly the rejected token predicted by the July sync's 7.7, so nothing about it is new or
+      caused by this merge — but it means the fork has had **no** Sonar analysis since that token expired,
+      and the corrected coverage paths will not produce numbers until it is replaced. Two useful details
+      for 6.5: the deprecated `sonarcloud-github-action@master` already resolves internally to
+      `sonarqube-scan-action`, so that half of the migration is mostly a rename; and the token is the only
+      thing standing between the fixed coverage paths and real numbers. Waiting on SonarCloud is therefore
+      not a reason to hold 5.2 — it cannot report until 6.5 is done.
+- [ ] 5.2 Merge to develop (the user's call); confirm origin/develop carries the merge
 
 ## 6. Post-Sync Follow-ups (separate changes, tracked here for pickup)
 - [ ] 6.1 Migrate the fork's ~230 legacy `np.random` calls to `np.random.Generator` and drop the `NPY002` per-file ignores. This changes the random streams, so the deterministic harness and stonesoup benchmark expectations need re-baselining — do it deliberately, with before/after results compared.
 - [ ] 6.2 Clear the 57 `ty` findings behind `[[tool.ty.overrides]]` (algorithm_harness 22, fair 11, stonesoup 10, shadow 6, dgx 4, algo_bench 3, trackers 1) and remove the override block, matching upstream's strictness everywhere.
 - [ ] 6.3 Drive the dependency budget in `scripts/lint/check_dependencies.py` back down toward upstream's 37/65/550. The gap is pytest + xdist/mock/cov/subtests/timeout, hypothesis, opencv-python-headless and matplotlib; consider whether the fair/shadow tooling needs opencv in the default extras.
 - [ ] 6.4 Carried over from the July sync, still open: regenerate `reports/misra-baseline.txt` (7.2), shadow device rebuild (7.3), pre-restructure paths in openspec docs and 3 failing spec validations (7.4), CUDA build-time selection on the DGX box (7.5), algorithm-harness coverage back toward 90% (7.6)
-- [ ] 6.5 SonarCloud (July 7.7, still open): regenerate the rejected `SONAR_TOKEN`, migrate from the deprecated `sonarcloud-github-action@master` to `sonarqube-scan-action`, then drop `continue-on-error` from the scan step. The coverage paths it feeds are fixed as of this change (4.6), so the scan should report real numbers once the token works.
+- [ ] 6.5 SonarCloud (July 7.7, still open and now confirmed failing — see 5.1c): regenerate the rejected `SONAR_TOKEN`, migrate from the deprecated `sonarcloud-github-action@master` to `sonarqube-scan-action`, then drop `continue-on-error` from the scan step so the gate can never report green without scanning again. The coverage paths it feeds are fixed as of this change (4.6), so the scan should report real numbers once the token works.
 - [ ] 6.6 The two parallel copies of the longcontrol and drive_helpers test suites (`controls/tests/` and `controls/lib/tests/`) now cover nearly the same ground and both needed the same edits this sync. Consider consolidating them.

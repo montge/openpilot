@@ -6,7 +6,7 @@ The fork was 394 commits behind upstream/master (merge-base `d606014c`, 2026-07-
 ## What Changes
 
 - Merge upstream `0cf294d8` (14 content conflicts, 674 files changed upstream):
-  - **pytest removed upstream** in favour of `OpenpilotTestCase` (`openpilot/common/test.py`) run via `tools/op.sh test` (`tools/test_runner.py`); the root `conftest.py` and `pytest-cpp` harness were deleted and the `testing` extra trimmed to coverage/ty/ruff/codespell
+  - **pytest removed upstream** in favor of `OpenpilotTestCase` (`openpilot/common/test.py`) run via `tools/op.sh test` (`tools/test_runner.py`); the root `conftest.py` and `pytest-cpp` harness were deleted and the `testing` extra trimmed to coverage/ty/ruff/codespell
   - **"live" cereal services renamed** (#38601): `liveCalibration`→`extrinsicsCalibration`, `liveParameters`→`vehicleParameters`, `liveTorqueParameters`→`lateralTorqueParameters`, `liveDelay`→`lateralDelay`, `livePose`→`deviceMotion`, `liveTracks`→`radarTracks`, plus the matching struct names
   - **hardware/tici → hardware/comma** (#38580/#38581), `TICI` → `COMMA_HARDWARE`
   - `car_specific.py` → `car_events.py`, `CarSpecificEvents` → `CarEvents` (#38493)
@@ -22,5 +22,8 @@ The fork was 394 commits behind upstream/master (merge-base `d606014c`, 2026-07-
 - Affected specs: none — `development-workflow` already covers upstream synchronization and its requirements are unchanged
 - Affected code: fork-owned tests and tooling plus lint configuration; no upstream behavior modified beyond the documented conflict resolutions
 - Risk: Medium — large mechanical surface, but 9/9 lint checks pass and the test suite was run locally; Linux CI on the sync PR is the authoritative check
+- Known limitation: the coverage-path fix above does not yet yield Sonar numbers. The SonarCloud job
+  reports green only because its scan step carries `continue-on-error: true`; the scan itself exits 1 on a
+  rejected `SONAR_TOKEN` (the July sync's 7.7, now confirmed). Tracked as follow-up 6.5.
 - Known limitation: the ONNX driving models are Git LFS objects hosted on Hugging Face, which this environment's network policy blocks, so `scons` cannot compile the modeld tinygrad pickles here and the model-dependent tests could not be exercised locally. CI has LFS access and covers them.
 - Deliberate divergence recorded in-tree: the fork keeps pytest (and pays for it in the dependency budget), and relaxes six `ty` rules plus `NPY002` for its own tooling. Both are scoped and commented at the point of divergence.
