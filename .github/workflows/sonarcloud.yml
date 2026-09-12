@@ -112,12 +112,11 @@ jobs:
 
       - name: SonarCloud Scan
         if: steps.sonar_token.outputs.available == 'true'
-        # fork: token currently rejected by SonarCloud (regenerate) and the
-        # @master action is deprecated -> migrate to sonarqube-scan-action;
-        # tracked in openspec sync-upstream-2026-07 task 7.7. Non-blocking
-        # until then.
-        continue-on-error: true
-        uses: SonarSource/sonarcloud-github-action@master
+        # fork: this step is intentionally blocking. It used to carry
+        # continue-on-error, which let a rejected SONAR_TOKEN report green
+        # for months without a scan (openspec sync-upstream-2026-09, 5.1c/6.5).
+        # If it fails on "Failed to query JRE metadata ... SONAR_TOKEN", the
+        # token needs regenerating at sonarcloud.io, not the workflow.
+        uses: SonarSource/sonarqube-scan-action@v8
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
