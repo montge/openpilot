@@ -38,12 +38,15 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pytest pytest-cov pytest-xdist pytest-cpp numpy 'pycapnp==2.1.0' setproctitle zstandard requests pyserial
+          pip install pytest pytest-cov pytest-xdist numpy 'pycapnp==2.1.0' setproctitle zstandard requests pyserial
 
       - name: Run coverage
         working-directory: openpilot/selfdrive/controls/lib/tests/algorithm_harness
         env:
-          PYTHONPATH: ${{ github.workspace }}
+          # fork: upstream removed the top-level submodule symlinks, so the workspace root
+          # alone no longer resolves `import opendbc` / `import msgq`. Mirrors
+          # SConstruct's submodule_python_paths.
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/msgq_repo:${{ github.workspace }}/opendbc_repo:${{ github.workspace }}/rednose_repo:${{ github.workspace }}/teleoprtc_repo:${{ github.workspace }}/tinygrad_repo
         run: |
           pytest . -n0 --confcutdir=. \
             --cov=. \
@@ -89,12 +92,15 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pytest pytest-cov pytest-xdist pytest-cpp numpy pandas pyarrow 'pycapnp==2.1.0' setproctitle zstandard requests pyserial
+          pip install pytest pytest-cov pytest-xdist numpy pandas pyarrow 'pycapnp==2.1.0' setproctitle zstandard requests pyserial
 
       - name: Run full coverage
         working-directory: openpilot/selfdrive/controls/lib/tests/algorithm_harness
         env:
-          PYTHONPATH: ${{ github.workspace }}
+          # fork: upstream removed the top-level submodule symlinks, so the workspace root
+          # alone no longer resolves `import opendbc` / `import msgq`. Mirrors
+          # SConstruct's submodule_python_paths.
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/msgq_repo:${{ github.workspace }}/opendbc_repo:${{ github.workspace }}/rednose_repo:${{ github.workspace }}/teleoprtc_repo:${{ github.workspace }}/tinygrad_repo
         run: |
           pytest . -n0 --confcutdir=. \
             --cov=. \
