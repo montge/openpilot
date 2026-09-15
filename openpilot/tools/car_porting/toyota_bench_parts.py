@@ -11,10 +11,10 @@ Everything is parsed out of the opendbc sources with the stdlib, so this runs on
 checkout without building opendbc or activating the openpilot venv.
 
 Usage:
-  tools/car_porting/toyota_bench_parts.py                        # default platform, text
-  tools/car_porting/toyota_bench_parts.py --list                 # all Toyota platforms
-  tools/car_porting/toyota_bench_parts.py TOYOTA_RAV4_TSS2
-  tools/car_porting/toyota_bench_parts.py TOYOTA_RAV4 TOYOTA_RAV4H --format markdown
+  openpilot/tools/car_porting/toyota_bench_parts.py                        # default platform, text
+  openpilot/tools/car_porting/toyota_bench_parts.py --list                 # all Toyota platforms
+  openpilot/tools/car_porting/toyota_bench_parts.py TOYOTA_RAV4_TSS2
+  openpilot/tools/car_porting/toyota_bench_parts.py TOYOTA_RAV4 TOYOTA_RAV4H --format markdown
 """
 
 import argparse
@@ -26,7 +26,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 TOYOTA_DIR = REPO_ROOT / "opendbc_repo" / "opendbc" / "car" / "toyota"
 DBC_GENERATOR_DIR = REPO_ROOT / "opendbc_repo" / "opendbc" / "dbc" / "generator" / "toyota"
 

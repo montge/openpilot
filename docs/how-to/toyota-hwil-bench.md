@@ -38,17 +38,17 @@ that closed loop, use replay.
 
 ## Generating the parts list
 
-`tools/car_porting/toyota_bench_parts.py` joins the opendbc FW fingerprints (which are
+`openpilot/tools/car_porting/toyota_bench_parts.py` joins the opendbc FW fingerprints (which are
 literal Toyota part numbers, keyed by ECU and diagnostic request address) with the CAN
 messages the Toyota car interface reads and writes:
 
 ```bash
 git submodule update --init opendbc_repo     # if opendbc is not checked out yet
 
-tools/car_porting/toyota_bench_parts.py --list
-tools/car_porting/toyota_bench_parts.py TOYOTA_RAV4
-tools/car_porting/toyota_bench_parts.py TOYOTA_RAV4 TOYOTA_RAV4H --format markdown
-tools/car_porting/toyota_bench_parts.py TOYOTA_RAV4_TSS2 --all-versions
+openpilot/tools/car_porting/toyota_bench_parts.py --list
+openpilot/tools/car_porting/toyota_bench_parts.py TOYOTA_RAV4
+openpilot/tools/car_porting/toyota_bench_parts.py TOYOTA_RAV4 TOYOTA_RAV4H --format markdown
+openpilot/tools/car_porting/toyota_bench_parts.py TOYOTA_RAV4_TSS2 --all-versions
 ```
 
 It parses the opendbc sources with the standard library only, so it needs no build and no

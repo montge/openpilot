@@ -25,7 +25,7 @@ Example:
 Attempting to add fw version for:  OUTBACK
 ```
 
-### [tools/car_porting/toyota_bench_parts.py](/tools/car_porting/toyota_bench_parts.py)
+### [openpilot/tools/car_porting/toyota_bench_parts.py](/openpilot/tools/car_porting/toyota_bench_parts.py)
 
 Joins the opendbc Toyota FW fingerprints (which are literal Toyota part numbers) with the CAN messages the car
 interface reads and writes, for sourcing real modules for a bench. See
@@ -33,7 +33,7 @@ interface reads and writes, for sourcing real modules for a bench. See
 
 Example:
 ```bash
-> python3 tools/car_porting/toyota_bench_parts.py TOYOTA_RAV4
+> python3 openpilot/tools/car_porting/toyota_bench_parts.py TOYOTA_RAV4
 ```
 
 ### [openpilot/selfdrive/car/tests/test_car_interfaces.py](/openpilot/selfdrive/car/tests/test_car_interfaces.py)
