@@ -26,6 +26,7 @@ NAV: list[tuple[str, str | None]] = [
   ("Turn the speed blue", "how-to/turn-the-speed-blue.md"),
   ("Connect to a comma 3X or four", "how-to/connect-to-comma.md"),
   ("Add support for a car", "how-to/car-port.md"),
+  ("Build a Toyota HWIL bench", "how-to/toyota-hwil-bench.md"),
   ("Concepts", None),
   ("Logs", "concepts/logs.md"),
   ("Safety", "concepts/safety.md"),
