@@ -117,14 +117,29 @@ def part_hint(ecu: str, parts: list[str]) -> str:
   return ECU_HINTS.get(ecu, "-")
 
 
+def _str_constant(node: ast.AST | None) -> str | None:
+  """The value of a string literal node, or None for anything else.
+
+  ast.Constant.value is a union over every literal type, so narrowing to str here keeps the
+  callers honest and skips anything that is not a plain string.
+  """
+  return node.value if isinstance(node, ast.Constant) and isinstance(node.value, str) else None
+
+
 def _dbc_from_node(node: ast.AST) -> dict[str, str]:
   """Read a dbc_dict('pt', 'radar') call or a {Bus.pt: 'pt'} literal."""
+  dbc: dict[str, str] = {}
+
   if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "dbc_dict":
-    return {bus: a.value for bus, a in zip(("pt", "radar"), node.args, strict=False) if isinstance(a, ast.Constant)}
-  if isinstance(node, ast.Dict):
-    return {k.attr: v.value for k, v in zip(node.keys, node.values, strict=False)
-            if isinstance(k, ast.Attribute) and isinstance(v, ast.Constant)}
-  return {}
+    for bus, arg in zip(("pt", "radar"), node.args, strict=False):
+      if (name := _str_constant(arg)) is not None:
+        dbc[bus] = name
+  elif isinstance(node, ast.Dict):
+    for key, value in zip(node.keys, node.values, strict=False):
+      if isinstance(key, ast.Attribute) and (name := _str_constant(value)) is not None:
+        dbc[key.attr] = name
+
+  return dbc
 
 
 def _flag_names(node: ast.AST) -> set[str]:
@@ -178,8 +193,9 @@ def parse_platforms(path: Path) -> dict[str, Platform]:
 
     # the first positional arg is a list of ToyotaCarDocs("Toyota RAV4 2016", ...)
     if call.args and isinstance(call.args[0], ast.List):
-      platform.models = [doc.args[0].value for doc in call.args[0].elts
-                         if isinstance(doc, ast.Call) and doc.args and isinstance(doc.args[0], ast.Constant)]
+      for doc in call.args[0].elts:
+        if isinstance(doc, ast.Call) and doc.args and (model := _str_constant(doc.args[0])) is not None:
+          platform.models.append(model)
 
     for arg in call.args[1:]:
       if dbc := _dbc_from_node(arg):
