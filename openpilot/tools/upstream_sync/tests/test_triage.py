@@ -115,10 +115,21 @@ class TestTriage:
     md = render_markdown(facts, rows, {})
     assert "## Safety review" in md and "`shared.py` <-" in md
 
-  def test_cli_facts_only(self, repo, tmp_path):
+  def test_cli_facts_only(self, repo, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
     out = tmp_path / "out"
-    assert main(["--repo", str(repo), "--fork", "develop", "--upstream", "master", "--out", str(out), "--facts-only"]) == 0
+    assert main(["--repo", str(repo), "--fork", "develop", "--upstream", "master", "--out", "out", "--facts-only"]) == 0
     assert (out / "triage.md").exists() and (out / "triage.json").exists()
+
+  def test_cli_rejects_paths_outside_working_tree(self, repo, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    with pytest.raises(SystemExit):
+      main(["--repo", str(repo), "--fork", "develop", "--upstream", "master", "--out", "../escape", "--facts-only"])
+
+  def test_option_like_refs_are_rejected(self, repo):
+    for ref in ("--output=/tmp/x", "-p", "master; rm"):
+      with pytest.raises(ValueError):
+        collect(repo, ref, "master")
 
 
 class TestJudgments:

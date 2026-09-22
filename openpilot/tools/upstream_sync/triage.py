@@ -11,7 +11,7 @@ worklist.
 Usage:
   uv run --frozen --with typesafe-sdk python -m openpilot.tools.upstream_sync.triage   # develop vs upstream/master
   python -m openpilot.tools.upstream_sync.triage --facts-only        # git facts only, no API calls
-  ... triage --upstream <sha> --out /tmp/triage
+  ... triage --upstream <sha> --out upstream_sync_triage/<name>       # --out must be inside the working directory
 
 Requires TYPESAFE_API_KEY; `uv run --with` keeps typesafe-sdk out of .venv (and the dependency budget).
 """
@@ -199,6 +199,18 @@ def to_json(facts: SyncFacts, rows: list[Triaged]) -> dict[str, Any]:
   }
 
 
+def contained(path: Path, *bases: Path) -> Path:
+  """Resolve a CLI-supplied path and require it inside one of `bases`.
+
+  The arguments may come from an agent as easily as from a person, so output never
+  lands outside the working tree (or the user cache, for the answer cache).
+  """
+  resolved = path.expanduser().resolve()
+  if not any(resolved.is_relative_to(base.resolve()) for base in bases):
+    raise SystemExit(f"{path} must be inside {' or '.join(str(b) for b in bases)}")
+  return resolved
+
+
 def main(argv: list[str] | None = None) -> int:
   p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
   p.add_argument("--repo", type=Path, default=REPO)
@@ -210,6 +222,8 @@ def main(argv: list[str] | None = None) -> int:
   p.add_argument("--limit", type=int, help="only judge the N most recent incoming commits")
   p.add_argument("--facts-only", action="store_true", help="skip TypeSafe; rank on git facts alone")
   args = p.parse_args(argv)
+  out = contained(args.out, Path.cwd())
+  cache_dir = contained(args.cache, Path.cwd(), Path.home() / ".cache")
 
   facts = collect(args.repo, args.fork, args.upstream)
   if args.limit:
@@ -222,7 +236,7 @@ def main(argv: list[str] | None = None) -> int:
     if not os.environ.get("TYPESAFE_API_KEY"):
       print("TYPESAFE_API_KEY is not set (or use --facts-only)", file=sys.stderr)
       return 2
-    cache = JudgmentCache(args.cache)
+    cache = JudgmentCache(cache_dir)
     done = 0
 
     def progress(c: Commit) -> None:
@@ -235,10 +249,10 @@ def main(argv: list[str] | None = None) -> int:
     usage["input_tokens"] = sum(judged[s]["usage"]["input_tokens"] for s in before)
 
   rows = [triage_commit(c, facts, judged.get(c.sha, {}).get("answers")) for c in facts.commits]
-  args.out.mkdir(parents=True, exist_ok=True)
-  (args.out / "triage.md").write_text(render_markdown(facts, rows, usage))
-  (args.out / "triage.json").write_text(json.dumps(to_json(facts, rows), indent=1))
-  print(f"wrote {args.out / 'triage.md'} and triage.json", file=sys.stderr)
+  out.mkdir(parents=True, exist_ok=True)
+  (out / "triage.md").write_text(render_markdown(facts, rows, usage))
+  (out / "triage.json").write_text(json.dumps(to_json(facts, rows), indent=1))
+  print(f"wrote {out / 'triage.md'} and triage.json", file=sys.stderr)
   return 0
 
 

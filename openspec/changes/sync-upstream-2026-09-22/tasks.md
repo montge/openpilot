@@ -29,13 +29,22 @@
       - known macOS-only (July notes): `test_messaging::test_recv_one_retry`, `test_uploader` (4), `test_athenad` (2)
       - `test_logmessaged` (2): receives no messages. Upstream-owned; it goes through msgq plus a managed subprocess (the macOS spawn path behind the known failures), and upstream reverted a msgq bump in this range (#38920). Unverified locally; CI decides.
       - `test_plotjuggler::test_demo`: route download plus GUI launch timeout (environment)
-- [ ] 4.4 CI on the sync PR (authoritative, including process replay)
+- [x] 4.4 CI on PR #62 (head `d916430c3`): 24 passed, 1 skipped (simulator), 1 failed (SonarCloud quality gate, below).
+      - **`unit tests`: 3784 passed, 176 skipped, 1 xfailed, 0 failed.** The 10 macOS-local failures, `test_logmessaged` included, were all environmental.
+      - **`process replay`: 0 changed, 66 passed, 0 errors.** The merge does not alter driving behavior.
+      - Also green: build release (upstream's new LFS release packaging), build macOS, C++ coverage, all Python coverage jobs, MISRA, TLC, CodeQL, NVIDIA checks, algorithm-harness coverage gate.
+- [x] 4.5 SonarCloud now really scans: `SONAR_TOKEN` was regenerated, closing September follow-up 6.5's token half. Its PR quality gate failed on:
+      - **Security rating C on new code:** five vulnerabilities.
+        - Two were in the new triage tool: git argument injection from CLI refs, and path traversal via `--out`/`--cache`. **Fixed.** Refs are validated and passed after `--end-of-options`; output paths must stay inside the working tree (the cache may also go under `~/.cache`); tests cover both.
+        - Three are in upstream-owned files: `scripts/lint/check_shell.py` (the same two rules), and `scripts/apply-pr.sh` (`curl -L` without HTTPS enforcement). Left untouched to keep the fork diff at zero. Needs a decision in SonarCloud (see 6.4).
+      - **20.1% coverage on new code (≥80% required).** Structural for sync PRs: "new code" includes every upstream line the merge brings in, which the fork's tests do not target.
 
 ## 5. Land
-- [ ] 5.1 Push `upstream-sync-20260922` to origin and open the PR against develop (needs the user's go-ahead)
+- [x] 5.1 Pushed `upstream-sync-20260922` to origin (user approved); PR montge/openpilot#62 against develop
 - [ ] 5.2 Merge (the user's call); fast-forward origin `master` mirror to `521db4c82`
 
 ## 6. Follow-ups
 - [ ] 6.1 Run the ported DGX TensorRT paths on the Spark (engine build with uint8 `state_img_q`, `generate_labels(sequential=True)` round trip)
 - [ ] 6.2 Triage tool: fork references include third-party API names that upstream merely stopped calling (`unsqueeze`, `array_equal`). `breaks_fork_code` discounts them, but a definitions-only filter would cut noise at some recall cost. Evaluate against the September labels before changing.
+- [ ] 6.4 SonarCloud policy for sync PRs (the user's call, in SonarCloud or `sonar-project.properties`): accept or mark upstream-owned findings, and decide how the new-code coverage condition should treat merge commits from upstream (e.g. a "previous version" new-code period, or reviewing the gate on develop after the merge rather than on the PR)
 - [ ] 6.3 Carried over from the September sync: 6.1–6.6 there (np.random migration, ty override cleanup, dependency budget, MISRA baseline, SonarCloud token, test-suite consolidation)

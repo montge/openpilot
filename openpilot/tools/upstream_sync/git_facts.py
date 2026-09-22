@@ -19,6 +19,8 @@ NOISY_SUFFIXES = (".lock", ".svg", ".png", ".jpg", ".onnx", ".pkl", ".bin", ".ts
 DIFF_EXCERPT_CHARS = 24_000
 
 IDENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]{3,}")
+# refs arrive from the command line (possibly from an agent): no leading '-', so none can be read as a git option
+SAFE_REF = re.compile(r"[\w@.][\w@./{}^~-]*")
 PY_DEF = re.compile(r"^\s*(?:async\s+)?def\s+(\w+)\s*\((.*)")
 COMMON = set(keyword.kwlist) | set(dir(builtins))
 # Fork files whose mentions of an upstream name are prose, not code that can break.
@@ -76,7 +78,9 @@ class SyncFacts:
 
 
 def resolve(repo: Path, ref: str) -> str:
-  return git(repo, "rev-parse", "--verify", f"{ref}^{{commit}}").stdout.strip()
+  if not SAFE_REF.fullmatch(ref):
+    raise ValueError(f"not a git ref: {ref!r}")
+  return git(repo, "rev-parse", "--verify", "--end-of-options", f"{ref}^{{commit}}").stdout.strip()
 
 
 def fork_overlay(repo: Path, base: str, fork_ref: str) -> ForkOverlay:
