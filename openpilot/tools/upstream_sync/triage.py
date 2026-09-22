@@ -9,11 +9,11 @@ how much follow-up it needs). This module combines both with explicit weights an
 worklist.
 
 Usage:
-  python -m openpilot.tools.upstream_sync.triage                     # develop vs upstream/master
+  uv run --frozen --with typesafe-sdk python -m openpilot.tools.upstream_sync.triage   # develop vs upstream/master
   python -m openpilot.tools.upstream_sync.triage --facts-only        # git facts only, no API calls
-  python -m openpilot.tools.upstream_sync.triage --upstream <sha> --out /tmp/triage
+  ... triage --upstream <sha> --out /tmp/triage
 
-Requires TYPESAFE_API_KEY and `pip install -r openpilot/tools/upstream_sync/requirements.txt`.
+Requires TYPESAFE_API_KEY; `uv run --with` keeps typesafe-sdk out of .venv (and the dependency budget).
 """
 
 import argparse

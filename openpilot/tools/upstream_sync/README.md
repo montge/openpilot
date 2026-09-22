@@ -5,12 +5,15 @@ fork-side work each one is likely to need, so a sync starts from a worklist inst
 a 400-commit log.
 
 ```bash
-pip install -r openpilot/tools/upstream_sync/requirements.txt
 export TYPESAFE_API_KEY=...        # https://console.typesafe.ai/
 git fetch upstream
-python -m openpilot.tools.upstream_sync.triage --out upstream_sync_triage
-python -m openpilot.tools.upstream_sync.triage --facts-only   # no API calls
+uv run --frozen --with typesafe-sdk python -m openpilot.tools.upstream_sync.triage --out upstream_sync_triage
+python -m openpilot.tools.upstream_sync.triage --facts-only   # git facts only, no SDK or API calls
 ```
+
+`uv run --with` adds the SDK in a temporary overlay. Installing it into `.venv`
+instead (`requirements.txt`) works, but pushes `scripts/lint/check_dependencies.py`
+over its package budget.
 
 Output: `triage.md` (the worklist) and `triage.json` (every signal, for scripting).
 
