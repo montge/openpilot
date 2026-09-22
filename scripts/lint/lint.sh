@@ -9,7 +9,7 @@ NC='\033[0m'
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 ROOT="$DIR/../../"
-cd $ROOT
+cd "$ROOT"
 
 FAILED=0
 
@@ -26,10 +26,10 @@ function run() {
   done
 
   shift 1;
-  CMD="$@"
+  CMD=("$@")
 
   set +e
-  log="$((eval "$CMD" ) 2>&1)"
+  log="$("${CMD[@]}" 2>&1)"
 
   if [[ $? -eq 0 ]]; then
     echo -e "[${GREEN}✔${NC}]"
@@ -42,23 +42,21 @@ function run() {
 }
 
 function run_tests() {
-  ALL_FILES=$1
-  PYTHON_FILES=$2
-
   run "ruff" ruff check openpilot --quiet
-  run "check_dependencies" python3 $DIR/check_dependencies.py
-  run "check_indentation" $DIR/check_indentation.py $PYTHON_FILES
-  run "check_added_large_files" $DIR/check_added_large_files.py --maxkb=120 $ALL_FILES
-  run "check_shebang_scripts_are_executable" $DIR/check_shebang_scripts_are_executable.py $ALL_FILES
-  run "check_shebang_format" $DIR/check_shebang_format.sh $ALL_FILES
-  run "check_nomerge_comments" $DIR/check_nomerge_comments.sh $ALL_FILES
+  run "check_shell" python3 "$DIR/check_shell.py" "${SHELL_FILES[@]}"
+  run "check_dependencies" python3 "$DIR/check_dependencies.py"
+  run "check_indentation" "$DIR/check_indentation.py" "${PYTHON_FILES[@]}"
+  run "check_added_large_files" "$DIR/check_added_large_files.py" --maxkb=120 "${ALL_FILES[@]}"
+  run "check_shebang_scripts_are_executable" "$DIR/check_shebang_scripts_are_executable.py" "${ALL_FILES[@]}"
+  run "check_shebang_format" "$DIR/check_shebang_format.sh" "${ALL_FILES[@]}"
+  run "check_nomerge_comments" "$DIR/check_nomerge_comments.sh" "${ALL_FILES[@]}"
 
   if [[ -z "$FAST" ]]; then
     run "ty" ty check openpilot
-    run "codespell" codespell $ALL_FILES
+    run "codespell" codespell "${ALL_FILES[@]}"
   fi
 
-  return $FAILED
+  return "$FAILED"
 }
 
 function help() {
@@ -68,6 +66,7 @@ function help() {
   echo ""
   echo -e "${BOLD}${UNDERLINE}Tests:${NC}"
   echo -e "  ${BOLD}ruff${NC}"
+  echo -e "  ${BOLD}check_shell${NC}"
   echo -e "  ${BOLD}check_dependencies${NC}"
   echo -e "  ${BOLD}check_indentation${NC}"
   echo -e "  ${BOLD}ty${NC}"
@@ -103,17 +102,29 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-RUN=$([ -z "$RUN" ] && echo "" || echo "!($(echo $RUN | sed 's/ /|/g'))")
-SKIP="@($(echo $SKIP | sed 's/ /|/g'))"
+RUN=$([ -z "$RUN" ] && echo "" || echo "!($(echo "$RUN" | sed 's/ /|/g'))")
+SKIP="@($(echo "$SKIP" | sed 's/ /|/g'))"
 
 # fork: exclude Termux-target scripts (on-device shebangs that can't conform)
-GIT_FILES="$(git ls-files openpilot | grep -Ev 'openpilot/tools/shadow/setup/(camera_stream|setup-ssh|termux-setup)\.sh')"
-ALL_FILES=""
-for f in $GIT_FILES; do
-  if [[ -f $f ]]; then
-    ALL_FILES+="$f"$'\n'
-  fi
-done
-PYTHON_FILES=$(echo "$ALL_FILES" | grep --color=never '.py$' || true)
+FORK_EXCLUDE='^openpilot/tools/shadow/setup/(camera_stream|setup-ssh|termux-setup)\.sh$'
 
-run_tests "$ALL_FILES" "$PYTHON_FILES"
+ALL_FILES=()
+PYTHON_FILES=()
+while IFS= read -r -d '' f; do
+  if [[ -f $f && ! $f =~ $FORK_EXCLUDE ]]; then
+    ALL_FILES+=("$f")
+    if [[ $f == *.py ]]; then
+      PYTHON_FILES+=("$f")
+    fi
+  fi
+done < <(git ls-files -z openpilot)
+
+# Include tooling, launchers, and the extensionless Git hook.
+SHELL_FILES=()
+while IFS= read -r -d '' f; do
+  if [[ -f $f && ! $f =~ $FORK_EXCLUDE ]]; then
+    SHELL_FILES+=("$f")
+  fi
+done < <(git ls-files -z '*.sh' '*.bash' scripts/post-commit)
+
+run_tests
