@@ -46,7 +46,7 @@ def main():
   # device must be chosen via env before tinygrad import (Device.DEFAULT is read-only now)
   os.environ.setdefault("DEV", "CUDA")
 
-  from tinygrad import Device, Tensor
+  from tinygrad import Device, Tensor, dtypes
   from tinygrad.nn.onnx import OnnxRunner  # type: ignore[import-not-found]
 
   print(f"Device: {Device.DEFAULT}")
@@ -57,8 +57,8 @@ def main():
 
   def random_inputs(runner) -> dict:
     inputs = {}
-    for k, v in runner.get_empty_input_data().items():
-      if "float" in str(v.dtype):
+    for k, v in runner.graph_inputs.items():
+      if dtypes.is_float(v.dtype):
         inputs[k] = Tensor(np.random.randn(*v.shape).astype(np.float32))
       else:
         inputs[k] = Tensor(np.random.randint(0, 255, v.shape, dtype=np.uint8))

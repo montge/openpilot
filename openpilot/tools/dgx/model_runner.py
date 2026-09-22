@@ -337,7 +337,7 @@ class ModelRunner:
     # pkl for them anymore); dmonitoring still ships a *_metadata.pkl
     if self.model_path.suffix == ".onnx":
       try:
-        from openpilot.selfdrive.modeld.get_model_metadata import make_metadata_dict
+        from openpilot.tools.dgx.model_metadata import make_metadata_dict
 
         self.input_shapes = make_metadata_dict(self.model_path)["input_shapes"]
       except Exception:  # no embedded metadata / unparsable — fall through
@@ -351,18 +351,19 @@ class ModelRunner:
           self.input_shapes = metadata.get("input_shapes", {})
 
     if not self.input_shapes:
-      # Fallback: supercombo input spec
+      # Fallback: recurrent supercombo input spec (#38916)
       self.input_shapes = {
-        "img": (1, 12, 128, 256),
-        "big_img": (1, 12, 128, 256),
-        "desire_pulse": (1, 25, 8),
+        "new_img": (2, 6, 128, 256),
+        "desire": (8,),
         "traffic_convention": (1, 2),
-        "features_buffer": (1, 24, 512),
         "action_t": (1, 2),
+        "state_img_q": (2, 5, 6, 128, 256),
+        "state_desire_q": (100, 1, 8),
+        "state_feat_q": (96, 1, 512),
       }
 
     def dummy(name: str, shape: tuple[int, ...]) -> np.ndarray:
-      if "img" in name:  # camera inputs are uint8 YUV
+      if "img" in name:  # camera inputs and the frame queue are uint8 YUV
         return np.random.randint(0, 255, shape, dtype=np.uint8)
       return np.random.randn(*shape).astype(np.float32)
 
@@ -455,13 +456,13 @@ def get_recommended_precision(backend: Backend) -> Precision:
 
       gpu = get_best_gpu()
       if gpu:
-        if gpu.supports_nvfp4:  # type: ignore[truthy-function]
+        if gpu.supports_nvfp4():
           return Precision.FP4
-        if gpu.supports_fp8:  # type: ignore[truthy-function]
+        if gpu.supports_fp8():
           return Precision.FP8
-        if gpu.supports_bf16:  # type: ignore[truthy-function]
+        if gpu.supports_bf16():
           return Precision.BF16
-        if gpu.supports_fp16:  # type: ignore[truthy-function]
+        if gpu.supports_fp16():
           return Precision.FP16
     except ImportError:
       pass

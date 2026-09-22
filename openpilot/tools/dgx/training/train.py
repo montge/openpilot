@@ -21,7 +21,7 @@ import numpy as np
 
 # Local imports
 from openpilot.selfdrive.modeld.constants import ModelConstants, Plan
-from openpilot.selfdrive.modeld.get_model_metadata import make_metadata_dict
+from openpilot.tools.dgx.model_metadata import make_metadata_dict
 from openpilot.tools.dgx.training.dora import apply_dora_to_model, count_parameters, get_dora_parameters
 from openpilot.tools.dgx.training.losses import CombinedTrainingLoss
 
@@ -72,8 +72,8 @@ def create_dummy_dataloader(batch_size: int, num_batches: int = 100):
 
     def __getitem__(self, idx):
       return {
-        "img": torch.randint(0, 255, (12, 128, 256), dtype=torch.uint8),
-        "big_img": torch.randint(0, 255, (12, 128, 256), dtype=torch.uint8),
+        "img": torch.randint(0, 255, (6, 128, 256), dtype=torch.uint8),
+        "big_img": torch.randint(0, 255, (6, 128, 256), dtype=torch.uint8),
         "desire": torch.randn(8, dtype=torch.float16),
         "traffic_convention": torch.randn(2, dtype=torch.float16),
       }
@@ -160,23 +160,23 @@ def student_forward(
   """Run the supercombo student and return flat (batch, N) outputs.
 
   The ONNX graph has fixed batch-1 shapes, so samples run one at a time.
-  Inputs are passed positionally in graph-input order; desire goes into the
-  last desire_pulse step (as modeld does), recurrent/action inputs are zero.
+  Inputs are passed positionally in graph-input order and mirror
+  teacher.build_model_inputs: new_img stacks the latest road and wide frames,
+  desire is this step's pulse, and action_t plus the recurrent state_* queues
+  start at zero (cold start, matching the teacher's default).
   """
   outs = []
   for i in range(img.shape[0]):
     inputs = []
     for name, shape in input_shapes.items():
-      if name == "img":
-        t = img[i : i + 1].float()
-      elif name == "big_img":
-        t = big_img[i : i + 1].float()
-      elif name == "desire_pulse":
-        t = torch.zeros(shape, dtype=torch.float32, device=device)
-        t[0, -1, :] = desire[i].float()
+      if name == "new_img":
+        c = shape[1]
+        t = torch.stack([img[i, -c:], big_img[i, -c:]]).float()
+      elif name == "desire":
+        t = desire[i].float().reshape(shape)
       elif name == "traffic_convention":
         t = traffic_convention[i : i + 1].float()
-      else:  # features_buffer, action_t: cold start
+      else:  # action_t and the state_* queues: cold start
         t = torch.zeros(shape, dtype=torch.float32, device=device)
       inputs.append(t)
     out = student(*inputs)
@@ -228,12 +228,8 @@ def train_epoch(
     desire = batch["desire"].to(device)
     traffic = batch["traffic_convention"].to(device)
 
-    # The model wants two temporally stacked 6-channel frames (12 channels);
-    # single-frame samples are duplicated as a cold-start approximation
-    if img.shape[1] == 6:
-      img = torch.cat([img, img], dim=1)
-    if big_img.shape[1] == 6:
-      big_img = torch.cat([big_img, big_img], dim=1)
+    # The model takes the latest 6-channel frame per camera; frame history lives
+    # in its recurrent state, which starts cold for these shuffled samples.
 
     # Generate teacher labels (no grad, uses TensorRT)
     with torch.no_grad():
