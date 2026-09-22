@@ -308,6 +308,29 @@ class TestDriverMonitoringGetDistractedTypes:
     assert not dm.distracted_types['phone']
 
 
+  def test_get_distracted_types_sleep_distracted(self, mocker):
+    """Test detects a sleeping driver (sleep head added with the #38942 DM model)."""
+    patch_params(mocker)
+
+    dm = DriverMonitoring()
+    dm.sleep_prob = 0.9
+
+    dm._get_distracted_types()
+
+    assert dm.distracted_types['sleep']
+
+  def test_get_distracted_types_sleep_below_threshold(self, mocker):
+    """Test sleep not flagged below its threshold."""
+    patch_params(mocker)
+
+    dm = DriverMonitoring()
+    dm.sleep_prob = 0.5
+
+    dm._get_distracted_types()
+
+    assert not dm.distracted_types['sleep']
+
+
 class TestDriverMonitoringGetStatePacket:
   """Test DriverMonitoring.get_state_packet."""
 
@@ -512,7 +535,7 @@ class TestDriverMonitoringGetDistractedTypesCalibrated:
 class TestDriverMonitoringUpdateStates:
   """Test DriverMonitoring._update_states method."""
 
-  def _create_driver_state(self, mocker, face_prob=0.9, phone_prob=0.1, wheel_on_right_prob=0.1):
+  def _create_driver_state(self, mocker, face_prob=0.9, phone_prob=0.1, wheel_on_right_prob=0.1, sleep_prob=0.1):
     """Create a mock driver state."""
     driver_data = mocker.MagicMock()
     driver_data.faceProb = face_prob
@@ -526,6 +549,7 @@ class TestDriverMonitoringUpdateStates:
     driver_data.rightEyeProb = 0.9
     driver_data.sunglassesProb = 0.1
     driver_data.phoneProb = phone_prob
+    driver_data.sleepProb = sleep_prob
 
     driver_state = mocker.MagicMock()
     driver_state.wheelOnRightProb = wheel_on_right_prob
@@ -552,6 +576,16 @@ class TestDriverMonitoringUpdateStates:
     dm._update_states(driver_state, [0.0, 0.0, 0.0], car_speed=30.0, op_engaged=True, lowspeed=False)
 
     assert dm.face_detected
+
+  def test_update_states_sleep_distracts(self, mocker):
+    """A confident sleep prediction from the model marks the driver distracted."""
+    patch_params(mocker)
+
+    dm = DriverMonitoring()
+    dm._update_states(self._create_driver_state(mocker, sleep_prob=0.9), [0.0, 0.0, 0.0], car_speed=30.0, op_engaged=True, lowspeed=False)
+
+    assert dm.sleep_prob == 0.9
+    assert dm.distracted_types['sleep'] and dm.driver_distracted
 
   def test_update_states_no_face(self, mocker):
     """Test _update_states with no face detected."""
@@ -665,6 +699,7 @@ class TestDriverMonitoringUpdateStates:
     driver_data.rightEyeProb = 0.9
     driver_data.sunglassesProb = 0.1
     driver_data.phoneProb = 0.1
+    driver_data.sleepProb = 0.1
 
     driver_state = mocker.MagicMock()
     driver_state.wheelOnRightProb = 0.1
@@ -693,6 +728,7 @@ class TestDriverMonitoringUpdateStates:
     driver_data.rightEyeProb = 0.9
     driver_data.sunglassesProb = 0.1
     driver_data.phoneProb = 0.1
+    driver_data.sleepProb = 0.1
 
     driver_state = mocker.MagicMock()
     driver_state.wheelOnRightProb = 0.1
@@ -722,6 +758,7 @@ class TestDriverMonitoringUpdateStates:
     driver_data.rightEyeProb = 0.9
     driver_data.sunglassesProb = 0.1
     driver_data.phoneProb = 0.1
+    driver_data.sleepProb = 0.1
 
     driver_state = mocker.MagicMock()
     driver_state.wheelOnRightProb = 0.9
@@ -863,6 +900,7 @@ class TestDriverMonitoringDcamUncertainReset:
     driver_data.rightEyeProb = 0.9
     driver_data.sunglassesProb = 0.1
     driver_data.phoneProb = 0.1
+    driver_data.sleepProb = 0.1
 
     driver_state = mocker.MagicMock()
     driver_state.wheelOnRightProb = 0.1
@@ -970,6 +1008,7 @@ class TestDriverMonitoringRunStep:
     driver_data.rightEyeProb = 0.9
     driver_data.sunglassesProb = 0.1
     driver_data.phoneProb = 0.1
+    driver_data.sleepProb = 0.1
 
     driver_state = mocker.MagicMock()
     driver_state.wheelOnRightProb = 0.1
