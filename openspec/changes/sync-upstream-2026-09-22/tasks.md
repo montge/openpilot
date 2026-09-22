@@ -35,7 +35,7 @@
       - Also green: build release (upstream's new LFS release packaging), build macOS, C++ coverage, all Python coverage jobs, MISRA, TLC, CodeQL, NVIDIA checks, algorithm-harness coverage gate.
 - [x] 4.5 SonarCloud now really scans: `SONAR_TOKEN` was regenerated, closing September follow-up 6.5's token half. Its PR quality gate failed on:
       - **Security rating C on new code:** five vulnerabilities.
-        - Two were in the new triage tool: git argument injection from CLI refs, and path traversal via `--out`/`--cache`. **Fixed.** Refs are validated and passed after `--end-of-options`; output paths must stay inside the working tree (the cache may also go under `~/.cache`); tests cover both.
+        - Two were in the new triage tool: git argument injection (CLI refs and `--repo` reaching `git`), and path traversal via `--out`/`--cache`. **Fixed.** Refs are validated and passed after `--end-of-options`; `--repo` was dropped (the tool triages the repository it runs in); output paths must stay inside the working tree (the cache may also go under `~/.cache`); tests cover all three.
         - Three are in upstream-owned files: `scripts/lint/check_shell.py` (the same two rules), and `scripts/apply-pr.sh` (`curl -L` without HTTPS enforcement). Left untouched to keep the fork diff at zero. Needs a decision in SonarCloud (see 6.4).
       - **20.1% coverage on new code (≥80% required).** Structural for sync PRs: "new code" includes every upstream line the merge brings in, which the fork's tests do not target.
 

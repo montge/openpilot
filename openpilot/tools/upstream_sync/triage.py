@@ -20,6 +20,7 @@ import argparse
 import asyncio
 import json
 import os
+import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -28,7 +29,6 @@ from typing import Any
 from openpilot.tools.upstream_sync.git_facts import Commit, SyncFacts, collect
 from openpilot.tools.upstream_sync.judgments import FORK_PROFILE, JudgmentCache, judge_commits
 
-REPO = Path(__file__).resolve().parents[3]
 DEFAULT_CACHE = Path.home() / ".cache" / "openpilot_upstream_sync"
 
 # Policy lives here, not in the questions: change weights or thresholds without re-asking.
@@ -213,7 +213,6 @@ def contained(path: Path, *bases: Path) -> Path:
 
 def main(argv: list[str] | None = None) -> int:
   p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-  p.add_argument("--repo", type=Path, default=REPO)
   p.add_argument("--fork", default="develop", help="fork branch that will receive the merge")
   p.add_argument("--upstream", default="upstream/master", help="upstream ref to merge")
   p.add_argument("--out", type=Path, default=Path("upstream_sync_triage"), help="output directory")
@@ -225,7 +224,9 @@ def main(argv: list[str] | None = None) -> int:
   out = contained(args.out, Path.cwd())
   cache_dir = contained(args.cache, Path.cwd(), Path.home() / ".cache")
 
-  facts = collect(args.repo, args.fork, args.upstream)
+  # the repository this is run in; not a CLI argument, so nothing user-supplied reaches `git -C`
+  repo = Path(subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True, check=True).stdout.strip())
+  facts = collect(repo, args.fork, args.upstream)
   if args.limit:
     facts.commits = facts.commits[-args.limit:]
   print(f"{len(facts.commits)} incoming commits, {len(facts.conflicts)} predicted conflicted files", file=sys.stderr)
@@ -245,7 +246,7 @@ def main(argv: list[str] | None = None) -> int:
       print(f"  judged {done}: {c.sha[:9]} {c.subject[:70]}", file=sys.stderr)
 
     before = {c.sha for c in facts.commits if cache.get(c.sha) is None}
-    judged = asyncio.run(judge_commits(args.repo, facts, cache, args.concurrency, progress))
+    judged = asyncio.run(judge_commits(repo, facts, cache, args.concurrency, progress))
     usage["input_tokens"] = sum(judged[s]["usage"]["input_tokens"] for s in before)
 
   rows = [triage_commit(c, facts, judged.get(c.sha, {}).get("answers")) for c in facts.commits]
