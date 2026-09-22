@@ -47,6 +47,9 @@ class Commit:
   files: list[FileChange] = field(default_factory=list)
   # names this commit removes or re-signatures -> fork files that still use them
   fork_references: dict[str, list[str]] = field(default_factory=dict)
+  # fork files importing a Python module this commit changes (catches additions, which
+  # fork_references cannot, e.g. a new message field the fork's mocks must now provide)
+  fork_importers: list[str] = field(default_factory=list)
 
   @property
   def paths(self) -> list[str]:
@@ -204,6 +207,13 @@ def fork_references(repo: Path, commit: Commit, fork_sha: str, fork_files: list[
   return {name: sorted(paths)[:MAX_REFERENCE_FILES] for name, paths in sorted(refs.items())}
 
 
+def fork_importers(repo: Path, commit: Commit, fork_sha: str, fork_files: list[str]) -> list[str]:
+  modules = {f.path.removesuffix(".py").removesuffix("/__init__").replace("/", ".")
+             for f in commit.files if f.status == "M" and f.path.endswith(".py")}
+  paths = {path for path, _ in _grep(repo, fork_sha, modules, fork_files)}
+  return sorted(paths - set(commit.paths))[:MAX_REFERENCE_FILES]
+
+
 def predicted_conflicts(repo: Path, fork_ref: str, upstream_ref: str) -> list[str]:
   """Files that `git merge upstream_ref` into fork_ref would leave conflicted (no worktree changes)."""
   res = git(repo, "merge-tree", "--write-tree", "--name-only", "--no-messages", fork_ref, upstream_ref, check=False)
@@ -226,8 +236,10 @@ def collect(repo: Path, fork_ref: str, upstream_ref: str) -> SyncFacts:
   upstream = UpstreamTree.load(repo, upstream_sha)
   with ThreadPoolExecutor(max_workers=8) as pool:
     refs = pool.map(lambda c: fork_references(repo, c, fork_sha, fork_files, upstream), commits)
-    for c, r in zip(commits, refs, strict=True):
+    importers = pool.map(lambda c: fork_importers(repo, c, fork_sha, fork_files), commits)
+    for c, r, i in zip(commits, refs, importers, strict=True):
       c.fork_references = r
+      c.fork_importers = i
 
   return SyncFacts(
     fork_ref=fork_ref,

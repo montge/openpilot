@@ -22,7 +22,9 @@ which upstream files the fork modifies, adds, or deletes since the merge-base, a
 **fork references**. A fork reference is a name that a commit removes, which the
 final upstream tree no longer has, or a Python function whose signature it changes,
 paired with the fork-owned files that still use it (for example `CarSpecificEvents`
-mapped to the fork's tests).
+mapped to the fork's tests). git also records **fork importers**: fork files that import
+a Python module the commit changes. These catch additions, such as a new message field
+the fork's mocks must now provide.
 
 **TypeSafe answers the semantic questions** (`judgments.py`): one request per commit.
 The state is the commit message, file list, a diff excerpt, the exact fork touchpoints,
@@ -45,8 +47,10 @@ judgments into a priority, and the thresholds place each commit in one bucket:
 
 - **resolve**: git predicts a conflict in a file the commit touches
 - **adapt**: merges cleanly, but touches a fork-edited file, breaks fork references,
-  or has a strong impact, harness or effort signal. Interface and invocation changes
-  alone only raise priority, because most upstream renames never reach fork code.
+  is a safety-relevant change to a module that fork code imports (the fork's own checks
+  of it must be re-run), or has a strong impact, harness or effort signal. Interface and
+  invocation changes alone only raise priority, because most upstream renames never
+  reach fork code.
 - **read**: every signal is weak, but at least one probability is near 0.5 or the
   effort distribution is spread out, so a person should look
 - **routine**: everything else
@@ -62,7 +66,7 @@ question invalidates the cache.
 ## Calibration
 
 On the September 2026 sync (394 commits, 25 of them known to have caused fork work),
-22 of the 25 landed in resolve or adapt, and 94 commits were flagged in total (24%).
+22 of the 25 landed in resolve or adapt, and 96 commits were flagged in total (24%).
 git facts alone caught 18 of the 25 from 71 flagged commits. The misses were subtle API
 changes: a changed return value, and a generic method name (`update`) that lost a
 parameter. When the report lists a generic name under fork references, confirm its
@@ -70,6 +74,11 @@ callers with the codebase-memory graph (`trace_path`) before trusting a low
 `breaks_fork_code`.
 
 A full run over about 400 commits takes about 2 minutes and costs about $0.08.
+
+On the 2026-09-22 sync (86 commits), the report predicted both conflicts. Every fork
+break was flagged: the DGX tooling and lint scripts in adapt, and the auth tests in
+read. The one gap was the DM model's new `sleepProb` field, which broke the fork's
+monitoring mocks without removing anything. That gap led to the fork-importers rule.
 
 The judgments only rank what to read. They are not proof that a merge is correct. The
 sync is verified the usual way: lint, pytest, process replay, and CI.

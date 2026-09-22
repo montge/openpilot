@@ -37,6 +37,7 @@ WEIGHTS = {
   "fork_modified": 2.0,  # touches an upstream file the fork edits (clean merge can drop the fork's edit)
   "fork_deleted": 1.0,
   "breaks_fork_code": 3.0,  # multiplies P(fork files break) when git found fork references to removed names
+  "safety_import": 3.0,  # multiplies P(safety-relevant) when fork code imports a module the commit changes
   "effort": 3.0,  # multiplies the 0-1 normalized effort score
   "fork_impact": 2.0,  # multiplies the strongest per-customization impact probability
   "harness_change": 1.5,  # the fork keeps pytest while upstream owns a unittest harness
@@ -95,6 +96,8 @@ def triage_commit(c: Commit, facts: SyncFacts, answers: dict[str, Any] | None) -
 
     priority += WEIGHTS["effort"] * t.effort / 3 + WEIGHTS["fork_impact"] * max(t.impacts.values())
     priority += sum(WEIGHTS[k] * p for k, p in t.signals.items()) + WEIGHTS["breaks_fork_code"] * (t.breaks or 0)
+    if c.fork_importers:
+      priority += WEIGHTS["safety_import"] * t.safety
 
     # only the answers that can move a commit between buckets are worth a person's second look
     probs = {**{k: t.signals[k] for k in DECISIVE}, **{f"impact_{k}": p for k, p in t.impacts.items()},
@@ -109,7 +112,9 @@ def triage_commit(c: Commit, facts: SyncFacts, answers: dict[str, Any] | None) -
   if conflicts:
     t.bucket = "resolve"
   elif fork_modified or fork_deleted or (t.breaks or 0) >= YES or max(t.impacts.values(), default=0) >= YES \
-      or any(t.signals.get(k, 0) >= YES for k in DECISIVE) or (t.effort or 0) >= ADAPT_EFFORT:
+      or any(t.signals.get(k, 0) >= YES for k in DECISIVE) or (t.effort or 0) >= ADAPT_EFFORT \
+      or ((t.safety or 0) >= YES and c.fork_importers):
+    # a safety change in a module fork code imports: the fork's own checks of it must be re-run
     t.bucket = "adapt"
   elif t.uncertain:
     t.bucket = "read"
@@ -163,6 +168,8 @@ def render_markdown(facts: SyncFacts, rows: list[Triaged], usage: dict[str, int]
         why.append("conflicts: " + ", ".join(f"`{p}`" for p in r.conflicts[:3]))
       if r.fork_modified:
         why.append("fork-edited: " + ", ".join(f"`{p}`" for p in r.fork_modified[:3]))
+      if (r.safety or 0) >= YES and r.commit.fork_importers:
+        why.append("safety change imported by fork: " + ", ".join(f"`{p}`" for p in r.commit.fork_importers[:3]))
       if r.references and (r.breaks or 0) >= YES:
         names = ", ".join(f"`{n}`" for n in list(r.references)[:4])
         why.append(f"breaks fork refs {r.breaks:.2f}: {names}")
@@ -186,8 +193,8 @@ def to_json(facts: SyncFacts, rows: list[Triaged]) -> dict[str, Any]:
     "commits": [{
       "sha": r.commit.sha, "subject": r.commit.subject, "date": r.commit.date, "bucket": r.bucket,
       "priority": r.priority, "kind": r.kind, "effort": r.effort, "safety": r.safety, "behavior": r.behavior,
-      "impacts": r.impacts, "signals": r.signals, "breaks": r.breaks, "references": r.references, "conflicts": r.conflicts, "fork_modified": r.fork_modified,
-      "uncertain": r.uncertain,
+      "impacts": r.impacts, "signals": r.signals, "breaks": r.breaks, "references": r.references,
+      "fork_importers": r.commit.fork_importers, "conflicts": r.conflicts, "fork_modified": r.fork_modified, "uncertain": r.uncertain,
     } for r in rows],
   }
 

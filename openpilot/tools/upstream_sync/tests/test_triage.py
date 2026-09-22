@@ -71,6 +71,12 @@ class TestGitFacts:
     assert facts.commits == [] and facts.conflicts == []
 
 
+  def test_fork_importers(self, repo):
+    shared, rename, _ = collect(repo, "develop", "master").commits
+    assert shared.fork_importers == []  # shared.py is not imported by fork code
+    assert rename.fork_importers == ["fork_tool.py"]  # fork_tool.py imports lib
+
+
 class TestTriage:
   def test_buckets_from_git_facts_alone(self, repo):
     facts = collect(repo, "develop", "master")
@@ -90,6 +96,13 @@ class TestTriage:
     assert triage_commit(clean, facts, answers(interface_change=0.99, invocation_change=0.99)).bucket == "routine"
     uncertain = triage_commit(clean, facts, answers(harness_change=0.45, effort=1.2, effort_conf=0.2))
     assert uncertain.bucket == "read" and uncertain.uncertain == ["harness_change", "effort"]
+
+  def test_safety_change_in_fork_imported_module(self, repo):
+    facts = collect(repo, "develop", "master")
+    clean = facts.commits[1]
+    assert triage_commit(clean, facts, answers(safety_relevant=0.9)).bucket == "adapt"
+    clean.fork_importers = []
+    assert triage_commit(clean, facts, answers(safety_relevant=0.9)).bucket == "routine"
 
   def test_breaks_needs_references(self, repo):
     facts = collect(repo, "develop", "master")
