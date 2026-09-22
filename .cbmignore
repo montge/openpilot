@@ -1,0 +1,8 @@
+# codebase-memory-mcp indexing rules (fork-owned; gitignore syntax, see
+# https://github.com/DeusData/codebase-memory-mcp/blob/main/docs/cbmignore.md)
+
+# The built-in skip list drops every directory named "tools" or "scripts". Here that
+# hides openpilot/tools/ (dgx, shadow, fair, stonesoup, upstream_sync), which is most of
+# the fork's own code, the root tools/ helpers, and the fork's coverage/lint scripts/.
+!tools/
+!scripts/

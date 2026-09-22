@@ -126,3 +126,6 @@ cpp-coverage-report/
 verification/fuzz/fuzz_can_rx
 verification/fuzz/fuzz_safety_tx_hook
 verification/tlaplus/tla2tools.jar
+
+# upstream sync triage output (openpilot/tools/upstream_sync)
+upstream_sync_triage/
