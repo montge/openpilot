@@ -10,8 +10,12 @@ cd "$ROOT"
 
 echo "Running tests with coverage..."
 
-# Default args if none provided
-PYTEST_ARGS="${@:---cov --cov-report=term-missing --cov-report=html -m 'not slow and not tici' -n auto}"
+# Default args if none provided (an array, so the -m expression stays one argument)
+if [[ $# -gt 0 ]]; then
+  PYTEST_ARGS=("$@")
+else
+  PYTEST_ARGS=(--cov --cov-report=term-missing --cov-report=html -m "not slow" -n auto)
+fi
 
 # Activate venv if not already
 if [[ -z "$VIRTUAL_ENV" ]]; then
@@ -19,7 +23,7 @@ if [[ -z "$VIRTUAL_ENV" ]]; then
 fi
 
 # Run pytest with coverage
-pytest $PYTEST_ARGS
+pytest "${PYTEST_ARGS[@]}"
 
 echo ""
 echo "Coverage report generated:"

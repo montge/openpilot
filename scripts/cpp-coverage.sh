@@ -28,7 +28,13 @@ fi
 
 # Build with coverage instrumentation
 echo "Building with --coverage..."
-scons -u -j$(nproc) --coverage common/tests/ system/loggerd/tests/
+# the C++ tests upstream still builds (#38408); keep in sync with .github/workflows/cpp-coverage.yml
+TEST_BINARIES=(
+  openpilot/common/tests/test_swaglog
+  openpilot/selfdrive/pandad/tests/test_pandad_canprotocol
+  openpilot/tools/cabana/tests/test_cabana
+)
+scons -u -j"$(nproc)" --coverage openpilot/common/tests/ openpilot/selfdrive/pandad/tests/ openpilot/tools/cabana/tests/
 
 echo ""
 echo "=== Running C++ Tests ==="
@@ -36,18 +42,12 @@ echo "=== Running C++ Tests ==="
 # Set up profraw output
 export LLVM_PROFILE_FILE="$ROOT/default_%p.profraw"
 
-# Run C++ tests (catch2-based)
-# Common tests
-if [[ -f common/tests/test_common ]]; then
-  echo "Running common tests..."
-  ./common/tests/test_common || true
-fi
-
-# Loggerd tests
-if [[ -f system/loggerd/tests/test_logger ]]; then
-  echo "Running loggerd tests..."
-  ./system/loggerd/tests/test_logger || true
-fi
+for bin in "${TEST_BINARIES[@]}"; do
+  if [[ -f "$bin" ]]; then
+    echo "Running $bin..."
+    "./$bin" || true
+  fi
+done
 
 echo ""
 echo "=== Generating Coverage Report ==="
@@ -71,17 +71,17 @@ fi
 echo "Using: $LLVM_PROFDATA"
 echo "Using: $LLVM_COV"
 
-$LLVM_PROFDATA merge -sparse *.profraw -o coverage.profdata
+"$LLVM_PROFDATA" merge -sparse ./*.profraw -o coverage.profdata
 
 # Find all instrumented binaries
-BINARIES=""
-for bin in common/tests/test_common system/loggerd/tests/test_logger; do
+OBJECTS=()
+for bin in "${TEST_BINARIES[@]}"; do
   if [[ -f "$bin" ]]; then
-    BINARIES="$BINARIES -object=$bin"
+    OBJECTS+=("-object=$bin")
   fi
 done
 
-if [[ -z "$BINARIES" ]]; then
+if [[ ${#OBJECTS[@]} -eq 0 ]]; then
   echo "No test binaries found."
   exit 1
 fi
@@ -89,11 +89,11 @@ fi
 # Generate text report
 echo ""
 echo "Coverage Summary:"
-$LLVM_COV report $BINARIES -instr-profile=coverage.profdata \
+"$LLVM_COV" report "${OBJECTS[@]}" -instr-profile=coverage.profdata \
   -ignore-filename-regex='third_party|msgq_repo|opendbc_repo|tinygrad_repo|rednose_repo|cereal'
 
 # Generate detailed report
-$LLVM_COV show $BINARIES -instr-profile=coverage.profdata \
+"$LLVM_COV" show "${OBJECTS[@]}" -instr-profile=coverage.profdata \
   -ignore-filename-regex='third_party|msgq_repo|opendbc_repo|tinygrad_repo|rednose_repo|cereal' \
   -format=text > cpp-coverage-details.txt
 
@@ -103,14 +103,14 @@ echo "Detailed report: cpp-coverage-details.txt"
 # Generate HTML report if requested
 if [[ "$GENERATE_HTML" == "true" ]]; then
   echo "Generating HTML report..."
-  $LLVM_COV show $BINARIES -instr-profile=coverage.profdata \
+  "$LLVM_COV" show "${OBJECTS[@]}" -instr-profile=coverage.profdata \
     -ignore-filename-regex='third_party|msgq_repo|opendbc_repo|tinygrad_repo|rednose_repo|cereal' \
     -format=html -output-dir=cpp-coverage-report
   echo "HTML report: cpp-coverage-report/index.html"
 fi
 
 # Export to lcov format for Codecov
-$LLVM_COV export $BINARIES -instr-profile=coverage.profdata \
+"$LLVM_COV" export "${OBJECTS[@]}" -instr-profile=coverage.profdata \
   -ignore-filename-regex='third_party|msgq_repo|opendbc_repo|tinygrad_repo|rednose_repo|cereal' \
   -format=lcov > cpp-coverage.lcov
 
