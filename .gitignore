@@ -50,6 +50,7 @@ st[0-9A-Za-z][0-9A-Za-z][0-9A-Za-z][0-9A-Za-z][0-9A-Za-z][0-9A-Za-z]
 *.stats
 *.pkl
 *.pkl*
+!openpilot/selfdrive/modeld/models/big_driving_tinygrad.pkl
 config.json
 compile_commands.json
 compare_runtime*.html
@@ -126,3 +127,6 @@ cpp-coverage-report/
 verification/fuzz/fuzz_can_rx
 verification/fuzz/fuzz_safety_tx_hook
 verification/tlaplus/tla2tools.jar
+
+# upstream sync triage output (openpilot/tools/upstream_sync)
+upstream_sync_triage/

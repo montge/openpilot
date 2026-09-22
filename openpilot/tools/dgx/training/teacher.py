@@ -7,12 +7,13 @@ generation for knowledge distillation training.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
 from openpilot.selfdrive.modeld.constants import Plan
-from openpilot.selfdrive.modeld.get_model_metadata import make_metadata_dict
 from openpilot.selfdrive.modeld.parse_model_outputs import Parser
+from openpilot.tools.dgx.model_metadata import make_metadata_dict
 
 # Type hints for optional imports
 try:
@@ -130,6 +131,44 @@ def parse_supercombo_outputs(raw_outputs: np.ndarray, output_slices: dict[str, s
   return Parser().parse_outputs(sliced)
 
 
+def build_model_inputs(
+  metadata: dict,
+  img: np.ndarray,
+  big_img: np.ndarray,
+  desire: np.ndarray,
+  traffic_convention: np.ndarray,
+  action_t: np.ndarray | None = None,
+  state: dict[str, np.ndarray] | None = None,
+) -> dict[str, np.ndarray]:
+  """One sample's inputs for the batch-1 recurrent supercombo, as modeld feeds it.
+
+  new_img stacks the latest YUV frame of the road and wide cameras; earlier frames
+  reach the model only through its state_* queues, which start at zero unless a
+  previous step's next_state_* outputs are passed back in as `state`.
+
+  Args:
+    metadata: make_metadata_dict() of the model
+    img, big_img: (C, H, W) uint8 frames; C may hold several stacked frames, the last one is used
+    desire: (8,) desire pulse
+    traffic_convention: (2,) or (1, 2)
+    action_t: (2,) or (1, 2) previous action, zeros if None
+    state: {state_* name: array} to resume from, zeros if None
+  """
+  shapes, dtypes = metadata["input_shapes"], metadata["input_dtypes"]
+  frame_channels = shapes["new_img"][1]
+  inputs = {
+    "new_img": np.stack([img[-frame_channels:], big_img[-frame_channels:]]).astype(dtypes["new_img"]),
+    "desire": np.asarray(desire, dtype=dtypes["desire"]).reshape(shapes["desire"]),
+    "traffic_convention": np.asarray(traffic_convention, dtype=dtypes["traffic_convention"]).reshape(shapes["traffic_convention"]),
+    "action_t": (np.zeros(shapes["action_t"], dtype=dtypes["action_t"]) if action_t is None
+                 else np.asarray(action_t, dtype=dtypes["action_t"]).reshape(shapes["action_t"])),
+  }
+  for name in metadata["state_pairs"]:
+    inputs[name] = np.zeros(shapes[name], dtype=dtypes[name]) if state is None else state[name]
+  assert inputs.keys() == shapes.keys(), f"model inputs changed: expected {sorted(shapes)}, built {sorted(inputs)}"
+  return inputs
+
+
 class TeacherModel:
   """Combined supercombo teacher for pseudo-label generation.
 
@@ -166,28 +205,33 @@ class TeacherModel:
     big_img: np.ndarray,
     desire: np.ndarray,
     traffic_convention: np.ndarray,
-    features_buffer: np.ndarray | None = None,
     action_t: np.ndarray | None = None,
-  ) -> dict[str, np.ndarray]:
+    state: dict[str, np.ndarray] | None = None,
+    sequential: bool = False,
+  ) -> dict[str, Any]:
     """Generate pseudo-labels for a batch of frames.
 
-    The engine is built for batch 1 (the ONNX has fixed shapes), so frames
-    are run one at a time. Without an explicit features_buffer the recurrent
-    feature history is zero (cold start) — fine for shuffled training frames,
-    but sequential streams get better labels by threading each frame's
-    returned features back in.
+    The engine is built for batch 1 (the ONNX has fixed shapes), so frames are run
+    one at a time. The model is recurrent: its frame, desire and feature history
+    live in the state_* inputs, which it returns updated as next_state_* outputs.
+    By default every frame starts from `state` (a cold start when None), which is
+    fine for shuffled training frames. With sequential=True the batch is one
+    stream of consecutive frames and each frame's next state feeds the next frame.
 
     Args:
-      img: (batch, 12, 128, 256) uint8 camera frames (2 stacked YUV frames)
-      big_img: (batch, 12, 128, 256) uint8 wide camera frames
-      desire: (batch, 8) desire vector, placed in the last desire_pulse step
+      img: (batch, 6 or 12, 128, 256) uint8 road camera YUV; a 12-channel input
+        (two stacked frames) contributes its latest 6 channels
+      big_img: (batch, 6 or 12, 128, 256) uint8 wide camera YUV, same rule
+      desire: (batch, 8) desire pulse for each frame
       traffic_convention: (batch, 2) traffic convention
-      features_buffer: (batch, 24, 512) prior feature history, zeros if None
       action_t: (batch, 2) previous action, zeros if None
+      state: recurrent state to start from (a previous call's "state"), zeros if None
+      sequential: thread the recurrent state through the batch in order
 
     Returns:
       Dictionary with:
-        - features: (batch, 512) hidden_state features (recurrent feedback)
+        - features: (batch, 512) hidden_state features
+        - state: recurrent state after the last frame, for the next call
         - raw_outputs: (batch, N) flat model output
         - path_mean: (batch, 1, 33, 3) plan position mean (single hypothesis)
         - path_std: (batch, 1, 33, 3) plan position std
@@ -195,28 +239,19 @@ class TeacherModel:
         - all parsed outputs (plan, plan_stds, lane_lines, road_edges, lead, ...)
     """
     batch_size = img.shape[0]
-    pulse_shape = self.input_shapes["desire_pulse"][1:]  # (25, 8)
-    feat_shape = self.input_shapes["features_buffer"][1:]  # (24, 512)
-
-    if features_buffer is None:
-      features_buffer = np.zeros((batch_size, *feat_shape), dtype=np.float32)
-    if action_t is None:
-      action_t = np.zeros((batch_size, self.input_shapes["action_t"][-1]), dtype=np.float32)
+    pairs = self.metadata["state_pairs"]
 
     raw = []
+    current = state
     for i in range(batch_size):
-      desire_pulse = np.zeros((1, *pulse_shape), dtype=np.float32)
-      desire_pulse[0, -1, :] = desire[i]
-
-      out = self.model(
-        img=img[i : i + 1],
-        big_img=big_img[i : i + 1],
-        desire_pulse=desire_pulse,
-        traffic_convention=traffic_convention[i : i + 1],
-        features_buffer=features_buffer[i : i + 1],
-        action_t=action_t[i : i + 1],
+      inputs = build_model_inputs(
+        self.metadata, img[i], big_img[i], desire[i], traffic_convention[i],
+        action_t=None if action_t is None else action_t[i],
+        state=current if sequential else state,
       )
-      raw.append(out.get("outputs", next(iter(out.values()))).reshape(1, -1))
+      out = self.model(**inputs)
+      current = {name: out[next_name] for name, next_name in pairs.items()}
+      raw.append(out["outputs"].reshape(1, -1))
 
     raw_outputs = np.concatenate(raw, axis=0).astype(np.float32)
     parsed = parse_supercombo_outputs(raw_outputs, self.output_slices)
@@ -226,6 +261,7 @@ class TeacherModel:
     return {
       **parsed,
       "features": raw_outputs[:, self.output_slices["hidden_state"]],
+      "state": current,
       "raw_outputs": raw_outputs,
       "path_mean": plan[:, np.newaxis, :, Plan.POSITION],
       "path_std": plan_stds[:, np.newaxis, :, Plan.POSITION],

@@ -14,6 +14,7 @@ For DGX hardware validation, also see:
 
 from __future__ import annotations
 
+import functools
 from pathlib import Path
 
 import numpy as np
@@ -71,7 +72,7 @@ class TestGPUDetection:
     assert gpu is not None
 
     # All modern GPUs should support FP16
-    assert gpu.supports_fp16
+    assert gpu.supports_fp16()
 
   @requires_gpu
   def test_best_gpu_selection(self):
@@ -191,18 +192,28 @@ class TestModelLoading:
 
     assert len(onnx_files) > 0 or len(pkl_files) > 0, f"No model files found in {model_dir}"
 
+@functools.cache
+def _cached_metadata(path: str) -> dict:
+  """Parsing the 60 MB graph once per session is enough (callers must not mutate it)."""
+  from openpilot.tools.dgx.model_metadata import make_metadata_dict
+
+  return make_metadata_dict(path)
+
+
 class TestSupercomboContract:
   """Contract tests against the combined driving_supercombo.onnx.
 
   The driving model's metadata (input_shapes, output_slices, ...) is embedded
   in the ONNX metadata_props — there is no sidecar *_metadata.pkl anymore.
-  These run on CPU: metadata extraction only parses the protobuf header, and
-  the parse tests use random vectors, never the model itself.
+  Since #38916 the model is recurrent: each state_* input comes back as a
+  next_state_* output. These run on CPU: metadata extraction only parses the
+  protobuf header, and the parse tests use random vectors, never the model itself.
   """
 
   MODEL_PATH = Path("openpilot/selfdrive/modeld/models/driving_supercombo.onnx")
 
-  EXPECTED_INPUTS = {"img", "big_img", "desire_pulse", "traffic_convention", "features_buffer", "action_t"}
+  EXPECTED_INPUTS = {"new_img", "desire", "traffic_convention", "action_t", "state_img_q", "state_desire_q", "state_feat_q"}
+  EXPECTED_STATE = {"state_img_q", "state_desire_q", "state_feat_q"}
   EXPECTED_SLICES = {
     "plan", "lane_lines", "lane_lines_prob", "road_edges", "lead", "lead_prob",
     "meta", "desire_state", "desire_pred", "pose", "wide_from_device_euler",
@@ -213,27 +224,53 @@ class TestSupercomboContract:
   def metadata(self) -> dict:
     if not self.MODEL_PATH.exists():
       pytest.skip(f"{self.MODEL_PATH} not found")
-    from openpilot.selfdrive.modeld.get_model_metadata import make_metadata_dict
-
     try:
-      return make_metadata_dict(self.MODEL_PATH)
+      return _cached_metadata(str(self.MODEL_PATH))
     except Exception as e:
       pytest.skip(f"could not parse embedded metadata (git-lfs pointer not pulled?): {e}")
 
   @pytest.fixture
   def output_len(self, metadata: dict) -> int:
-    return next(iter(metadata["output_shapes"].values()))[-1]
+    return metadata["output_shapes"]["outputs"][-1]
 
   def test_embedded_metadata_inputs(self, metadata: dict):
     from openpilot.selfdrive.modeld.constants import ModelConstants
 
-    input_shapes = metadata["input_shapes"]
+    input_shapes, dtypes = metadata["input_shapes"], metadata["input_dtypes"]
     assert set(input_shapes) == self.EXPECTED_INPUTS
-    assert input_shapes["img"] == input_shapes["big_img"]
-    assert input_shapes["img"][0] == 1 and input_shapes["img"][1] == 6 * ModelConstants.N_FRAMES
-    assert input_shapes["features_buffer"][-1] == ModelConstants.FEATURE_LEN
-    assert input_shapes["desire_pulse"][-1] == ModelConstants.DESIRE_LEN
+    # latest YUV frame for the road and wide cameras
+    assert input_shapes["new_img"][:2] == (2, 6) and dtypes["new_img"] == np.uint8
+    assert input_shapes["desire"] == (ModelConstants.DESIRE_LEN,)
     assert input_shapes["traffic_convention"] == (1, ModelConstants.TRAFFIC_CONVENTION_LEN)
+    assert input_shapes["state_feat_q"][-1] == ModelConstants.FEATURE_LEN
+    assert input_shapes["state_desire_q"][-1] == ModelConstants.DESIRE_LEN
+    assert input_shapes["state_img_q"][-3:] == input_shapes["new_img"][-3:] and dtypes["state_img_q"] == np.uint8
+
+  def test_recurrent_state_round_trips(self, metadata: dict):
+    pairs = metadata["state_pairs"]
+    assert set(pairs) == self.EXPECTED_STATE
+    for name, next_name in pairs.items():
+      assert metadata["output_shapes"][next_name] == metadata["input_shapes"][name]
+
+  def test_build_model_inputs(self, metadata: dict):
+    from openpilot.tools.dgx.training.teacher import build_model_inputs
+
+    rng = np.random.default_rng(2)
+    road = rng.integers(0, 255, (12, 128, 256), dtype=np.uint8)  # two stacked frames
+    wide = rng.integers(0, 255, (6, 128, 256), dtype=np.uint8)
+    desire = np.eye(8, dtype=np.float32)[3]
+    inputs = build_model_inputs(metadata, road, wide, desire, np.array([1.0, 0.0]))
+
+    for name, shape in metadata["input_shapes"].items():
+      assert inputs[name].shape == shape and inputs[name].dtype == metadata["input_dtypes"][name], name
+    np.testing.assert_array_equal(inputs["new_img"][0], road[-6:])  # the latest road frame
+    np.testing.assert_array_equal(inputs["new_img"][1], wide)
+    np.testing.assert_array_equal(inputs["desire"], desire)
+    assert not any(inputs[name].any() for name in metadata["state_pairs"])  # cold start
+
+    state = {name: np.ones(metadata["input_shapes"][name], dtype=metadata["input_dtypes"][name]) for name in metadata["state_pairs"]}
+    resumed = build_model_inputs(metadata, road, wide, desire, np.array([1.0, 0.0]), state=state)
+    assert all(resumed[name] is state[name] for name in state)
 
   def test_output_slices_cover_output(self, metadata: dict, output_len: int):
     from openpilot.selfdrive.modeld.constants import ModelConstants

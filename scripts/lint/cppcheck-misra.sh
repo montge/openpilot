@@ -13,7 +13,7 @@ REPORT_FILE="${1:-reports/cppcheck-misra-report.txt}"
 mkdir -p "$(dirname "$REPORT_FILE")"
 
 # Directories to analyze
-TARGET_DIRS="openpilot/selfdrive openpilot/system openpilot/common"
+TARGET_DIRS=(openpilot/selfdrive openpilot/system openpilot/common)
 
 # Exclusions (third-party, submodules, generated code)
 EXCLUDES=(
@@ -39,7 +39,7 @@ EXCLUDES=(
 )
 
 echo "Running cppcheck MISRA C:2012 analysis..."
-echo "Target directories: $TARGET_DIRS"
+echo "Target directories: ${TARGET_DIRS[*]}"
 echo "Output: $REPORT_FILE"
 echo ""
 
@@ -54,7 +54,7 @@ cppcheck \
   --inline-suppr \
   "${EXCLUDES[@]}" \
   --output-file="$REPORT_FILE" \
-  $TARGET_DIRS 2>&1
+  "${TARGET_DIRS[@]}" 2>&1
 
 # Count findings
 if [[ -f "$REPORT_FILE" ]]; then
