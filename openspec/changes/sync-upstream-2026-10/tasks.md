@@ -29,7 +29,16 @@
       - 4 collection errors + 17 `test_monitoring_policy` + 3 `test_auth` are upstream API drift in fork-owned tests, all fixed on the PR (5.1, 5.1a)
       - 45 need network this environment denies (`api.commadotai.com`, `huggingface.co`, `commadist.azureedge.net`), the same list as September 4.7: `test_paramsd` (27), `test_locationd_scenarios` (8 errors), `test_logreader` (4), `test_lagd` (2), `test_caching`, `tools/dgx test_dataloader`, `test_agnos_updater`
       - 1 `test_raylib_ui`, upstream-owned: starts the real `ui`, which segfaults with no GPU / `DISPLAY`
-      - 1 `tools/shadow test_visualize::TestHistogram::test_plot_error_histogram` failed once in the full parallel run and passes alone, twice, and under `-n 4` with the rest of `tools/shadow`. Not reproduced; watch it on CI
+      - 1 `tools/shadow test_visualize` failure per full parallel run, a different test each time
+        (`test_plot_error_histogram`, `test_generate_all_plots`, `test_plot_time_series_steer`). Root-caused
+        with `PYTHONTRACEMALLOC`: it is a `ResourceWarning: unclosed file` that pytest's unraisable-exception
+        hook turns into a failure of whichever test happens to trigger garbage collection. The file is
+        allocated at upstream's `test_logreader.py:141` (`test_direct_parsing`), which opens a
+        `NamedTemporaryFile(mode='wb', delete=False)` and only closes it inside a `with` that follows a
+        `requests.get(QLOG_FILE)`. With this environment's network policy the fetch raises first and the
+        handle leaks. With network (CI) the file is closed normally, so this cannot occur there. Not a fork
+        problem and not fixed here: the leaking test is upstream-owned and the fix belongs upstream
+        (open the temp file inside the `with`)
       CI covers all of these; the sync PR is the authoritative check.
 
 ## 5. Land on develop
