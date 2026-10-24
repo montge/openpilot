@@ -24,7 +24,13 @@
 - [x] 4.1 New `check_shell` lint: 17 findings in four fork scripts fixed — quoted `$TIMEOUT`/`$MIN_COVERAGE`/`$RESULT` (`coverage-check.sh`), `PYTEST_ARGS`/`BINARIES`/`TARGET_DIRS` turned into bash arrays (`coverage.sh`, `cpp-coverage.sh`, `cppcheck-misra.sh`), `-j"$(nproc)"`, `./*.profraw`
 - [x] 4.2 `ty` 0.0.80: three `GPUInfo.supports_*` methods tested as attributes in `tools/dgx/model_runner.py` (and one in its test) — a real pre-existing bug hidden by `# type: ignore[truthy-function]`; now called
 - [x] 4.3 `scripts/lint/lint.sh` green: 10/10 checks (ruff, check_shell, check_dependencies, check_indentation, check_added_large_files, shebang ×2, nomerge, ty, codespell)
-- [ ] 4.4 Build + `pytest -m "not slow"` (CI invocation: `RAYLIB_BACKEND=headless MAX_EXAMPLES=1`, `-n logical`) — in flight; the modeld tinygrad pickle targets cannot build here (LFS on huggingface.co is blocked by this environment's network policy, as in July/September), everything else via `scons -k`
+- [x] 4.4 Build: `scons -k` succeeds except the modeld tinygrad pickle targets, whose ONNX inputs are Git-LFS objects on huggingface.co that this environment's network policy blocks (as in July/September). CI has LFS access.
+- [x] 4.5 Tests: **3578 passed, 178 skipped, 1 xfailed, 58 failed, 12 errors** (`pytest -m "not slow"`, CI's `RAYLIB_BACKEND=headless MAX_EXAMPLES=1 -n logical`). Every failure is accounted for:
+      - 4 collection errors + 17 `test_monitoring_policy` + 3 `test_auth` are upstream API drift in fork-owned tests, all fixed on the PR (5.1, 5.1a)
+      - 45 need network this environment denies (`api.commadotai.com`, `huggingface.co`, `commadist.azureedge.net`), the same list as September 4.7: `test_paramsd` (27), `test_locationd_scenarios` (8 errors), `test_logreader` (4), `test_lagd` (2), `test_caching`, `tools/dgx test_dataloader`, `test_agnos_updater`
+      - 1 `test_raylib_ui`, upstream-owned: starts the real `ui`, which segfaults with no GPU / `DISPLAY`
+      - 1 `tools/shadow test_visualize::TestHistogram::test_plot_error_histogram` failed once in the full parallel run and passes alone, twice, and under `-n 4` with the rest of `tools/shadow`. Not reproduced; watch it on CI
+      CI covers all of these; the sync PR is the authoritative check.
 
 ## 5. Land on develop
 - [x] 5.1 Draft PR montge/openpilot#64 opened against develop. First CI round: `unit tests` failed at
@@ -35,6 +41,12 @@
       experimental-mode cruise tests to assert the new behavior (experimental mode initializes at
       `V_CRUISE_INITIAL` too). 143 tests in those files pass locally. Same pattern as September 2.6:
       upstream deletes code the fork had covered with its own tests.
+- [x] 5.1a Two more upstream API drifts surfaced by the local run, both fixed: `DM: Super Leicht Model` (#38942)
+      added `sleepProb` to the driver data and a `sleep` distracted type, so the policy test's mocked
+      `driver_data` needed the field (17 failures, `MagicMock > float`); `tools: share cancellable browser
+      sign-in` (#38893) made `ClientRedirectServer.query_params` per-instance, replaced `webbrowser` with
+      an `xdg-open`/`open` subprocess, and made `login()` return a status dict — the three login tests
+      rewritten around that (plus one for the declined-callback path)
 - [ ] 5.1b CI green on the sync PR (LFS-dependent model tests, process replay, network-dependent suites)
 - [ ] 5.2 Merge to develop (the user's call); confirm origin/develop carries the merge
 
