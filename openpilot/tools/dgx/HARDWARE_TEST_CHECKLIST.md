@@ -97,10 +97,10 @@ for m in models:
 - [ ] All models load successfully
 - [ ] No ONNX parsing errors
 - [ ] Embedded supercombo metadata (input_shapes, output_slices) is readable via
-      `openpilot.selfdrive.modeld.get_model_metadata.make_metadata_dict(model_path)`
+      `openpilot.tools.dgx.model_metadata.make_metadata_dict(model_path)`
 
-Note: `big_driving_supercombo.onnx` (~1.75GB) is only used with comma's USB AMD GPU
-and is not part of this checklist.
+Note: the chestnut big model is only used with comma's USB AMD GPU and since 0.11.2
+ships only as a compiled `big_driving_tinygrad.pkl`; it is not part of this checklist.
 
 ## 3. GPU Monitoring
 

@@ -9,7 +9,6 @@ from openpilot.tools.lib.auth_config import (
   MissingAuthConfigError,
   get_token,
   set_token,
-  clear_token,
 )
 
 
@@ -133,32 +132,8 @@ class TestSetToken:
       assert data['access_token'] == 'second_token'
 
 
-class TestClearToken:
-  """Test clear_token function."""
-
-  def test_removes_auth_file(self, mocker):
-    """Test clear_token removes auth.json file."""
-    with tempfile.TemporaryDirectory() as tmpdir:
-      mocker.patch('openpilot.tools.lib.auth_config.Paths.config_root', return_value=tmpdir)
-      auth_file = os.path.join(tmpdir, 'auth.json')
-      with open(auth_file, 'w') as f:
-        json.dump({'access_token': 'token'}, f)
-
-      clear_token()
-
-      assert not os.path.exists(auth_file)
-
-  def test_does_not_raise_on_missing_file(self, mocker):
-    """Test clear_token doesn't raise when file doesn't exist."""
-    with tempfile.TemporaryDirectory() as tmpdir:
-      mocker.patch('openpilot.tools.lib.auth_config.Paths.config_root', return_value=tmpdir)
-
-      # Should not raise
-      clear_token()
-
-
 class TestTokenRoundtrip:
-  """Test token get/set/clear integration."""
+  """Test token get/set integration."""
 
   def test_set_then_get(self, mocker):
     """Test set_token then get_token returns same value."""
@@ -169,14 +144,3 @@ class TestTokenRoundtrip:
       result = get_token()
 
       assert result == 'roundtrip_token'
-
-  def test_set_clear_get(self, mocker):
-    """Test set_token, clear_token, then get_token returns None."""
-    with tempfile.TemporaryDirectory() as tmpdir:
-      mocker.patch('openpilot.tools.lib.auth_config.Paths.config_root', return_value=tmpdir)
-
-      set_token('token_to_clear')
-      clear_token()
-      result = get_token()
-
-      assert result is None

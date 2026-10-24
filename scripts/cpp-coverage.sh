@@ -28,7 +28,7 @@ fi
 
 # Build with coverage instrumentation
 echo "Building with --coverage..."
-scons -u -j$(nproc) --coverage common/tests/ system/loggerd/tests/
+scons -u -j"$(nproc)" --coverage common/tests/ system/loggerd/tests/
 
 echo ""
 echo "=== Running C++ Tests ==="
@@ -71,17 +71,17 @@ fi
 echo "Using: $LLVM_PROFDATA"
 echo "Using: $LLVM_COV"
 
-$LLVM_PROFDATA merge -sparse *.profraw -o coverage.profdata
+"$LLVM_PROFDATA" merge -sparse ./*.profraw -o coverage.profdata
 
 # Find all instrumented binaries
-BINARIES=""
+BINARIES=()
 for bin in common/tests/test_common system/loggerd/tests/test_logger; do
   if [[ -f "$bin" ]]; then
-    BINARIES="$BINARIES -object=$bin"
+    BINARIES+=("-object=$bin")
   fi
 done
 
-if [[ -z "$BINARIES" ]]; then
+if [[ ${#BINARIES[@]} -eq 0 ]]; then
   echo "No test binaries found."
   exit 1
 fi
@@ -89,11 +89,11 @@ fi
 # Generate text report
 echo ""
 echo "Coverage Summary:"
-$LLVM_COV report $BINARIES -instr-profile=coverage.profdata \
+"$LLVM_COV" report "${BINARIES[@]}" -instr-profile=coverage.profdata \
   -ignore-filename-regex='third_party|msgq_repo|opendbc_repo|tinygrad_repo|rednose_repo|cereal'
 
 # Generate detailed report
-$LLVM_COV show $BINARIES -instr-profile=coverage.profdata \
+"$LLVM_COV" show "${BINARIES[@]}" -instr-profile=coverage.profdata \
   -ignore-filename-regex='third_party|msgq_repo|opendbc_repo|tinygrad_repo|rednose_repo|cereal' \
   -format=text > cpp-coverage-details.txt
 
@@ -103,14 +103,14 @@ echo "Detailed report: cpp-coverage-details.txt"
 # Generate HTML report if requested
 if [[ "$GENERATE_HTML" == "true" ]]; then
   echo "Generating HTML report..."
-  $LLVM_COV show $BINARIES -instr-profile=coverage.profdata \
+  "$LLVM_COV" show "${BINARIES[@]}" -instr-profile=coverage.profdata \
     -ignore-filename-regex='third_party|msgq_repo|opendbc_repo|tinygrad_repo|rednose_repo|cereal' \
     -format=html -output-dir=cpp-coverage-report
   echo "HTML report: cpp-coverage-report/index.html"
 fi
 
 # Export to lcov format for Codecov
-$LLVM_COV export $BINARIES -instr-profile=coverage.profdata \
+"$LLVM_COV" export "${BINARIES[@]}" -instr-profile=coverage.profdata \
   -ignore-filename-regex='third_party|msgq_repo|opendbc_repo|tinygrad_repo|rednose_repo|cereal' \
   -format=lcov > cpp-coverage.lcov
 

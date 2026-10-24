@@ -10,7 +10,6 @@ from openpilot.selfdrive.car.cruise import (
   V_CRUISE_MAX,
   V_CRUISE_UNSET,
   V_CRUISE_INITIAL,
-  V_CRUISE_INITIAL_EXPERIMENTAL_MODE,
   IMPERIAL_INCREMENT,
   CRUISE_LONG_PRESS,
   CRUISE_NEAREST_FUNC,
@@ -31,8 +30,6 @@ class TestVCruiseConstants:
 
   def test_initial_speeds(self):
     assert V_CRUISE_INITIAL == 40
-    assert V_CRUISE_INITIAL_EXPERIMENTAL_MODE == 105
-    assert V_CRUISE_INITIAL_EXPERIMENTAL_MODE > V_CRUISE_INITIAL
 
   def test_imperial_increment(self):
     # IMPERIAL_INCREMENT is rounded to 1 decimal place (1.6) to avoid rounding errors
@@ -437,14 +434,14 @@ class TestInitializeVCruise:
 
     assert self.helper.v_cruise_kph == V_CRUISE_MAX
 
-  def test_initialize_experimental_mode_uses_higher_initial(self):
-    """Experimental mode should use V_CRUISE_INITIAL_EXPERIMENTAL_MODE"""
+  def test_initialize_experimental_mode_uses_same_initial(self):
+    """Experimental mode uses V_CRUISE_INITIAL too (upstream #39077 removed the 105 kph override)"""
     v_ego_ms = 5.0  # Low speed
     CS = car.CarState.new_message(vEgo=v_ego_ms)
 
     self.helper.initialize_v_cruise(CS, experimental_mode=True)
 
-    assert self.helper.v_cruise_kph == V_CRUISE_INITIAL_EXPERIMENTAL_MODE
+    assert self.helper.v_cruise_kph == V_CRUISE_INITIAL
 
   def test_resume_restores_last_speed(self):
     """Pressing accelCruise or resumeCruise should restore last speed"""

@@ -11,7 +11,7 @@ from pathlib import Path
 import numpy as np
 
 from openpilot.selfdrive.modeld.constants import Plan
-from openpilot.selfdrive.modeld.get_model_metadata import make_metadata_dict
+from openpilot.tools.dgx.model_metadata import make_metadata_dict
 from openpilot.selfdrive.modeld.parse_model_outputs import Parser
 
 # Type hints for optional imports

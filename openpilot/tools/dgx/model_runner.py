@@ -337,7 +337,7 @@ class ModelRunner:
     # pkl for them anymore); dmonitoring still ships a *_metadata.pkl
     if self.model_path.suffix == ".onnx":
       try:
-        from openpilot.selfdrive.modeld.get_model_metadata import make_metadata_dict
+        from openpilot.tools.dgx.model_metadata import make_metadata_dict
 
         self.input_shapes = make_metadata_dict(self.model_path)["input_shapes"]
       except Exception:  # no embedded metadata / unparsable — fall through
@@ -455,13 +455,13 @@ def get_recommended_precision(backend: Backend) -> Precision:
 
       gpu = get_best_gpu()
       if gpu:
-        if gpu.supports_nvfp4:  # type: ignore[truthy-function]
+        if gpu.supports_nvfp4():
           return Precision.FP4
-        if gpu.supports_fp8:  # type: ignore[truthy-function]
+        if gpu.supports_fp8():
           return Precision.FP8
-        if gpu.supports_bf16:  # type: ignore[truthy-function]
+        if gpu.supports_bf16():
           return Precision.BF16
-        if gpu.supports_fp16:  # type: ignore[truthy-function]
+        if gpu.supports_fp16():
           return Precision.FP16
     except ImportError:
       pass

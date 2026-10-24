@@ -68,7 +68,7 @@ teacher = TensorRTEngine("driving_supercombo.onnx")
 
 # Model metadata (input_shapes, output_shapes, output_slices, model_checkpoint)
 # is embedded in the ONNX metadata_props -- there is no sidecar *_metadata.pkl
-from openpilot.selfdrive.modeld.get_model_metadata import make_metadata_dict
+from openpilot.tools.dgx.model_metadata import make_metadata_dict
 metadata = make_metadata_dict("driving_supercombo.onnx")
 output_slices = metadata["output_slices"]
 

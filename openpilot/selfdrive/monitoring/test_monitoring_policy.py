@@ -526,6 +526,7 @@ class TestDriverMonitoringUpdateStates:
     driver_data.rightEyeProb = 0.9
     driver_data.sunglassesProb = 0.1
     driver_data.phoneProb = phone_prob
+    driver_data.sleepProb = 0.0
 
     driver_state = mocker.MagicMock()
     driver_state.wheelOnRightProb = wheel_on_right_prob
@@ -665,6 +666,7 @@ class TestDriverMonitoringUpdateStates:
     driver_data.rightEyeProb = 0.9
     driver_data.sunglassesProb = 0.1
     driver_data.phoneProb = 0.1
+    driver_data.sleepProb = 0.0
 
     driver_state = mocker.MagicMock()
     driver_state.wheelOnRightProb = 0.1
@@ -693,6 +695,7 @@ class TestDriverMonitoringUpdateStates:
     driver_data.rightEyeProb = 0.9
     driver_data.sunglassesProb = 0.1
     driver_data.phoneProb = 0.1
+    driver_data.sleepProb = 0.0
 
     driver_state = mocker.MagicMock()
     driver_state.wheelOnRightProb = 0.1
@@ -722,6 +725,7 @@ class TestDriverMonitoringUpdateStates:
     driver_data.rightEyeProb = 0.9
     driver_data.sunglassesProb = 0.1
     driver_data.phoneProb = 0.1
+    driver_data.sleepProb = 0.0
 
     driver_state = mocker.MagicMock()
     driver_state.wheelOnRightProb = 0.9
@@ -863,6 +867,7 @@ class TestDriverMonitoringDcamUncertainReset:
     driver_data.rightEyeProb = 0.9
     driver_data.sunglassesProb = 0.1
     driver_data.phoneProb = 0.1
+    driver_data.sleepProb = 0.0
 
     driver_state = mocker.MagicMock()
     driver_state.wheelOnRightProb = 0.1
@@ -970,6 +975,7 @@ class TestDriverMonitoringRunStep:
     driver_data.rightEyeProb = 0.9
     driver_data.sunglassesProb = 0.1
     driver_data.phoneProb = 0.1
+    driver_data.sleepProb = 0.0
 
     driver_state = mocker.MagicMock()
     driver_state.wheelOnRightProb = 0.1

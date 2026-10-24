@@ -129,6 +129,11 @@ Remotes:
 - Hardware-only tests set `COMMA_HARDWARE_TEST = True` on the test class and
   self-skip off-device. Upstream replaced the old `@pytest.mark.tici` marker with this.
 - Tests marked with `@pytest.mark.slow` can be skipped with `-m "not slow"`
+- **Process replay refs are pinned.** Upstream's `test_processes.py` reads the reference commit from
+  the `commaai/ci-artifacts` `process-replay` branch when no local `ref_commit` file exists, i.e. it
+  compares against refs for upstream's *latest master*. The fork tracks upstream tags, so it commits
+  `openpilot/selfdrive/test/process_replay/ref_commit` holding the synced upstream commit. Update it
+  on every upstream sync (the refs for that commit must still exist on the ci-artifacts branch).
 
 ## Safety Critical Code
 
@@ -183,4 +188,5 @@ if is_nvidia_available():
 - TensorRT achieves 620x speedup over tinygrad on Blackwell GPUs
 - tinygrad CUDA backend is not optimized for Blackwell architecture
 - Training code requires PyTorch (not included in base openpilot env)
-- Models: `driving_supercombo.onnx` (combined vision+policy), `big_driving_supercombo.onnx`, `dmonitoring_model.onnx`
+- Models: `driving_supercombo.onnx` (combined vision+policy), `dmonitoring_model.onnx`. The chestnut big model ships only as a compiled `big_driving_tinygrad.pkl` LFS artifact since 0.11.2; its ONNX is no longer in-tree
+- ONNX metadata parsing lives in `openpilot/tools/dgx/model_metadata.py` (upstream deleted `get_model_metadata.py` in 0.11.2)

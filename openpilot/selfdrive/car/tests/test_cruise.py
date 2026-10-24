@@ -11,7 +11,6 @@ from openpilot.selfdrive.car.cruise import (
   V_CRUISE_MAX,
   V_CRUISE_UNSET,
   V_CRUISE_INITIAL,
-  V_CRUISE_INITIAL_EXPERIMENTAL_MODE,
   IMPERIAL_INCREMENT,
   CRUISE_LONG_PRESS,
 )
@@ -74,11 +73,6 @@ class TestConstants:
     """Test V_CRUISE_INITIAL is in valid range."""
     assert V_CRUISE_INITIAL >= V_CRUISE_MIN
     assert V_CRUISE_INITIAL <= V_CRUISE_MAX
-
-  def test_v_cruise_initial_experimental_in_range(self):
-    """Test V_CRUISE_INITIAL_EXPERIMENTAL_MODE is in valid range."""
-    assert V_CRUISE_INITIAL_EXPERIMENTAL_MODE >= V_CRUISE_MIN
-    assert V_CRUISE_INITIAL_EXPERIMENTAL_MODE <= V_CRUISE_MAX
 
   def test_imperial_increment_positive(self):
     """Test IMPERIAL_INCREMENT is positive."""
@@ -278,14 +272,14 @@ class TestVCruiseHelperInitialize:
     assert helper.v_cruise_kph == V_CRUISE_INITIAL
 
   def test_experimental_mode_initial_speed(self, mocker):
-    """Test experimental mode uses higher initial speed."""
+    """Test experimental mode uses the same initial speed (upstream #39077 removed the 105 kph override)."""
     CP = create_mock_cp(mocker, pcm_cruise=False)
     helper = VCruiseHelper(CP)
 
     CS = create_mock_cs(mocker, v_ego=0.0)  # Stopped
     helper.initialize_v_cruise(CS, experimental_mode=True)
 
-    assert helper.v_cruise_kph == V_CRUISE_INITIAL_EXPERIMENTAL_MODE
+    assert helper.v_cruise_kph == V_CRUISE_INITIAL
 
   def test_initialize_from_current_speed(self, mocker):
     """Test initialization clips to current vehicle speed."""

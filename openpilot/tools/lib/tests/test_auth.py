@@ -53,9 +53,10 @@ class TestClientRedirectServer:
   """Test ClientRedirectServer class."""
 
   def test_query_params_default(self):
-    """Test query_params defaults to empty dict."""
-    # We can't easily create a full server, but we can check the class attribute
-    assert ClientRedirectServer.query_params == {}
+    """Test query_params starts empty on a fresh server (per-instance since upstream #38893)."""
+    with ClientRedirectServer(('localhost', 0), ClientRedirectHandler) as server:
+      assert server.query_params == {}
+      assert server.server_port > 0
 
 
 class TestClientRedirectHandler:
@@ -116,48 +117,62 @@ class TestClientRedirectHandler:
 
 
 class TestLogin:
-  """Test login function with mocking."""
+  """Test login function with mocking.
+
+  fork: upstream #38893 reworked login() around a context-managed ThreadingHTTPServer,
+  opens the browser via xdg-open/open in a subprocess, verifies the token with v1/me,
+  and returns a status dict instead of printing.
+  """
+
+  def _mock_flow(self, mocker, query_params):
+    from openpilot.tools.lib import auth
+
+    browser = mocker.MagicMock()
+    browser.poll.return_value = None
+    mocker.patch.object(auth.subprocess, 'Popen', return_value=browser)
+
+    mock_server = mocker.MagicMock()
+    mock_server.__enter__.return_value = mock_server
+    mock_server.server_port = 9090
+    mock_server.query_params = query_params
+    mocker.patch.object(auth, 'ClientRedirectServer', return_value=mock_server)
+
+    mock_api = mocker.MagicMock()
+    mocker.patch('openpilot.tools.lib.auth.CommaApi', return_value=mock_api)
+    return auth, mock_api
 
   def test_login_success(self, mocker):
-    """Test successful login flow."""
-    from openpilot.tools.lib import auth
-
-    # Mock webbrowser
-    mocker.patch.object(auth, 'webbrowser')
-
-    # Mock server that returns code on first request
-    mock_server = mocker.MagicMock()
-    mock_server.query_params = {'code': ['authcode123'], 'provider': ['google']}
-    mocker.patch.object(auth, 'ClientRedirectServer', return_value=mock_server)
-
-    # Mock API response
-    mock_api = mocker.MagicMock()
+    """Test successful login flow saves the token and reports success."""
+    auth, mock_api = self._mock_flow(mocker, {'code': ['authcode123'], 'provider': ['g']})
     mock_api.post.return_value = {'access_token': 'token123'}
-    mocker.patch('openpilot.tools.lib.auth.CommaApi', return_value=mock_api)
-
-    # Mock set_token
+    mock_api.get.return_value = {}
     mock_set_token = mocker.patch('openpilot.tools.lib.auth.set_token')
 
-    auth.login('google')
+    result = auth.login('google')
 
+    assert result == {"success": True}
+    mock_api.post.assert_called_once()
+    assert mock_api.post.call_args.kwargs['data'] == {'code': ['authcode123'], 'provider': ['g']}
     mock_set_token.assert_called_once_with('token123')
 
-  def test_login_api_error(self, mocker, capsys):
-    """Test login with API error."""
-    from openpilot.tools.lib import auth
+  def test_login_api_error(self, mocker):
+    """Test login with API error returns an error status and saves nothing."""
     from openpilot.tools.lib.api import APIError
 
-    mocker.patch.object(auth, 'webbrowser')
-
-    mock_server = mocker.MagicMock()
-    mock_server.query_params = {'code': ['authcode123'], 'provider': ['google']}
-    mocker.patch.object(auth, 'ClientRedirectServer', return_value=mock_server)
-
-    mock_api = mocker.MagicMock()
+    auth, mock_api = self._mock_flow(mocker, {'code': ['authcode123'], 'provider': ['g']})
     mock_api.post.side_effect = APIError("API failed")
-    mocker.patch('openpilot.tools.lib.auth.CommaApi', return_value=mock_api)
+    mock_set_token = mocker.patch('openpilot.tools.lib.auth.set_token')
 
-    auth.login('google')
+    result = auth.login('google')
 
-    captured = capsys.readouterr()
-    assert 'Authentication Error' in captured.err
+    assert 'error' in result
+    mock_set_token.assert_not_called()
+
+  def test_login_declined(self, mocker):
+    """Test an OAuth error callback is reported as declined."""
+    auth, mock_api = self._mock_flow(mocker, {'error': ['access_denied']})
+
+    result = auth.login('google')
+
+    assert 'error' in result
+    mock_api.post.assert_not_called()
