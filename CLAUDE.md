@@ -129,6 +129,11 @@ Remotes:
 - Hardware-only tests set `COMMA_HARDWARE_TEST = True` on the test class and
   self-skip off-device. Upstream replaced the old `@pytest.mark.tici` marker with this.
 - Tests marked with `@pytest.mark.slow` can be skipped with `-m "not slow"`
+- **Process replay refs are pinned.** Upstream's `test_processes.py` reads the reference commit from
+  the `commaai/ci-artifacts` `process-replay` branch when no local `ref_commit` file exists, i.e. it
+  compares against refs for upstream's *latest master*. The fork tracks upstream tags, so it commits
+  `openpilot/selfdrive/test/process_replay/ref_commit` holding the synced upstream commit. Update it
+  on every upstream sync (the refs for that commit must still exist on the ci-artifacts branch).
 
 ## Safety Critical Code
 

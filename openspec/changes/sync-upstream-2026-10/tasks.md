@@ -56,6 +56,15 @@
       sign-in` (#38893) made `ClientRedirectServer.query_params` per-instance, replaced `webbrowser` with
       an `xdg-open`/`open` subprocess, and made `login()` return a status dict — the three login tests
       rewritten around that (plus one for the declined-callback path)
+- [x] 5.1c `process replay` failed on CI with hundreds of `longitudinalPlan` diffs (`longitudinalPlanSource`
+      e2e → cruise, speeds/accels/jerks) although the fork does not touch plannerd. Root cause: the fork no
+      longer carries `ref_commit` (upstream dropped it in-tree); `test_processes.py` then fetches
+      `ref_commit` from `commaai/ci-artifacts@process-replay`, which is upstream's *latest master*
+      (`ff47f484`, 2026-10-23), not the v0.11.2 tag (`6939d172`, 2026-10-14) the fork synced to. Upstream
+      changed longitudinal behavior in between. The September sync did not hit this only because it merged
+      master's then-head. Fix: commit `ref_commit` = `6939d172e85e…` (its 66 refs are still on the
+      ci-artifacts branch, which currently keeps refs for 336 commits back to 2026-09-05) and note in
+      `CLAUDE.md` that each sync must re-pin it
 - [ ] 5.1b CI green on the sync PR (LFS-dependent model tests, process replay, network-dependent suites)
 - [ ] 5.2 Merge to develop (the user's call); confirm origin/develop carries the merge
 
