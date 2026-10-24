@@ -27,7 +27,15 @@
 - [ ] 4.4 Build + `pytest -m "not slow"` (CI invocation: `RAYLIB_BACKEND=headless MAX_EXAMPLES=1`, `-n logical`) — in flight; the modeld tinygrad pickle targets cannot build here (LFS on huggingface.co is blocked by this environment's network policy, as in July/September), everything else via `scons -k`
 
 ## 5. Land on develop
-- [ ] 5.1 Draft PR against develop; CI is the authoritative check (LFS-dependent model tests, process replay, network-dependent suites)
+- [x] 5.1 Draft PR montge/openpilot#64 opened against develop. First CI round: `unit tests` failed at
+      collection on four fork-owned test modules importing symbols upstream removed (`a47d1c5` "remove
+      unused code", `42ccc5c` "Remove experimental mode initial cruise speed override"):
+      `managed_proc` (common/utils), `V_CRUISE_INITIAL_EXPERIMENTAL_MODE` (selfdrive/car/cruise),
+      `clear_token` (tools/lib/auth_config). Dropped the tests of the deleted code and retargeted the two
+      experimental-mode cruise tests to assert the new behavior (experimental mode initializes at
+      `V_CRUISE_INITIAL` too). 143 tests in those files pass locally. Same pattern as September 2.6:
+      upstream deletes code the fork had covered with its own tests.
+- [ ] 5.1b CI green on the sync PR (LFS-dependent model tests, process replay, network-dependent suites)
 - [ ] 5.2 Merge to develop (the user's call); confirm origin/develop carries the merge
 
 ## 6. Post-Sync Follow-ups (separate changes, tracked here for pickup)

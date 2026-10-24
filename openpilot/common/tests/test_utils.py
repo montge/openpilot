@@ -18,7 +18,6 @@ from openpilot.common.utils import (
   sudo_read,
   sudo_write,
   LOG_COMPRESSION_LEVEL,
-  managed_proc,
   get_upload_stream,
 )
 
@@ -255,46 +254,6 @@ class TestRetry:
     assert result is None
 
 
-class TestManagedProc:
-  """Test managed_proc context manager."""
-
-  def test_managed_proc_starts_process(self):
-    """Test managed_proc starts a process."""
-    with managed_proc(['echo', 'hello'], env=os.environ.copy()) as proc:
-      assert proc is not None
-      stdout, _ = proc.communicate()
-      assert stdout.decode().strip() == 'hello'
-
-  def test_managed_proc_terminates_on_exit(self):
-    """Test managed_proc terminates process on exit."""
-    with managed_proc(['sleep', '100'], env=os.environ.copy()) as proc:
-      pass  # Don't wait - just exit context to test termination
-
-    # Process should be terminated after exiting context
-    # Returncode is set after termination (negative for signals)
-    assert proc.returncode is not None
-    # Consume any remaining output to avoid resource warnings
-    proc.stdout.close()
-    proc.stderr.close()
-
-  def test_managed_proc_with_completed_process(self):
-    """Test managed_proc handles already completed process."""
-    with managed_proc(['true'], env=os.environ.copy()) as proc:
-      # Wait for process to complete naturally
-      proc.communicate()
-
-    # Should not raise even though process already exited
-    assert proc.returncode == 0
-
-  def test_managed_proc_returns_popen(self):
-    """Test managed_proc yields a Popen object."""
-    from subprocess import Popen
-
-    with managed_proc(['echo', 'test'], env=os.environ.copy()) as proc:
-      assert isinstance(proc, Popen)
-      proc.communicate()  # Consume output to avoid resource warnings
-
-
 class TestGetUploadStream:
   """Test get_upload_stream function."""
 
@@ -368,30 +327,6 @@ class TestGetUploadStream:
       assert size == 500
     finally:
       os.unlink(path)
-
-
-class TestManagedProcTimeoutKill:
-  """Test managed_proc timeout and kill behavior."""
-
-  def test_managed_proc_kills_on_timeout(self, mocker):
-    """Test managed_proc kills process when wait times out."""
-    from subprocess import TimeoutExpired
-
-    # Create a mock process that doesn't respond to terminate
-    mock_proc = mocker.MagicMock()
-    mock_proc.poll.return_value = None  # Process still running
-    mock_proc.wait.side_effect = TimeoutExpired('cmd', 5)
-
-    # Patch Popen to return our mock
-    mocker.patch('openpilot.common.utils.Popen', return_value=mock_proc)
-
-    with managed_proc(['dummy'], env={}):
-      pass
-
-    # Should have called terminate, then wait, then kill
-    mock_proc.terminate.assert_called_once()
-    mock_proc.wait.assert_called_once_with(timeout=5)
-    mock_proc.kill.assert_called_once()
 
 
 class TestConstants:
