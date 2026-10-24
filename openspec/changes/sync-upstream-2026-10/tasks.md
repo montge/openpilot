@@ -1,8 +1,9 @@
 # Tasks: Sync Fork with Upstream v0.11.2 (October 2026)
 
-> **Status:** merge, adaptation and lint are DONE locally; the local build/test run (4.4) is still
-> in flight and will be recorded here. Resume at 5.1 (CI on the sync PR) and then 5.2 (merge — the
-> user's call).
+> **Status:** merge, adaptation, lint, local validation and CI are DONE — PR #64 is green and
+> mergeable (24/24 checks, process replay 0 changed / 66 passed). Resume at 5.2 (merge — the user's
+> call), then the follow-ups in section 6; 6.1 (chestnut offroad GPU rail) is the one the user's
+> always-on 12 V wiring makes urgent.
 
 ## 1. Analysis
 - [x] 1.1 Fetch upstream tag `v0.11.2` (`6939d172`, 2026-10-14); measure divergence: 162 ahead / 162 behind, merge-base `0cf294d8` (2026-09-11)
@@ -65,7 +66,12 @@
       master's then-head. Fix: commit `ref_commit` = `6939d172e85e…` (its 66 refs are still on the
       ci-artifacts branch, which currently keeps refs for 336 commits back to 2026-09-05) and note in
       `CLAUDE.md` that each sync must re-pin it
-- [ ] 5.1b CI green on the sync PR (LFS-dependent model tests, process replay, network-dependent suites)
+- [x] 5.1b CI green on head `381e6b2`: all 24 checks pass (23 + the coverage merge job; `simulator driving`
+      skipped as always). `unit tests` green with every environment-blocked suite from 4.5 passing on a real
+      runner; `process replay`: **0 changed, 66 passed, 0 errors** against the pinned v0.11.2 refs, so the
+      merge does not alter driving behavior; coverage gates, C++ coverage, MISRA, TLC, CodeQL and the
+      NVIDIA checks all green. SonarCloud's green is still the `continue-on-error` artifact from September
+      5.1c (follow-up 6.5), not a passing scan (LFS-dependent model tests, process replay, network-dependent suites)
 - [ ] 5.2 Merge to develop (the user's call); confirm origin/develop carries the merge
 
 ## 6. Post-Sync Follow-ups (separate changes, tracked here for pickup)
