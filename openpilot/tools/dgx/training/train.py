@@ -21,7 +21,7 @@ import numpy as np
 
 # Local imports
 from openpilot.selfdrive.modeld.constants import ModelConstants, Plan
-from openpilot.selfdrive.modeld.get_model_metadata import make_metadata_dict
+from openpilot.tools.dgx.model_metadata import make_metadata_dict
 from openpilot.tools.dgx.training.dora import apply_dora_to_model, count_parameters, get_dora_parameters
 from openpilot.tools.dgx.training.losses import CombinedTrainingLoss
 

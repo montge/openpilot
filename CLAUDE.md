@@ -183,4 +183,5 @@ if is_nvidia_available():
 - TensorRT achieves 620x speedup over tinygrad on Blackwell GPUs
 - tinygrad CUDA backend is not optimized for Blackwell architecture
 - Training code requires PyTorch (not included in base openpilot env)
-- Models: `driving_supercombo.onnx` (combined vision+policy), `big_driving_supercombo.onnx`, `dmonitoring_model.onnx`
+- Models: `driving_supercombo.onnx` (combined vision+policy), `dmonitoring_model.onnx`. The chestnut big model ships only as a compiled `big_driving_tinygrad.pkl` LFS artifact since 0.11.2; its ONNX is no longer in-tree
+- ONNX metadata parsing lives in `openpilot/tools/dgx/model_metadata.py` (upstream deleted `get_model_metadata.py` in 0.11.2)

@@ -71,7 +71,7 @@ class TestGPUDetection:
     assert gpu is not None
 
     # All modern GPUs should support FP16
-    assert gpu.supports_fp16
+    assert gpu.supports_fp16()
 
   @requires_gpu
   def test_best_gpu_selection(self):
@@ -213,7 +213,7 @@ class TestSupercomboContract:
   def metadata(self) -> dict:
     if not self.MODEL_PATH.exists():
       pytest.skip(f"{self.MODEL_PATH} not found")
-    from openpilot.selfdrive.modeld.get_model_metadata import make_metadata_dict
+    from openpilot.tools.dgx.model_metadata import make_metadata_dict
 
     try:
       return make_metadata_dict(self.MODEL_PATH)
