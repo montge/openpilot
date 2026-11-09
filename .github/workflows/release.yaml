@@ -20,14 +20,14 @@ jobs:
     steps:
     - name: Wait for green check mark
       if: ${{ github.event_name == 'schedule' }}
-      uses: lewagon/wait-on-check-action@1d57e2c51a58d812d2765e036a028b6bdb5a6154
+      uses: lewagon/wait-on-check-action@369769072fe522a3a8a85c03c96af1e5242a1994
       with:
         ref: master
         wait-interval: 30
         running-workflow-name: 'build master-ci'
         repo-token: ${{ secrets.GITHUB_TOKEN }}
         check-regexp: ^((?!.*(build prebuilt|create badges).*).)*$
-    - uses: actions/checkout@v4 # checkout version > v4 breaks nightly release script
+    - uses: actions/checkout@v7 # checkout version > v4 breaks nightly release script
       with:
         submodules: true
         fetch-depth: 0
